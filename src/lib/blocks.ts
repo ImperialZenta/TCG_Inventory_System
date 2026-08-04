@@ -1,13 +1,16 @@
+import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import type { Bin, Block, CardLine, Shelf } from "@prisma/client";
+
+type TransactionClient = Prisma.TransactionClient;
 
 export type BlockWithRelations = Block & {
   bin: (Bin & { shelf: Shelf | null }) | null;
   cards: CardLine[];
 };
 
-export async function getNextBlockId(): Promise<string> {
-  const seq = await db.blockSequence.upsert({
+export async function allocateNextBlockId(client: TransactionClient | typeof db = db): Promise<string> {
+  const seq = await client.blockSequence.upsert({
     where: { id: "mtg" },
     update: { nextNum: { increment: 1 } },
     create: { id: "mtg", nextNum: 2, prefix: "MTG" },
@@ -15,6 +18,10 @@ export async function getNextBlockId(): Promise<string> {
 
   const num = seq.nextNum - 1;
   return `${seq.prefix}-${String(num).padStart(4, "0")}`;
+}
+
+export async function getNextBlockId(): Promise<string> {
+  return allocateNextBlockId(db);
 }
 
 export async function suggestNextShelfCode(): Promise<string> {

@@ -105,6 +105,6 @@ Dockerfile
 
 See [docs/BACKLOG.md](docs/BACKLOG.md) for the full prioritized backlog.
 
-**Implemented:** Docker stack, Shelf/Bin/Block model, settings, backup export, Mana Pool CSV export from blocks
+**Implemented:** Docker stack, Shelf/Bin/Block model, settings, backup export/restore, Mana Pool CSV export, **ManaBox staging upload and formalize**
 
-**Next:** Staging CSV upload, block breakdown, Mana Pool order import, pick lists
+**Next:** Block activation (seal workflow), Mana Pool order import, pick lists
