@@ -1,0 +1,41 @@
+export const STALE_BLOCK_DAYS = Number(process.env.STALE_BLOCK_DAYS ?? 90);
+
+export const AGING_BUCKETS = [
+  { label: "0–30 days", min: 0, max: 30 },
+  { label: "31–60 days", min: 31, max: 60 },
+  { label: "61–90 days", min: 61, max: 90 },
+  { label: "90+ days", min: 91, max: Infinity },
+] as const;
+
+export const BLOCK_STATUS_LABELS: Record<string, string> = {
+  OPEN: "Open",
+  SEALED: "Sealed",
+  ACTIVE: "Active",
+  ARCHIVED: "Archived",
+  LIQUIDATED: "Liquidated",
+};
+
+export const BLOCK_TIER_LABELS: Record<string, string> = {
+  GENERAL: "General",
+  BULK_COMMONS: "Bulk Commons",
+  TRADE_IN: "Trade-In",
+  MYSTERY_ELIGIBLE: "Mystery Eligible",
+  HIGH_VALUE_HOLD: "High Value Hold",
+};
+
+export const CONDITION_LABELS: Record<string, string> = {
+  NM: "Near Mint",
+  LP: "Lightly Played",
+  MP: "Moderately Played",
+  HP: "Heavily Played",
+  DMG: "Damaged",
+};
+
+export const NAV_ITEMS = [
+  { href: "/", label: "Dashboard" },
+  { href: "/blocks", label: "Blocks" },
+  { href: "/intake", label: "Intake" },
+  { href: "/inventory", label: "Inventory" },
+  { href: "/pick", label: "Pick Lists" },
+  { href: "/analytics", label: "Analytics" },
+] as const;

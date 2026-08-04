@@ -1,0 +1,170 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Physical storage
+// ---------------------------------------------------------------------------
+
+model Location {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  zone      String?
+  shelf     String?
+  slot      String?
+  label     String?
+  blocks    Block[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// Chaos blocks — the core inventory unit
+// ---------------------------------------------------------------------------
+
+enum BlockStatus {
+  OPEN
+  SEALED
+  ACTIVE
+  ARCHIVED
+  LIQUIDATED
+}
+
+enum BlockTier {
+  GENERAL
+  BULK_COMMONS
+  TRADE_IN
+  MYSTERY_ELIGIBLE
+  HIGH_VALUE_HOLD
+}
+
+model Block {
+  id          String      @id @default(cuid())
+  blockId     String      @unique // Human-readable ID, e.g. MTG-0001
+  label       String?
+  status      BlockStatus @default(OPEN)
+  tier        BlockTier   @default(GENERAL)
+  locationId  String?
+  location    Location?   @relation(fields: [locationId], references: [id])
+  packedAt    DateTime    @default(now())
+  sealedAt    DateTime?
+  lastPickAt  DateTime?
+  targetCount Int?
+  notes       String?
+  cards       CardLine[]
+  pickItems   PickItem[]
+  auditLogs   AuditLog[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([status])
+  @@index([lastPickAt])
+  @@index([packedAt])
+}
+
+// ---------------------------------------------------------------------------
+// Cards inside blocks
+// ---------------------------------------------------------------------------
+
+enum Condition {
+  NM
+  LP
+  MP
+  HP
+  DMG
+}
+
+enum Finish {
+  NONFOIL
+  FOIL
+  ETCHED
+}
+
+model CardLine {
+  id              String     @id @default(cuid())
+  blockId         String
+  block           Block      @relation(fields: [blockId], references: [id], onDelete: Cascade)
+  scryfallId      String?
+  name            String
+  setCode         String
+  collectorNumber String?
+  finish          Finish     @default(NONFOIL)
+  language        String     @default("en")
+  condition       Condition  @default(NM)
+  quantity        Int        @default(1)
+  isBulkLine      Boolean    @default(false)
+  bulkDescription String?
+  priceUsd        Float?
+  imageUri        String?
+  addedAt         DateTime   @default(now())
+  pickItems       PickItem[]
+
+  @@index([name])
+  @@index([setCode])
+  @@index([scryfallId])
+}
+
+// ---------------------------------------------------------------------------
+// Picking & fulfillment
+// ---------------------------------------------------------------------------
+
+enum PickStatus {
+  PENDING
+  PICKED
+  SHORT
+  SUBSTITUTED
+}
+
+model PickList {
+  id          String     @id @default(cuid())
+  reference   String?
+  status      String     @default("open")
+  items       PickItem[]
+  createdAt   DateTime   @default(now())
+  completedAt DateTime?
+}
+
+model PickItem {
+  id         String     @id @default(cuid())
+  pickListId String
+  pickList   PickList   @relation(fields: [pickListId], references: [id], onDelete: Cascade)
+  cardLineId String
+  cardLine   CardLine   @relation(fields: [cardLineId], references: [id])
+  blockId    String
+  block      Block      @relation(fields: [blockId], references: [id])
+  quantity   Int        @default(1)
+  status     PickStatus @default(PENDING)
+  notes      String?
+}
+
+// ---------------------------------------------------------------------------
+// Audit trail
+// ---------------------------------------------------------------------------
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  blockId   String?
+  block     Block?   @relation(fields: [blockId], references: [id])
+  action    String
+  details   String?
+  actor     String?
+  createdAt DateTime @default(now())
+
+  @@index([blockId])
+  @@index([createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Sequence counter for block IDs
+// ---------------------------------------------------------------------------
+
+model BlockSequence {
+  id       String @id @default("mtg")
+  nextNum  Int    @default(1)
+  prefix   String @default("MTG")
+}
