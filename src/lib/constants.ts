@@ -23,6 +23,18 @@ export const BLOCK_TIER_LABELS: Record<string, string> = {
   HIGH_VALUE_HOLD: "High Value Hold",
 };
 
+export const BLOCK_CHANNEL_LABELS: Record<string, string> = {
+  MANAPOOL: "Mana Pool",
+  EBAY: "eBay",
+  TCGPLAYER: "TCGplayer",
+};
+
+export const FINISH_LABELS: Record<string, string> = {
+  NONFOIL: "Non-Foil",
+  FOIL: "Foil",
+  ETCHED: "Etched",
+};
+
 export const CONDITION_LABELS: Record<string, string> = {
   NM: "Near Mint",
   LP: "Lightly Played",
@@ -33,9 +45,11 @@ export const CONDITION_LABELS: Record<string, string> = {
 
 export const NAV_ITEMS = [
   { href: "/", label: "Dashboard" },
+  { href: "/staging", label: "Staging" },
   { href: "/blocks", label: "Blocks" },
-  { href: "/intake", label: "Intake" },
-  { href: "/inventory", label: "Inventory" },
+  { href: "/orders", label: "Orders" },
   { href: "/pick", label: "Pick Lists" },
+  { href: "/inventory", label: "Inventory" },
   { href: "/analytics", label: "Analytics" },
+  { href: "/settings", label: "Settings" },
 ] as const;

@@ -37,6 +37,10 @@ yarn-error.log*
 /prisma/*.db
 /prisma/*.db-journal
 
+# docker-mounted local backups
+/backups/*
+!/backups/.gitkeep
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

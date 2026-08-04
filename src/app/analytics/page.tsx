@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { PageHeader, EmptyState } from "@/components/page-header";
-import { getBlocksWithStats, getAgingBucketCounts, getStaleBlocks } from "@/lib/blocks";
+import { getBlocksWithStats, getAgingBucketCounts, getStaleBlocks, getLocationLabel } from "@/lib/blocks";
 import { STALE_BLOCK_DAYS } from "@/lib/constants";
 import { formatCurrency, daysSince } from "@/lib/utils";
 
@@ -89,7 +89,7 @@ export default async function AnalyticsPage() {
                       <div>
                         <p className="font-mono text-zinc-100">{block.blockId}</p>
                         <p className="text-sm text-zinc-400">
-                          {block.location?.code ?? "No location"} · {block.cardCount} cards ·{" "}
+                          {getLocationLabel(block)} · {block.cardCount} cards ·{" "}
                           {formatCurrency(block.estimatedValue)}
                         </p>
                       </div>

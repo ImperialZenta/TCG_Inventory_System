@@ -1,8 +1,16 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { PageHeader, Badge } from "@/components/page-header";
 import { db } from "@/lib/db";
-import { BLOCK_STATUS_LABELS, BLOCK_TIER_LABELS, CONDITION_LABELS } from "@/lib/constants";
+import {
+  BLOCK_CHANNEL_LABELS,
+  BLOCK_STATUS_LABELS,
+  BLOCK_TIER_LABELS,
+  CONDITION_LABELS,
+  FINISH_LABELS,
+} from "@/lib/constants";
+import { getLocationLabel } from "@/lib/blocks";
+import { aggregateCardLinesForListing, toManaPoolCsv } from "@/lib/manapool/csv-export";
 import { formatCurrency, formatDate, daysSince } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -17,7 +25,7 @@ export default async function BlockDetailPage({ params }: BlockDetailPageProps) 
   const block = await db.block.findUnique({
     where: { blockId },
     include: {
-      location: true,
+      bin: { include: { shelf: true } },
       cards: { orderBy: { addedAt: "desc" } },
       auditLogs: { orderBy: { createdAt: "desc" }, take: 10 },
     },
@@ -31,6 +39,8 @@ export default async function BlockDetailPage({ params }: BlockDetailPageProps) 
     0,
   );
   const idleDays = daysSince(block.lastPickAt ?? block.sealedAt ?? block.packedAt);
+  const listingRows = aggregateCardLinesForListing(block.cards);
+  const csvPreview = listingRows.length > 0 ? toManaPoolCsv(listingRows) : null;
 
   return (
     <>
@@ -51,7 +61,7 @@ export default async function BlockDetailPage({ params }: BlockDetailPageProps) 
         </div>
         <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-4">
           <p className="text-xs text-zinc-500">Location</p>
-          <p className="mt-1 font-mono text-zinc-100">{block.location?.code ?? "Unassigned"}</p>
+          <p className="mt-1 font-mono text-zinc-100">{getLocationLabel(block)}</p>
         </div>
         <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-4">
           <p className="text-xs text-zinc-500">Cards / Value</p>
@@ -60,12 +70,33 @@ export default async function BlockDetailPage({ params }: BlockDetailPageProps) 
           </p>
         </div>
         <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-4">
-          <p className="text-xs text-zinc-500">Idle</p>
-          <p className={`mt-1 ${idleDays !== null && idleDays >= 90 ? "text-amber-400" : "text-zinc-100"}`}>
-            {idleDays !== null ? `${idleDays} days` : "—"}
+          <p className="text-xs text-zinc-500">Channel / Idle</p>
+          <p className="mt-1 text-zinc-100">
+            {BLOCK_CHANNEL_LABELS[block.channel]} ·{" "}
+            {idleDays !== null ? `${idleDays}d` : "—"}
           </p>
         </div>
       </div>
+
+      {csvPreview && (
+        <section className="mb-8 rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-medium text-zinc-100">Mana Pool listing export</h2>
+              <p className="mt-1 text-sm text-zinc-400">
+                {listingRows.length} listing row(s). Edit prices in the CSV before importing to
+                Mana Pool.
+              </p>
+            </div>
+            <a
+              href={`/api/blocks/${block.blockId}/export-csv`}
+              className="inline-flex rounded-lg bg-amber-500 px-4 py-2 text-sm font-medium text-zinc-950"
+            >
+              Download CSV
+            </a>
+          </div>
+        </section>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-3">
         <section className="lg:col-span-2">
@@ -76,9 +107,8 @@ export default async function BlockDetailPage({ params }: BlockDetailPageProps) 
                 <tr>
                   <th className="px-4 py-3 font-medium">Card</th>
                   <th className="px-4 py-3 font-medium">Set</th>
-                  <th className="px-4 py-3 font-medium">Condition</th>
+                  <th className="px-4 py-3 font-medium">Cond / Finish / Lang</th>
                   <th className="px-4 py-3 font-medium text-right">Qty</th>
-                  <th className="px-4 py-3 font-medium text-right">Price</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-800">
@@ -91,11 +121,11 @@ export default async function BlockDetailPage({ params }: BlockDetailPageProps) 
                       )}
                     </td>
                     <td className="px-4 py-3 font-mono uppercase text-zinc-400">{card.setCode}</td>
-                    <td className="px-4 py-3 text-zinc-400">{CONDITION_LABELS[card.condition]}</td>
-                    <td className="px-4 py-3 text-right font-mono">{card.quantity}</td>
-                    <td className="px-4 py-3 text-right font-mono">
-                      {card.priceUsd != null ? formatCurrency(card.priceUsd) : "—"}
+                    <td className="px-4 py-3 text-zinc-400">
+                      {CONDITION_LABELS[card.condition]} / {FINISH_LABELS[card.finish]} /{" "}
+                      {card.language.toUpperCase()}
                     </td>
+                    <td className="px-4 py-3 text-right font-mono">{card.quantity}</td>
                   </tr>
                 ))}
               </tbody>
@@ -111,6 +141,10 @@ export default async function BlockDetailPage({ params }: BlockDetailPageProps) 
               <dd className="text-zinc-200">{BLOCK_TIER_LABELS[block.tier]}</dd>
             </div>
             <div>
+              <dt className="text-zinc-500">Bin capacity</dt>
+              <dd className="text-zinc-200">{block.bin?.capacity ?? "—"} blocks max</dd>
+            </div>
+            <div>
               <dt className="text-zinc-500">Packed</dt>
               <dd className="text-zinc-200">{formatDate(block.packedAt)}</dd>
             </div>
@@ -119,30 +153,14 @@ export default async function BlockDetailPage({ params }: BlockDetailPageProps) 
               <dd className="text-zinc-200">{formatDate(block.sealedAt)}</dd>
             </div>
             <div>
-              <dt className="text-zinc-500">Last Pick</dt>
+              <dt className="text-zinc-500">Activated (Mana Pool)</dt>
+              <dd className="text-zinc-200">{formatDate(block.activatedAt)}</dd>
+            </div>
+            <div>
+              <dt className="text-zinc-500">Last pick</dt>
               <dd className="text-zinc-200">{formatDate(block.lastPickAt)}</dd>
             </div>
-            {block.notes && (
-              <div>
-                <dt className="text-zinc-500">Notes</dt>
-                <dd className="text-zinc-200">{block.notes}</dd>
-              </div>
-            )}
           </dl>
-
-          {block.auditLogs.length > 0 && (
-            <>
-              <h2 className="mb-4 mt-6 text-lg font-medium text-zinc-100">Recent Activity</h2>
-              <ul className="space-y-2 text-sm">
-                {block.auditLogs.map((log) => (
-                  <li key={log.id} className="rounded-lg border border-zinc-800 px-3 py-2">
-                    <p className="text-zinc-200">{log.action}</p>
-                    <p className="text-xs text-zinc-500">{formatDate(log.createdAt)}</p>
-                  </li>
-                ))}
-              </ul>
-            </>
-          )}
         </section>
       </div>
     </>

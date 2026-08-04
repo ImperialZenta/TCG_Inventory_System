@@ -3,28 +3,57 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
 // ---------------------------------------------------------------------------
-// Physical storage
+// Reference data
 // ---------------------------------------------------------------------------
 
-model Location {
+model Language {
+  scryfallCode String  @id
+  manapoolCode String?
+  label        String
+  localOnly    Boolean @default(false)
+}
+
+// ---------------------------------------------------------------------------
+// Physical storage: Shelf → Bin → Block
+// ---------------------------------------------------------------------------
+
+model Shelf {
   id        String   @id @default(cuid())
   code      String   @unique
-  zone      String?
-  shelf     String?
-  slot      String?
   label     String?
-  blocks    Block[]
+  sortOrder Int      @default(0)
+  bins      Bin[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
+model Bin {
+  id        String   @id @default(cuid())
+  binId     String   @unique
+  shelfId   String?
+  shelf     Shelf?   @relation(fields: [shelfId], references: [id], onDelete: SetNull)
+  capacity  Int      @default(4)
+  label     String?
+  sortOrder Int      @default(0)
+  blocks    Block[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([shelfId])
+}
+
+model BinSequence {
+  id      String @id @default("default")
+  nextNum Int    @default(1)
+}
+
 // ---------------------------------------------------------------------------
-// Chaos blocks — the core inventory unit
+// Chaos blocks
 // ---------------------------------------------------------------------------
 
 enum BlockStatus {
@@ -43,33 +72,39 @@ enum BlockTier {
   HIGH_VALUE_HOLD
 }
 
+enum BlockChannel {
+  MANAPOOL
+  EBAY
+  TCGPLAYER
+}
+
 model Block {
-  id          String      @id @default(cuid())
-  blockId     String      @unique // Human-readable ID, e.g. MTG-0001
+  id          String       @id @default(cuid())
+  blockId     String       @unique
   label       String?
-  status      BlockStatus @default(OPEN)
-  tier        BlockTier   @default(GENERAL)
-  locationId  String?
-  location    Location?   @relation(fields: [locationId], references: [id])
-  packedAt    DateTime    @default(now())
+  status      BlockStatus  @default(OPEN)
+  tier        BlockTier    @default(GENERAL)
+  channel     BlockChannel @default(MANAPOOL)
+  binId       String?
+  bin         Bin?         @relation(fields: [binId], references: [id])
+  packedAt    DateTime     @default(now())
   sealedAt    DateTime?
   lastPickAt  DateTime?
+  activatedAt DateTime?
   targetCount Int?
   notes       String?
   cards       CardLine[]
   pickItems   PickItem[]
   auditLogs   AuditLog[]
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
 
   @@index([status])
+  @@index([channel])
   @@index([lastPickAt])
   @@index([packedAt])
+  @@index([binId])
 }
-
-// ---------------------------------------------------------------------------
-// Cards inside blocks
-// ---------------------------------------------------------------------------
 
 enum Condition {
   NM
@@ -107,10 +142,89 @@ model CardLine {
   @@index([name])
   @@index([setCode])
   @@index([scryfallId])
+  @@index([language, condition, finish])
 }
 
 // ---------------------------------------------------------------------------
-// Picking & fulfillment
+// Staging (pre-block intake)
+// ---------------------------------------------------------------------------
+
+enum StagingImportStatus {
+  PARSED
+  ASSIGNED
+  ARCHIVED
+}
+
+model StagingImport {
+  id         String              @id @default(cuid())
+  filename   String
+  rowCount   Int                 @default(0)
+  status     StagingImportStatus @default(PARSED)
+  targetCount Int?
+  cards      StagingCard[]
+  createdAt  DateTime            @default(now())
+}
+
+model StagingCard {
+  id              String        @id @default(cuid())
+  stagingImportId String
+  stagingImport   StagingImport @relation(fields: [stagingImportId], references: [id], onDelete: Cascade)
+  scryfallId      String?
+  name            String
+  setCode         String
+  collectorNumber String?
+  finish          Finish        @default(NONFOIL)
+  language        String        @default("en")
+  condition       Condition     @default(NM)
+  quantity        Int           @default(1)
+  suggestedBlock  Int?
+  assignedBlockId String?
+  sourceRow       Int?
+  createdAt       DateTime      @default(now())
+
+  @@index([stagingImportId])
+}
+
+// ---------------------------------------------------------------------------
+// Mana Pool orders (cached for offline picking)
+// ---------------------------------------------------------------------------
+
+enum ExternalOrderStatus {
+  IMPORTED
+  PICKING
+  PICKED
+  CANCELLED
+}
+
+model ExternalOrder {
+  id              String              @id @default(cuid())
+  manapoolOrderId String              @unique
+  reference       String?
+  status          ExternalOrderStatus @default(IMPORTED)
+  importedAt      DateTime            @default(now())
+  pickedAt        DateTime?
+  lines           ExternalOrderLine[]
+  pickListId      String?
+  pickList        PickList?           @relation(fields: [pickListId], references: [id])
+}
+
+model ExternalOrderLine {
+  id              String        @id @default(cuid())
+  externalOrderId String
+  externalOrder   ExternalOrder @relation(fields: [externalOrderId], references: [id], onDelete: Cascade)
+  scryfallId      String?
+  name            String
+  setCode         String?
+  condition       Condition     @default(NM)
+  finish          Finish        @default(NONFOIL)
+  language        String        @default("en")
+  quantity        Int           @default(1)
+  priceCents      Int?
+  manapoolLineId  String?
+}
+
+// ---------------------------------------------------------------------------
+// Picking
 // ---------------------------------------------------------------------------
 
 enum PickStatus {
@@ -120,30 +234,55 @@ enum PickStatus {
   SUBSTITUTED
 }
 
+enum PickListStatus {
+  OPEN
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
 model PickList {
-  id          String     @id @default(cuid())
-  reference   String?
-  status      String     @default("open")
+  id          String         @id @default(cuid())
+  pickListId  String         @unique
+  status      PickListStatus @default(OPEN)
+  pickerCount Int            @default(1)
   items       PickItem[]
-  createdAt   DateTime   @default(now())
+  waves       PickWave[]
+  orders      ExternalOrder[]
+  createdAt   DateTime       @default(now())
   completedAt DateTime?
 }
 
-model PickItem {
+model PickWave {
   id         String     @id @default(cuid())
   pickListId String
   pickList   PickList   @relation(fields: [pickListId], references: [id], onDelete: Cascade)
-  cardLineId String
-  cardLine   CardLine   @relation(fields: [cardLineId], references: [id])
-  blockId    String
-  block      Block      @relation(fields: [blockId], references: [id])
-  quantity   Int        @default(1)
-  status     PickStatus @default(PENDING)
-  notes      String?
+  waveNumber Int
+  label      String?
+  items      PickItem[]
+}
+
+model PickItem {
+  id              String     @id @default(cuid())
+  pickListId      String
+  pickList        PickList   @relation(fields: [pickListId], references: [id], onDelete: Cascade)
+  pickWaveId      String?
+  pickWave        PickWave?  @relation(fields: [pickWaveId], references: [id])
+  cardLineId      String
+  cardLine        CardLine   @relation(fields: [cardLineId], references: [id])
+  blockId         String
+  block           Block      @relation(fields: [blockId], references: [id])
+  externalOrderId String?
+  quantity        Int        @default(1)
+  status          PickStatus @default(PENDING)
+  notes           String?
+
+  @@index([pickListId])
+  @@index([blockId])
 }
 
 // ---------------------------------------------------------------------------
-// Audit trail
+// Audit
 // ---------------------------------------------------------------------------
 
 model AuditLog {
@@ -159,12 +298,19 @@ model AuditLog {
   @@index([createdAt])
 }
 
-// ---------------------------------------------------------------------------
-// Sequence counter for block IDs
-// ---------------------------------------------------------------------------
-
 model BlockSequence {
-  id       String @id @default("mtg")
-  nextNum  Int    @default(1)
-  prefix   String @default("MTG")
+  id      String @id @default("mtg")
+  nextNum Int    @default(1)
+  prefix  String @default("MTG")
+}
+
+model PickListSequence {
+  id      String @id @default("pick")
+  nextNum Int    @default(1)
+  prefix  String @default("PICK")
+}
+
+model AppSetting {
+  key   String @id
+  value String
 }

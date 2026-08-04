@@ -1,0 +1,118 @@
+import Link from "next/link";
+import { PageHeader } from "@/components/page-header";
+import { getShelvesWithBins, getBinUtilization } from "@/lib/location";
+import { db } from "@/lib/db";
+import { SuggestedIds } from "./suggested-ids";
+import { TargetCountForm } from "./target-count-form";
+import { AddShelfForm } from "./add-shelf-form";
+import { AddBinForm } from "./add-bin-form";
+import { DangerZone } from "./danger-zone";
+import { RestoreBackupForm } from "@/components/restore-backup-form";
+import { restoreBackupAction } from "./restore-actions";
+
+export const dynamic = "force-dynamic";
+
+export default async function SettingsPage() {
+  let shelves: Awaited<ReturnType<typeof getShelvesWithBins>> = [];
+  let bins: Awaited<ReturnType<typeof getBinUtilization>> = [];
+  let targetCount = "200";
+  let dbError = false;
+
+  try {
+    [shelves, bins] = await Promise.all([getShelvesWithBins(), getBinUtilization()]);
+    const setting = await db.appSetting.findUnique({
+      where: { key: "default_staging_target_count" },
+    });
+    targetCount = setting?.value ?? "200";
+  } catch {
+    dbError = true;
+  }
+
+  return (
+    <>
+      <PageHeader
+        title="Settings"
+        description="Configure shelves, bins, staging defaults, backups, and Mana Pool credentials."
+      />
+
+      {dbError && (
+        <div className="mb-6 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+          Database not ready. Run migrations and seed — see README Docker section.
+        </div>
+      )}
+
+      <div className="grid gap-8 lg:grid-cols-2">
+        <section className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">
+          <h2 className="text-lg font-medium text-zinc-100">Shelves & Bins</h2>
+          <p className="mt-1 text-sm text-zinc-400">
+            Shelf code → Bin ID → Block. Set bin capacity for your physical bin shapes.
+          </p>
+
+          <SuggestedIds shelves={shelves} />
+
+          <AddShelfForm />
+          <AddBinForm shelves={shelves} />
+        </section>
+
+        <div className="space-y-8">
+          <section className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">
+            <h2 className="text-lg font-medium text-zinc-100">Bin utilization</h2>
+            <div className="mt-4 space-y-2">
+              {bins.length === 0 ? (
+                <p className="text-sm text-zinc-500">No bins configured yet.</p>
+              ) : (
+                bins.map((bin) => (
+                  <div
+                    key={bin.id}
+                    className="flex items-center justify-between rounded-lg border border-zinc-800 px-3 py-2 text-sm"
+                  >
+                    <div>
+                      <span className="font-mono text-zinc-100">{bin.binId}</span>
+                      <span className="ml-2 text-zinc-500">{bin.shelf?.code ?? "Unassigned"}</span>
+                    </div>
+                    <span className={bin.isFull ? "text-amber-400" : "text-zinc-400"}>
+                      {bin.used}/{bin.capacity} blocks
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
+          </section>
+
+          <section className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">
+            <h2 className="text-lg font-medium text-zinc-100">Staging defaults</h2>
+            <TargetCountForm targetCount={targetCount} />
+          </section>
+
+          <section className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">
+            <h2 className="text-lg font-medium text-zinc-100">Backup & credentials</h2>
+            <p className="mt-1 text-sm text-zinc-400">
+              Export all inventory data as JSON. Mana Pool API credentials go in your{" "}
+              <code className="text-amber-400">.env</code> file.
+            </p>
+            <div className="mt-4 space-y-2 text-sm text-zinc-400">
+              <p>
+                <code className="text-zinc-300">MANAPOOL_EMAIL</code> — seller account email
+              </p>
+              <p>
+                <code className="text-zinc-300">MANAPOOL_API_TOKEN</code> — from Mana Pool account
+              </p>
+            </div>
+            <Link
+              href="/api/backup/export"
+              className="mt-4 inline-flex rounded-lg bg-zinc-100 px-4 py-2 text-sm font-medium text-zinc-900"
+            >
+              Download backup JSON
+            </Link>
+
+            <RestoreBackupForm action={restoreBackupAction} />
+          </section>
+        </div>
+      </div>
+
+      <div className="mt-8">
+        <DangerZone />
+      </div>
+    </>
+  );
+}

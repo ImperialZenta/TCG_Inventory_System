@@ -15,7 +15,8 @@ export interface BlockSummary {
   label: string | null;
   status: BlockStatus;
   tier: BlockTier;
-  locationCode: string | null;
+  binCode: string | null;
+  shelfCode: string | null;
   cardCount: number;
   estimatedValue: number;
   packedAt: string;

@@ -1,120 +1,110 @@
 # TCG Chaos Inventory System
 
-Block-based chaos inventory for **Magic: The Gathering**. Pack mixed cards into numbered blocks, track physical locations, generate pick lists, and monitor aging inventory.
+Block-based chaos inventory for **Magic: The Gathering**. Stage cards via ManaBox CSV, formalize into blocks on shelves and bins, export Mana Pool listings, import orders, and pick by location.
 
 ## Stack
 
 - **Next.js 15** (App Router) + TypeScript
-- **Prisma** + SQLite (dev) — swap to PostgreSQL for production
+- **Prisma** + **PostgreSQL 16** (Docker)
 - **Tailwind CSS 4**
 - **Scryfall API** for MTG card catalog
 
-## Getting Started
+## Prerequisites
 
-### Prerequisites
+- [Docker Desktop](https://docs.docker.com/desktop/setup/install/windows-install/) running
+- Verify: `docker run hello-world`
 
-- Node.js 20+
-- npm
+## Quick Start (Docker)
 
-### Setup
-
-```bash
-# Install dependencies
-npm install
+```powershell
+cd C:\AI\TCG_Inventory_System
 
 # Copy environment file
-cp .env.example .env
+copy .env.example .env
 
-# Create database and generate Prisma client
-npm run db:push
+# Build and start (first run takes several minutes)
+docker compose up --build
 
-# Seed sample blocks and locations
-npm run db:seed
-
-# Start dev server
-npm run dev
+# In a second terminal — seed sample shelves, bins, and blocks
+docker compose exec app npm run db:seed
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
 
-### Scripts
+### Day-to-day commands
 
-| Command | Description |
-|---------|-------------|
-| `npm run dev` | Start development server |
-| `npm run build` | Production build |
-| `npm run db:push` | Sync Prisma schema to database |
-| `npm run db:migrate` | Create migration (production) |
-| `npm run db:seed` | Seed sample data |
-| `npm run db:studio` | Open Prisma Studio |
+| Task | Command |
+|------|---------|
+| Start | `docker compose up` |
+| Start (background) | `docker compose up -d` |
+| Stop | `docker compose down` |
+| Rebuild after code changes | `docker compose up --build` |
+| View logs | `docker compose logs -f app` |
+| Seed / re-seed | `docker compose exec app npm run db:seed` |
+| Prisma Studio | `docker compose exec app npx prisma studio` |
+| Backup JSON | Settings → Download backup, or `/api/backup/export` |
+| Restore backup | Settings → Backup section → upload JSON, type `RESTORE` |
 
-## Project Structure
+**Data persistence:** Inventory lives in the `pgdata` Docker volume. `docker compose down` keeps data. `docker compose down -v` wipes it.
+
+## Local development (without Docker)
+
+Requires Node.js 20+ and a PostgreSQL instance.
+
+```bash
+npm install
+copy .env.example .env   # set DATABASE_URL to your Postgres
+npm run db:push
+npm run db:seed
+npm run dev
+```
+
+## Workflow overview
+
+1. **Settings** — Configure shelves, bins (with block capacity), staging target count
+2. **Staging** — Upload ManaBox CSV (Phase 2); system suggests block breakdown
+3. **Blocks** — Formalized chaos inventory with Scryfall ID + condition + finish + language
+4. **Block detail** — Download Mana Pool listing CSV (edit prices, import at manapool.com)
+5. **Orders** — Import Mana Pool orders via API (Phase 4)
+6. **Pick lists** — Location-sorted picking (Phase 4)
+
+## Environment variables
+
+| Variable | Description |
+|----------|-------------|
+| `DATABASE_URL` | PostgreSQL connection string |
+| `STALE_BLOCK_DAYS` | Days without pick before block is stale (default 90) |
+| `MANAPOOL_EMAIL` | Mana Pool seller email (optional, for API) |
+| `MANAPOOL_API_TOKEN` | Mana Pool API token (optional) |
+| `RUN_SEED` | Set `true` on container start to auto-seed |
+
+## Project structure
 
 ```
 src/
-├── app/                  # Next.js routes
-│   ├── page.tsx          # Dashboard
-│   ├── blocks/           # Block list + detail
-│   ├── intake/           # Pack new blocks (stub)
-│   ├── inventory/        # Card search (stub)
-│   ├── pick/             # Pick lists (stub)
-│   ├── analytics/        # Aging analytics
-│   └── api/cards/search/ # Scryfall proxy
-├── components/           # UI components
-├── lib/                  # DB, Scryfall, block helpers
-└── types/                # Shared TypeScript types
-
+├── app/
+│   ├── staging/          # ManaBox CSV intake (Phase 2)
+│   ├── blocks/           # Block list + detail + CSV export
+│   ├── orders/           # Mana Pool order import (Phase 4)
+│   ├── pick/             # Pick lists (Phase 4)
+│   ├── settings/         # Shelves, bins, backup
+│   └── api/backup/       # JSON export
+├── lib/
+│   ├── blocks.ts         # Block stats, pick routing
+│   ├── location.ts       # Shelf/bin helpers
+│   ├── languages.ts      # Scryfall ↔ Mana Pool mapping
+│   └── manapool/         # CSV export, API client (Phase 4)
 prisma/
-├── schema.prisma         # Data model
+├── schema.prisma         # PostgreSQL schema
 └── seed.ts               # Sample data
+docker-compose.yml
+Dockerfile
 ```
 
-## Core Concepts
-
-### Chaos Blocks
-
-Cards are stored in mixed physical containers (blocks) without sorting by set or name. Each block gets a human-readable ID (`MTG-0001`), a shelf location, and lifecycle status (`OPEN` → `SEALED` → `ACTIVE`).
-
-### Block Aging
-
-Analytics track **days since last pick** per block. Blocks idle past the threshold (default 90 days) surface on the dashboard and analytics page for review — sort, bundle, or liquidate.
-
-### Data Model
-
-| Entity | Purpose |
-|--------|---------|
-| `Block` | Physical chaos container |
-| `Location` | Shelf/zone/slot address |
-| `CardLine` | Card or bulk line inside a block |
-| `PickList` / `PickItem` | Order fulfillment |
-| `AuditLog` | Change history |
-
-See `prisma/schema.prisma` for the full schema.
-
-## Phase 1 Roadmap
+## Roadmap
 
 See [docs/BACKLOG.md](docs/BACKLOG.md) for the full prioritized backlog.
 
-**MVP (scaffolded):**
-- Block + location data model
-- Dashboard with aging stats
-- Block list and detail views
-- Analytics page (stale blocks, aging buckets)
-- Scryfall search API route
+**Implemented:** Docker stack, Shelf/Bin/Block model, settings, backup export, Mana Pool CSV export from blocks
 
-**Next up:**
-- Intake workflow (pack + seal blocks)
-- Card search across blocks
-- Pick list generation
-- QR label printing
-
-## Environment Variables
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `DATABASE_URL` | `file:./dev.db` | Prisma database connection |
-| `STALE_BLOCK_DAYS` | `90` | Days without pick before block is stale |
-
-## License
-
-Private — all rights reserved.
+**Next:** Staging CSV upload, block breakdown, Mana Pool order import, pick lists
