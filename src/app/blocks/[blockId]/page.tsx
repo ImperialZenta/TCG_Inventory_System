@@ -9,10 +9,11 @@ import {
   CONDITION_LABELS,
   FINISH_LABELS,
 } from "@/lib/constants";
-import { getLocationLabel } from "@/lib/blocks";
+import { getLocationLabel, formatSealedAt, isSealedAtPending } from "@/lib/blocks";
 import { getBinUtilization } from "@/lib/location";
 import { aggregateCardLinesForListing, toManaPoolCsv } from "@/lib/manapool/csv-export";
 import { MoveBlockForm } from "../move-block-form";
+import { SealBlockForm } from "../seal-block-form";
 import { formatCurrency, formatDate, daysSince } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -51,6 +52,8 @@ export default async function BlockDetailPage({ params }: BlockDetailPageProps) 
   const idleDays = daysSince(block.lastPickAt ?? block.sealedAt ?? block.packedAt);
   const listingRows = aggregateCardLinesForListing(block.cards);
   const csvPreview = listingRows.length > 0 ? toManaPoolCsv(listingRows) : null;
+  const canSeal = block.status === "OPEN" && cardCount > 0;
+  const sealedPending = isSealedAtPending(block);
 
   return (
     <>
@@ -67,7 +70,9 @@ export default async function BlockDetailPage({ params }: BlockDetailPageProps) 
       <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-4">
           <p className="text-xs text-zinc-500">Status</p>
-          <Badge>{BLOCK_STATUS_LABELS[block.status]}</Badge>
+          <Badge variant={block.status === "OPEN" ? "warning" : "muted"}>
+            {BLOCK_STATUS_LABELS[block.status]}
+          </Badge>
         </div>
         <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-4">
           <p className="text-xs text-zinc-500">Location</p>
@@ -146,6 +151,19 @@ export default async function BlockDetailPage({ params }: BlockDetailPageProps) 
         </section>
 
         <section className="space-y-6">
+          {canSeal && (
+            <div>
+              <h2 className="mb-4 text-lg font-medium text-zinc-100">Seal block</h2>
+              <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
+                <SealBlockForm
+                  blockId={block.blockId}
+                  cardCount={cardCount}
+                  targetCount={block.targetCount}
+                />
+              </div>
+            </div>
+          )}
+
           <div>
             <h2 className="mb-4 text-lg font-medium text-zinc-100">Move block</h2>
             <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-4">
@@ -170,7 +188,13 @@ export default async function BlockDetailPage({ params }: BlockDetailPageProps) 
               </div>
               <div>
                 <dt className="text-zinc-500">Sealed</dt>
-                <dd className="text-zinc-200">{formatDate(block.sealedAt)}</dd>
+                <dd
+                  className={
+                    sealedPending ? "text-amber-400/90" : "text-zinc-200"
+                  }
+                >
+                  {formatSealedAt(block)}
+                </dd>
               </div>
               <div>
                 <dt className="text-zinc-500">Activated (Mana Pool)</dt>

@@ -22,7 +22,7 @@ Status key: **Done** · **Partial** · **Schema** · **Stub** · **—**
 |----|-------|----------|--------|
 | PL-001 | Docker + PostgreSQL 16 stack | Must | Done |
 | PL-002 | JSON backup export | Must | Done |
-| PL-003 | Full backup restore (wipe + reload, type `RESTORE`) | Must | Done |
+| PL-003 | Full backup restore (wipe + reload, type `RESTORE`); nested FK fix for position-indexed backups | Must | Done |
 | PL-004 | Danger zone deletes (4 tiers, type `DELETE`) | Should | Done |
 | PL-005 | Mana Pool listing CSV export per block | Must | Done |
 | PL-006 | Settings: shelves, bins, staging target, save feedback | Must | Done |
@@ -65,7 +65,7 @@ Status key: **Done** · **Partial** · **Schema** · **Stub** · **—**
 |----|-------|----------|--------|
 | I-001 | Open new block workflow | Must | Stub |
 | I-002 | Add cards via Scryfall search + qty + condition | Must | — |
-| I-003 | Seal block (freeze contents) | Must | — |
+| I-003 | Seal block (freeze contents) | Must | Done |
 | I-004 | Intake session summary | Should | — |
 | I-005 | Quick-add by set code + collector number | Should | — |
 | I-006 | Camera card recognition | Could | — |
@@ -195,7 +195,7 @@ Goal: Manage blocks **after** staging formalize — seal for picking, open manua
 
 | Order | ID | Story | Why now |
 |-------|-----|-------|---------|
-| 1 | I-003 | Seal block (freeze contents) | Locks a packed brick before picks; status OPEN → SEALED |
+| 1 | I-003 | Seal block (freeze contents) | Done — OPEN → SEALED, Unsealed labels in UI |
 | 2 | I-001 | Open new block workflow | Manual block creation outside CSV staging |
 | 3 | I-015 | Remove block by block ID | Safe delete post-formalize; pairs with seal lifecycle |
 | 4 | B-002 | Block lifecycle UI (Partial → Done) | Wire SEALED / ACTIVE / ARCHIVED transitions on block detail |

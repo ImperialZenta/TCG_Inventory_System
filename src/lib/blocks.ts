@@ -1,5 +1,6 @@
-import type { Prisma } from "@prisma/client";
+import type { Prisma, BlockStatus } from "@prisma/client";
 import { db } from "@/lib/db";
+import { formatDate } from "@/lib/utils";
 import type { Bin, Block, CardLine, Shelf } from "@prisma/client";
 
 type TransactionClient = Prisma.TransactionClient;
@@ -76,6 +77,22 @@ export function getLocationLabel(block: BlockWithRelations): string {
   if (!block.bin) return "Unassigned";
   if (!block.bin.shelf) return `Unassigned / ${block.bin.binId}`;
   return `${block.bin.shelf.code} / ${block.bin.binId}`;
+}
+
+export function formatSealedAt(block: {
+  status: BlockStatus;
+  sealedAt: Date | null;
+}): string {
+  if (block.sealedAt) return formatDate(block.sealedAt);
+  if (block.status === "OPEN") return "Not sealed yet";
+  return "—";
+}
+
+export function isSealedAtPending(block: {
+  status: BlockStatus;
+  sealedAt: Date | null;
+}): boolean {
+  return block.status === "OPEN" && !block.sealedAt;
 }
 
 export function getPickSortKey(block: BlockWithRelations): string {

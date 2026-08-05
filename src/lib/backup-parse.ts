@@ -18,6 +18,19 @@ function requireArray(value: unknown, field: string): unknown[] {
   return value;
 }
 
+function normalizeBin(raw: Record<string, unknown>): InventoryBackup["bins"][number] {
+  const bin = raw as unknown as InventoryBackup["bins"][number] & { capacity?: number };
+  return {
+    id: bin.id,
+    binId: bin.binId,
+    shelfId: bin.shelfId,
+    label: bin.label,
+    sortOrder: bin.sortOrder,
+    createdAt: bin.createdAt,
+    updatedAt: bin.updatedAt,
+  };
+}
+
 export function parseBackupJson(raw: string): InventoryBackup {
   let parsed: unknown;
   try {
@@ -50,7 +63,7 @@ export function parseBackupJson(raw: string): InventoryBackup {
     exportedAt: String(parsed.exportedAt ?? ""),
     version: parsed.version,
     shelves: requireArray(parsed.shelves, "shelves") as InventoryBackup["shelves"],
-    bins: requireArray(parsed.bins, "bins") as InventoryBackup["bins"],
+    bins: (requireArray(parsed.bins, "bins") as Record<string, unknown>[]).map(normalizeBin),
     blocks: rawBlocks.map((block) => ({
       ...(block as Omit<InventoryBackup["blocks"][number], "cards">),
       cards: Array.isArray(block.cards)

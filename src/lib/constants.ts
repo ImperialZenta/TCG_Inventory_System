@@ -8,7 +8,7 @@ export const AGING_BUCKETS = [
 ] as const;
 
 export const BLOCK_STATUS_LABELS: Record<string, string> = {
-  OPEN: "Open",
+  OPEN: "Unsealed",
   SEALED: "Sealed",
   ACTIVE: "Active",
   ARCHIVED: "Archived",

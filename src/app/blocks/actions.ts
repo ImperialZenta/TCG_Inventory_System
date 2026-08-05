@@ -74,3 +74,54 @@ export async function moveBlockToBin(
 
   return { ok: true, message: `Moved to ${toLabel}` };
 }
+
+export async function sealBlockAction(
+  _prev: BlockActionResult | null,
+  formData: FormData,
+): Promise<BlockActionResult> {
+  const blockId = (formData.get("blockId") as string)?.trim();
+  if (!blockId) {
+    return { ok: false, message: "Block not found" };
+  }
+
+  const block = await db.block.findUnique({
+    where: { blockId },
+    include: { cards: true },
+  });
+
+  if (!block) {
+    return { ok: false, message: "Block not found" };
+  }
+
+  if (block.status !== "OPEN") {
+    return { ok: false, message: "Block is already sealed or not eligible" };
+  }
+
+  const cardCount = block.cards.reduce((sum, c) => sum + c.quantity, 0);
+  if (cardCount === 0) {
+    return { ok: false, message: "Cannot seal an empty block" };
+  }
+
+  const sealedAt = new Date();
+
+  await db.$transaction([
+    db.block.update({
+      where: { id: block.id },
+      data: { status: "SEALED", sealedAt },
+    }),
+    db.auditLog.create({
+      data: {
+        blockId: block.id,
+        action: "SEALED_BLOCK",
+        details: `${cardCount} card${cardCount === 1 ? "" : "s"}`,
+      },
+    }),
+  ]);
+
+  revalidatePath("/blocks");
+  revalidatePath(`/blocks/${blockId}`);
+  revalidatePath("/");
+  revalidatePath("/analytics");
+
+  return { ok: true, message: "Block sealed" };
+}

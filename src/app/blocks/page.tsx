@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { PageHeader, Badge, EmptyState } from "@/components/page-header";
-import { getBlocksWithStats, getLocationLabel } from "@/lib/blocks";
+import { getBlocksWithStats, getLocationLabel, formatSealedAt, isSealedAtPending } from "@/lib/blocks";
 import {
   BLOCK_CHANNEL_LABELS,
   BLOCK_STATUS_LABELS,
@@ -23,7 +23,7 @@ export default async function BlocksPage() {
     <>
       <PageHeader
         title="Blocks"
-        description="Chaos blocks on shelves and bins — sorted by pick route."
+        description="Chaos blocks on shelves and bins — sorted by pack date (newest first)."
         action={
           <Link
             href="/staging"
@@ -60,6 +60,7 @@ export default async function BlocksPage() {
                 <th className="px-4 py-3 font-medium">Block ID</th>
                 <th className="px-4 py-3 font-medium">Location</th>
                 <th className="px-4 py-3 font-medium">Status</th>
+                <th className="px-4 py-3 font-medium">Sealed</th>
                 <th className="px-4 py-3 font-medium">Channel</th>
                 <th className="px-4 py-3 font-medium text-right">Cards</th>
                 <th className="px-4 py-3 font-medium text-right">Value</th>
@@ -86,9 +87,28 @@ export default async function BlocksPage() {
                       {getLocationLabel(block)}
                     </td>
                     <td className="px-4 py-3">
-                      <Badge variant={block.status === "OPEN" ? "success" : "muted"}>
+                      <Badge
+                        variant={
+                          block.status === "OPEN"
+                            ? "warning"
+                            : block.status === "SEALED"
+                              ? "muted"
+                              : "default"
+                        }
+                      >
                         {BLOCK_STATUS_LABELS[block.status]}
                       </Badge>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={
+                          isSealedAtPending(block)
+                            ? "text-amber-400/90"
+                            : "text-zinc-400"
+                        }
+                      >
+                        {formatSealedAt(block)}
+                      </span>
                     </td>
                     <td className="px-4 py-3 text-zinc-400">
                       {BLOCK_CHANNEL_LABELS[block.channel]}

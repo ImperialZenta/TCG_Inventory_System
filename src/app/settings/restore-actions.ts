@@ -38,6 +38,8 @@ export async function restoreBackupAction(
     if (error instanceof BackupValidationError) {
       return { ok: false, message: error.message };
     }
-    return { ok: false, message: "Restore failed" };
+    console.error("Restore backup failed:", error);
+    const detail = error instanceof Error ? error.message : "Restore failed";
+    return { ok: false, message: detail.slice(0, 200) };
   }
 }

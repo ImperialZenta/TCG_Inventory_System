@@ -59,10 +59,9 @@ function blockData(block: BackupBlock) {
   };
 }
 
-function cardLineData(card: BackupCardLine, fallbackPosition: number) {
+function cardLineNestedData(card: BackupCardLine, fallbackPosition: number) {
   return {
     id: card.id,
-    blockId: card.blockId,
     scryfallId: card.scryfallId,
     name: card.name,
     setCode: card.setCode,
@@ -80,21 +79,9 @@ function cardLineData(card: BackupCardLine, fallbackPosition: number) {
   };
 }
 
-function stagingImportData(stagingImport: BackupStagingImport) {
-  return {
-    id: stagingImport.id,
-    filename: stagingImport.filename,
-    rowCount: stagingImport.rowCount,
-    status: stagingImport.status as Prisma.EnumStagingImportStatusFieldUpdateOperationsInput["set"],
-    targetCount: stagingImport.targetCount,
-    createdAt: stagingImport.createdAt,
-  };
-}
-
-function stagingCardData(card: BackupStagingCard) {
+function stagingCardNestedData(card: BackupStagingCard) {
   return {
     id: card.id,
-    stagingImportId: card.stagingImportId,
     scryfallId: card.scryfallId,
     name: card.name,
     setCode: card.setCode,
@@ -109,6 +96,17 @@ function stagingCardData(card: BackupStagingCard) {
     assignedBlockId: card.assignedBlockId,
     sourceRow: card.sourceRow,
     createdAt: card.createdAt,
+  };
+}
+
+function stagingImportData(stagingImport: BackupStagingImport) {
+  return {
+    id: stagingImport.id,
+    filename: stagingImport.filename,
+    rowCount: stagingImport.rowCount,
+    status: stagingImport.status as Prisma.EnumStagingImportStatusFieldUpdateOperationsInput["set"],
+    targetCount: stagingImport.targetCount,
+    createdAt: stagingImport.createdAt,
   };
 }
 
@@ -173,7 +171,7 @@ async function restoreBackupInTransaction(
       data: {
         ...blockData(block),
         cards: {
-          create: block.cards.map((card, index) => cardLineData(card, index + 1)),
+          create: block.cards.map((card, index) => cardLineNestedData(card, index + 1)),
         },
       },
     });
@@ -184,7 +182,7 @@ async function restoreBackupInTransaction(
       data: {
         ...stagingImportData(stagingImport),
         cards: {
-          create: stagingImport.cards.map((card) => stagingCardData(card)),
+          create: stagingImport.cards.map((card) => stagingCardNestedData(card)),
         },
       },
     });
@@ -201,9 +199,12 @@ export async function restoreInventoryBackup(raw: string): Promise<BackupSummary
   const backup = parseBackupJson(raw);
   const summary = summarizeBackup(backup);
 
-  await db.$transaction(async (tx) => {
-    await restoreBackupInTransaction(tx, backup);
-  });
+  await db.$transaction(
+    async (tx) => {
+      await restoreBackupInTransaction(tx, backup);
+    },
+    { timeout: 120_000 },
+  );
 
   return summary;
 }
