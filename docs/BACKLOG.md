@@ -16,6 +16,69 @@ Status key: **Done** · **Partial** · **Schema** · **Stub** · **—**
 
 ---
 
+## Intake strategy (design context)
+
+**Read this first** when picking up intake or block-creation work. Captures product decisions from trade-in workflow review (Aug 2026).
+
+### Primary path: scan → CSV → staging (Done)
+
+For store trade-ins and bulk chaos packing, **scan-first intake is the preferred workflow** — not manual card lookup in-app.
+
+| Step | Who | Tool |
+|------|-----|------|
+| Identify card + printing | Scanner app | **ManaBox**, **Delver Lens**, or **TCGplayer** mobile / Scan & Identify |
+| Validate condition, catch proxies/counterfeits, adjust wrong matches | **Human staff** | Visual inspection + condition tap at counter |
+| Export identified list | Scanner app | CSV with Scryfall ID (ManaBox native; Delver Lens via export/converters) |
+| Load into chaos system | This app | **Staging** → review breakdown → formalize → blocks |
+
+Industry shop/inventory tools (TCGplayer Scan & Identify, SortSwift, TCG Sync, etc.) optimize for **camera/batch scan → human QC → inventory**, not typing card names from a catalog of tens of thousands of printings. Manual Scryfall search per card does not scale for trade-in volume.
+
+**This app’s staging pipeline (I-009–I-013) is the correct primary intake path.** `/intake` redirects to `/staging` by design.
+
+### Human role at trade-in
+
+Staff are **required** in the middle — but for **validation**, not identification from scratch:
+
+- Set/adjust condition (NM/LP/MP/HP/DMG)
+- Reject or flag proxies and counterfeits (scanners cannot detect these)
+- Correct misidentified printings when the scanner offers candidates
+- Accept/counter the trade and assign store credit
+
+Do **not** plan trade-in throughput around staff manually searching Scryfall for every card.
+
+### Exception path: manual block + card add (Deferred)
+
+**I-001** (create OPEN block) and **I-002** (add cards via Scryfall) are **one bundled slice**, not separate deliverables. An empty OPEN block alone is a dead end (cannot seal, cannot export for Mana Pool, cannot pick).
+
+Ship together only when a concrete **non-CSV** use case justifies the build:
+
+- Small ad-hoc batch (no scanner handy)
+- Single overflow brick after a CSV formalize
+- Bulk-only brick via **C-005** bulk line (no per-card lookup)
+- Post-formalize correction / repair (prefer **I-005** set+collector quick-add or staging row fix first)
+
+**Not** the trade-in counter workflow. Priority lowered to **Should**; deferred past Phase 3 core lifecycle work.
+
+### Scryfall in this codebase today
+
+| Capability | Status | Used for |
+|------------|--------|----------|
+| Search + set/collector lookup (`lib/scryfall.ts`) | Partial (**C-001**) | ManaBox CSV enrichment, `/api/cards/search` |
+| In-app card selection UI on block detail | — (**I-002**) | Not built; exception/repair only when built |
+| Local Scryfall cache | — (**C-004**) | Not built |
+
+### Intake story priority summary
+
+| Tier | Stories | When |
+|------|---------|------|
+| **Primary (Done)** | I-009–I-013, I-016, I-017 | ManaBox CSV through formalize |
+| **Primary polish** | I-018 | Default bin at formalize (large imports) |
+| **Post-formalize lifecycle** | I-003 ✓, I-015, B-002, B-007 | Phase 3 |
+| **Exception intake (bundle)** | I-001 + I-002 (+ optional I-005, bulk line UI) | Phase 3b — defer until needed |
+| **Future scan-in-app** | I-014, I-006 | Only if bringing scanner into app; large build; CSV bridge sufficient for now |
+
+---
+
 ## Epic 0: Platform & Data
 
 | ID | Story | Priority | Status |
@@ -34,7 +97,7 @@ Status key: **Done** · **Partial** · **Schema** · **Stub** · **—**
 
 | ID | Story | Priority | Status |
 |----|-------|----------|--------|
-| B-001 | Create Block with auto ID (MTG-0001), label, location | Must | Partial |
+| B-001 | Create Block with auto ID (MTG-0001), label, location | Must | Partial — via staging formalize; manual create is **I-001** (exception path) |
 | B-002 | Block lifecycle: OPEN, SEALED, ACTIVE, ARCHIVED, LIQUIDATED | Must | Partial |
 | B-003 | Track packed, sealed, last pick dates | Must | Done |
 | B-004 | Location hierarchy: Shelf → Bin → Block; unlimited bin blocks + move/reassign | Must | Done |
@@ -50,7 +113,7 @@ Status key: **Done** · **Partial** · **Schema** · **Stub** · **—**
 
 | ID | Story | Priority | Status |
 |----|-------|----------|--------|
-| C-001 | Scryfall integration (name, set, rarity, image, prices) | Must | Partial |
+| C-001 | Scryfall integration (name, set, rarity, image, prices) | Must | Partial — CSV enrichment + API route; no in-app picker UI (**I-002**) |
 | C-002 | Finishes: normal, foil, etched; languages | Must | Done |
 | C-003 | Conditions: NM, LP, MP, HP, DMG | Must | Done |
 | C-004 | Cache Scryfall data locally | Should | — |
@@ -61,26 +124,30 @@ Status key: **Done** · **Partial** · **Schema** · **Stub** · **—**
 
 ## Epic 3: Intake (Chaos Packing)
 
+See **Intake strategy (design context)** above before implementing I-001, I-002, I-006, or I-014.
+
 | ID | Story | Priority | Status |
 |----|-------|----------|--------|
-| I-001 | Open new block workflow | Must | Stub |
-| I-002 | Add cards via Scryfall search + qty + condition | Must | — |
+| I-001 | Manual OPEN block: create empty block (MTG ID, label, bin, target count) **outside CSV staging** | Should | Stub — **bundle with I-002**; not trade-in primary path |
+| I-002 | Add cards to OPEN block via Scryfall search + qty + condition + position | Should | — — **bundle with I-001**; exception/repair tooling, not trade-in throughput |
 | I-003 | Seal block (freeze contents) | Must | Done |
 | I-004 | Intake session summary | Should | — |
-| I-005 | Quick-add by set code + collector number | Should | — |
-| I-006 | Camera card recognition | Could | — |
-| I-007 | CSV import (DelverLens, etc.) | Could | — |
+| I-005 | Quick-add by set code + collector number (OPEN blocks; uses existing Scryfall lookup) | Should | — — lighter than I-002; good for one-off corrections |
+| I-006 | Camera card recognition (in-app) | Could | — — defer; use ManaBox/Delver Lens → CSV; see I-014 |
+| I-007 | Alternate CSV sources (Delver Lens export, etc.) | Could | Partial — any CSV with Scryfall ID/name+set works via staging; no Delver-native upload |
 | I-008 | Duplicate detection for high-value cards | Should | — |
-| I-009 | ManaBox CSV upload → `StagingImport` / `StagingCard` | Must | Done |
+| I-009 | ManaBox CSV upload → `StagingImport` / `StagingCard` | Must | Done — **primary trade-in intake path** |
 | I-010 | Block breakdown by Settings target count | Must | Done |
 | I-011 | Review suggested blocks before commit | Must | Done |
 | I-012 | Formalize staging → `Block` + `CardLine` (auto MTG ID, bin assign) | Must | Done |
 | I-013 | Position-indexed intake (expand qty, hard-cap blocks, packing reminders) | Must | Done |
-| I-014 | Live in-app sequential intake (ordered scan in-app) | Should | — |
+| I-014 | Live in-app sequential intake (camera scan + ordered positions in-app) | Could | — — large build; CSV bridge sufficient until proven need |
 | I-015 | Remove block by block ID (only post-formalize mutation) | Must | — |
 | I-016 | Pending staging queue on `/staging` with review + delete per import | Should | Done |
 | I-017 | Upload activity log + batched large CSV import (5k+ cards) | Should | Done |
-| I-018 | Formalize UX: default bin for all blocks + per-block override | Should | — |
+| I-018 | Formalize UX: default bin for all blocks + per-block override; compact table for large imports | Should | Done |
+| I-019 | Bulk line add on OPEN block (`isBulkLine`; no per-card Scryfall lookup) | Should | — — exception path for mixed commons / bulk bricks |
+| I-020 | Bulk seal blocks (by staging import or by bin) | Should | Done |
 
 ---
 
@@ -177,7 +244,7 @@ Docker, settings, shelf/bin/block model, dashboard, blocks list/detail, analytic
 
 ### Phase 2 — Complete (Staging)
 
-**Intake path:** ManaBox CSV → position-indexed expand → hard-cap block breakdown → review → formalize (MTG IDs + bin assignment).
+**Primary intake path (trade-in + bulk packing):** Scan at counter (ManaBox / Delver Lens / TCGplayer) → staff validates condition & authenticity → export CSV → **Staging** → position-indexed expand → hard-cap block breakdown → review → formalize (MTG IDs + bin assignment).
 
 **Delivered:**
 
@@ -187,25 +254,35 @@ Docker, settings, shelf/bin/block model, dashboard, blocks list/detail, analytic
 - Position 1 = front card; qty adjacency / cross-block split warnings
 - Unlimited bins (**B-004**); block move/reassign from block detail
 
-**Deferred:** **I-018** bulk bin assign at formalize (110-dropdown pain at scale).
+**Deferred:** ~~**I-018** bulk bin assign at formalize~~ — **Done** (default bin in Settings, Apply to all, summary view + compact per-block table).
 
 ### Phase 3 — Next (Block activation & lifecycle)
 
-Goal: Manage blocks **after** staging formalize — seal for picking, open manually, remove safely.
+Goal: Manage blocks **after** staging formalize — seal, remove safely, full lifecycle, physical labels. **Trade-in intake stays on the CSV staging path** (see Intake strategy).
 
 | Order | ID | Story | Why now |
 |-------|-----|-------|---------|
-| 1 | I-003 | Seal block (freeze contents) | Done — OPEN → SEALED, Unsealed labels in UI |
-| 2 | I-001 | Open new block workflow | Manual block creation outside CSV staging |
-| 3 | I-015 | Remove block by block ID | Safe delete post-formalize; pairs with seal lifecycle |
-| 4 | B-002 | Block lifecycle UI (Partial → Done) | Wire SEALED / ACTIVE / ARCHIVED transitions on block detail |
-| 5 | B-007 | QR/barcode / team bag labels | MTG IDs exist after formalize; printable labels for physical bins |
+| 1 | I-003 | Seal block (freeze contents) | **Done** — OPEN → SEALED, Unsealed labels in UI |
+| 2 | I-015 | Remove block by block ID | Safe delete post-formalize; pairs with seal lifecycle |
+| 3 | B-002 | Block lifecycle UI (Partial → Done) | Wire SEALED → ACTIVE → ARCHIVED (and LIQUIDATED) on block detail |
+| 4 | B-007 | QR/barcode / team bag labels | MTG IDs exist after formalize; printable labels for physical bins |
+| 5 | I-018 | Default bin at formalize + per-block override | **Done** — Settings default, summary view for large imports |
 
-**Optional quick win (before or parallel):** **I-018** default-bin formalize — low effort, high payoff after large imports.
+**Deferred from Phase 3 (was I-001):** Manual OPEN block creation — not needed for trade-in; see Phase 3b.
 
-**Out of scope for Phase 3:** Picking (Phase 4), position pick **P-009**, Mana Pool orders stub.
+**Out of scope for Phase 3:** Picking (Phase 4), position pick **P-009**, Mana Pool orders stub, in-app scanner (**I-014**).
 
-**Suggested first slice (I-003):** Block detail **Seal block** action (OPEN → SEALED, set `sealedAt`); blocks list shows SEALED status; validate non-empty block before seal.
+### Phase 3b — Exception intake (defer until concrete need)
+
+Goal: Non-CSV edge cases only. **Do not prioritize for trade-in counter workflow.**
+
+| Order | ID | Story | Notes |
+|-------|-----|-------|-------|
+| 1 | I-001 + I-002 | Manual block + Scryfall card add | **Single slice** — ship together; OPEN-only mutations; auto-position on qty |
+| 2 | I-019 | Bulk line add on OPEN block | Mixed commons without per-card lookup |
+| 3 | I-005 | Set + collector quick-add | Lighter repair path; reuses `getScryfallCardBySetAndNumber` |
+
+Acceptance for I-001+I-002: create → add cards → seal → Mana Pool CSV export — not “create empty block.”
 
 ### Phase 4 — Orders & picking
 

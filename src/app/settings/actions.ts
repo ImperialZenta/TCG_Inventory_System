@@ -3,6 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { suggestNextBinId, suggestNextShelfCode } from "@/lib/blocks";
+import {
+  DEFAULT_FORMALIZE_BIN_SETTING_KEY,
+} from "@/lib/staging/defaults";
 
 export type SettingsActionResult =
   | { ok: true; message: string }
@@ -100,6 +103,37 @@ export async function updateDefaultTargetCount(
   revalidatePath("/settings");
   revalidatePath("/staging");
   return { ok: true, message: "Target count saved" };
+}
+
+export async function updateDefaultFormalizeBin(
+  _prev: SettingsActionResult | null,
+  formData: FormData,
+): Promise<SettingsActionResult> {
+  const binId = (formData.get("defaultFormalizeBinId") as string)?.trim();
+
+  if (!binId) {
+    await db.appSetting.deleteMany({
+      where: { key: DEFAULT_FORMALIZE_BIN_SETTING_KEY },
+    });
+    revalidatePath("/settings");
+    revalidatePath("/staging");
+    return { ok: true, message: "Default bin cleared" };
+  }
+
+  const bin = await db.bin.findUnique({ where: { id: binId } });
+  if (!bin) {
+    return { ok: false, message: "Bin not found" };
+  }
+
+  await db.appSetting.upsert({
+    where: { key: DEFAULT_FORMALIZE_BIN_SETTING_KEY },
+    update: { value: binId },
+    create: { key: DEFAULT_FORMALIZE_BIN_SETTING_KEY, value: binId },
+  });
+
+  revalidatePath("/settings");
+  revalidatePath("/staging");
+  return { ok: true, message: "Default formalize bin saved" };
 }
 
 export async function getSuggestedIds(shelfCode?: string) {

@@ -11,6 +11,9 @@ import { FormalizeForm } from "../formalize-form";
 import { RecalculateBreakdownForm } from "../recalculate-form";
 import { DeleteStagingButton } from "../delete-staging-button";
 import { formatDate } from "@/lib/utils";
+import { getDefaultFormalizeBinId } from "@/lib/staging/defaults";
+import { getImportSealSummary } from "@/lib/blocks/seal";
+import { BulkSealImportForm } from "../bulk-seal-import-form";
 export const dynamic = "force-dynamic";
 
 interface StagingImportPageProps {
@@ -20,7 +23,7 @@ interface StagingImportPageProps {
 export default async function StagingImportPage({ params }: StagingImportPageProps) {
   const { importId } = await params;
 
-  const [stagingImport, bins] = await Promise.all([
+  const [stagingImport, bins, defaultBinId, importSealSummary] = await Promise.all([
     db.stagingImport.findUnique({
       where: { id: importId },
       include: {
@@ -28,6 +31,8 @@ export default async function StagingImportPage({ params }: StagingImportPagePro
       },
     }),
     getBinUtilization(),
+    getDefaultFormalizeBinId(),
+    getImportSealSummary(importId),
   ]);
 
   if (!stagingImport) {
@@ -59,8 +64,9 @@ export default async function StagingImportPage({ params }: StagingImportPagePro
 
       {!alreadyAssigned && (
         <p className="mb-6 text-sm text-zinc-500">
-          Assign a bin for each suggested block, then formalize to receive MTG block IDs for your
-          team bag labels.
+          Assign bins, then formalize to receive MTG block IDs for team bag labels. Set a default
+          bin in Settings to formalize large imports in one step — override individual blocks on
+          this page if needed.
         </p>
       )}
 
@@ -135,10 +141,15 @@ export default async function StagingImportPage({ params }: StagingImportPagePro
         </section>
       )}
 
+      {alreadyAssigned && (
+        <BulkSealImportForm importId={stagingImport.id} sealSummary={importSealSummary} />
+      )}
+
       <FormalizeForm
         importId={stagingImport.id}
         groups={groups}
         bins={binOptions}
+        defaultBinId={defaultBinId}
         alreadyAssigned={alreadyAssigned}
       />
 

@@ -2,6 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
+import {
+  sealBlocksFromStagingImport,
+  sealOpenBlocksByInternalIds,
+  sealOpenBlocksInBin,
+} from "@/lib/blocks/seal";
 
 export type BlockActionResult =
   | { ok: true; message: string }
@@ -75,6 +80,16 @@ export async function moveBlockToBin(
   return { ok: true, message: `Moved to ${toLabel}` };
 }
 
+function revalidateBlockPaths(blockId?: string) {
+  revalidatePath("/blocks");
+  revalidatePath("/");
+  revalidatePath("/analytics");
+  revalidatePath("/staging");
+  if (blockId) {
+    revalidatePath(`/blocks/${blockId}`);
+  }
+}
+
 export async function sealBlockAction(
   _prev: BlockActionResult | null,
   formData: FormData,
@@ -86,42 +101,62 @@ export async function sealBlockAction(
 
   const block = await db.block.findUnique({
     where: { blockId },
-    include: { cards: true },
+    select: { id: true },
   });
 
   if (!block) {
     return { ok: false, message: "Block not found" };
   }
 
-  if (block.status !== "OPEN") {
-    return { ok: false, message: "Block is already sealed or not eligible" };
+  const outcome = await sealOpenBlocksByInternalIds([block.id]);
+
+  if (outcome.sealed === 0) {
+    if (outcome.message === "No blocks to seal") {
+      return { ok: false, message: "Block not found" };
+    }
+    return { ok: false, message: outcome.message };
   }
 
-  const cardCount = block.cards.reduce((sum, c) => sum + c.quantity, 0);
-  if (cardCount === 0) {
-    return { ok: false, message: "Cannot seal an empty block" };
-  }
-
-  const sealedAt = new Date();
-
-  await db.$transaction([
-    db.block.update({
-      where: { id: block.id },
-      data: { status: "SEALED", sealedAt },
-    }),
-    db.auditLog.create({
-      data: {
-        blockId: block.id,
-        action: "SEALED_BLOCK",
-        details: `${cardCount} card${cardCount === 1 ? "" : "s"}`,
-      },
-    }),
-  ]);
-
-  revalidatePath("/blocks");
-  revalidatePath(`/blocks/${blockId}`);
-  revalidatePath("/");
-  revalidatePath("/analytics");
-
+  revalidateBlockPaths(blockId);
   return { ok: true, message: "Block sealed" };
+}
+
+export async function sealBlocksByBinAction(
+  _prev: BlockActionResult | null,
+  formData: FormData,
+): Promise<BlockActionResult> {
+  const binId = (formData.get("binId") as string)?.trim();
+  if (!binId) {
+    return { ok: false, message: "Select a bin" };
+  }
+
+  const outcome = await sealOpenBlocksInBin(binId);
+
+  if (outcome.sealed === 0) {
+    return { ok: false, message: outcome.message };
+  }
+
+  revalidateBlockPaths();
+  revalidatePath("/settings");
+  return { ok: true, message: outcome.message };
+}
+
+export async function sealBlocksByImportAction(
+  _prev: BlockActionResult | null,
+  formData: FormData,
+): Promise<BlockActionResult> {
+  const importId = (formData.get("importId") as string)?.trim();
+  if (!importId) {
+    return { ok: false, message: "Import not found" };
+  }
+
+  const outcome = await sealBlocksFromStagingImport(importId);
+
+  if (outcome.sealed === 0) {
+    return { ok: false, message: outcome.message };
+  }
+
+  revalidateBlockPaths();
+  revalidatePath(`/staging/${importId}`);
+  return { ok: true, message: outcome.message };
 }

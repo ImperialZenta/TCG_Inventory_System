@@ -4,7 +4,9 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { expandManaboxRowsToUnits, parseManaboxCsv } from "@/lib/manabox/csv-import";
 import { applyBreakdownToImport, getDefaultStagingTargetCount } from "@/lib/staging/apply-breakdown";
+import { getDefaultFormalizeBinId } from "@/lib/staging/defaults";
 import { FormalizeError, formalizeStagingImport } from "@/lib/staging/formalize";
+import { buildStagingReviewGroups } from "@/lib/staging/review";
 import {
   createUploadLogger,
   formatFileSize,
@@ -197,9 +199,27 @@ export async function formalizeStagingImportAction(
   for (const [key, value] of formData.entries()) {
     if (key.startsWith("bin_") && typeof value === "string") {
       const blockIndex = Number.parseInt(key.slice(4), 10);
-      if (Number.isFinite(blockIndex)) {
-        binAssignments[blockIndex] = value;
+      if (Number.isFinite(blockIndex) && value.trim()) {
+        binAssignments[blockIndex] = value.trim();
       }
+    }
+  }
+
+  const stagingImport = await db.stagingImport.findUnique({
+    where: { id: importId },
+    include: { cards: true },
+  });
+
+  if (!stagingImport) {
+    return { ok: false, message: "Import not found" };
+  }
+
+  const groups = buildStagingReviewGroups(stagingImport.cards);
+  const defaultBinId = await getDefaultFormalizeBinId();
+
+  for (const group of groups) {
+    if (!binAssignments[group.blockIndex] && defaultBinId) {
+      binAssignments[group.blockIndex] = defaultBinId;
     }
   }
 

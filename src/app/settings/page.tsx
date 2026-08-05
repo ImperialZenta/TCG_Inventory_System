@@ -2,8 +2,10 @@ import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
 import { getShelvesWithBins, getBinUtilization } from "@/lib/location";
 import { db } from "@/lib/db";
+import { getDefaultFormalizeBinId } from "@/lib/staging/defaults";
 import { SuggestedIds } from "./suggested-ids";
 import { TargetCountForm } from "./target-count-form";
+import { DefaultBinForm } from "./default-bin-form";
 import { AddShelfForm } from "./add-shelf-form";
 import { AddBinForm } from "./add-bin-form";
 import { DangerZone } from "./danger-zone";
@@ -16,6 +18,7 @@ export default async function SettingsPage() {
   let shelves: Awaited<ReturnType<typeof getShelvesWithBins>> = [];
   let bins: Awaited<ReturnType<typeof getBinUtilization>> = [];
   let targetCount = "50";
+  let defaultFormalizeBinId: string | null = null;
   let dbError = false;
 
   try {
@@ -24,6 +27,7 @@ export default async function SettingsPage() {
       where: { key: "default_staging_target_count" },
     });
     targetCount = setting?.value ?? "50";
+    defaultFormalizeBinId = await getDefaultFormalizeBinId();
   } catch {
     dbError = true;
   }
@@ -83,6 +87,15 @@ export default async function SettingsPage() {
           <section className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">
             <h2 className="text-lg font-medium text-zinc-100">Staging defaults</h2>
             <TargetCountForm targetCount={targetCount} />
+            <DefaultBinForm
+              bins={bins.map((bin) => ({
+                id: bin.id,
+                binId: bin.binId,
+                shelfCode: bin.shelf?.code ?? "Unassigned",
+                used: bin.used,
+              }))}
+              defaultFormalizeBinId={defaultFormalizeBinId}
+            />
           </section>
 
           <section className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">

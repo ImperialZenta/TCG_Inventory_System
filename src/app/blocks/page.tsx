@@ -1,6 +1,10 @@
 import Link from "next/link";
 import { PageHeader, Badge, EmptyState } from "@/components/page-header";
 import { getBlocksWithStats, getLocationLabel, formatSealedAt, isSealedAtPending } from "@/lib/blocks";
+import { getBinSealSummary } from "@/lib/blocks/seal";
+import { getBinUtilization } from "@/lib/location";
+import { getDefaultFormalizeBinId } from "@/lib/staging/defaults";
+import { BulkSealByBinForm } from "./bulk-seal-by-bin-form";
 import {
   BLOCK_CHANNEL_LABELS,
   BLOCK_STATUS_LABELS,
@@ -9,12 +13,31 @@ import { formatCurrency, formatDate, daysSince } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
+async function loadBinSealOptions() {
+  const bins = await getBinUtilization();
+  return Promise.all(
+    bins.map(async (bin) => ({
+      id: bin.id,
+      binId: bin.binId,
+      shelfCode: bin.shelf?.code ?? "Unassigned",
+      used: bin.used,
+      sealSummary: await getBinSealSummary(bin.id),
+    })),
+  );
+}
+
 export default async function BlocksPage() {
   let blocks: Awaited<ReturnType<typeof getBlocksWithStats>> = [];
+  let binSealOptions: Awaited<ReturnType<typeof loadBinSealOptions>> = [];
+  let defaultFormalizeBinId: string | null = null;
   let dbError = false;
 
   try {
-    blocks = await getBlocksWithStats();
+    [blocks, binSealOptions, defaultFormalizeBinId] = await Promise.all([
+      getBlocksWithStats(),
+      loadBinSealOptions(),
+      getDefaultFormalizeBinId(),
+    ]);
   } catch {
     dbError = true;
   }
@@ -53,7 +76,9 @@ export default async function BlocksPage() {
           }
         />
       ) : (
-        <div className="overflow-hidden rounded-xl border border-zinc-800">
+        <>
+          <BulkSealByBinForm bins={binSealOptions} defaultBinId={defaultFormalizeBinId} />
+          <div className="overflow-hidden rounded-xl border border-zinc-800">
           <table className="w-full text-left text-sm">
             <thead className="border-b border-zinc-800 bg-zinc-900/80 text-zinc-400">
               <tr>
@@ -137,6 +162,7 @@ export default async function BlocksPage() {
             </tbody>
           </table>
         </div>
+        </>
       )}
     </>
   );
