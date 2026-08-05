@@ -26,7 +26,8 @@ export interface BackupBin {
   id: string;
   binId: string;
   shelfId: string | null;
-  capacity: number;
+  /** Present in backups exported before capacity was removed; ignored on restore. */
+  capacity?: number;
   label: string | null;
   sortOrder: number;
   createdAt: string;
@@ -44,6 +45,8 @@ export interface BackupCardLine {
   language: string;
   condition: string;
   quantity: number;
+  /** Optional for older backups; restore assigns sequential positions when missing. */
+  position?: number;
   isBulkLine: boolean;
   bulkDescription: string | null;
   priceUsd: number | null;
@@ -81,6 +84,8 @@ export interface BackupStagingCard {
   language: string;
   condition: string;
   quantity: number;
+  position?: number | null;
+  expansionIndex?: number | null;
   suggestedBlock: number | null;
   assignedBlockId: string | null;
   sourceRow: number | null;

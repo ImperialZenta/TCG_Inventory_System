@@ -32,7 +32,5 @@ export async function getBinUtilization() {
   return sorted.map((bin) => ({
     ...bin,
     used: bin._count.blocks,
-    available: Math.max(0, bin.capacity - bin._count.blocks),
-    isFull: bin._count.blocks >= bin.capacity,
   }));
 }

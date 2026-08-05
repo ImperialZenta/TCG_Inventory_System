@@ -44,7 +44,6 @@ export async function createBin(
 ): Promise<SettingsActionResult> {
   const shelfCode = (formData.get("shelfCode") as string)?.trim().toUpperCase();
   const binId = (formData.get("binId") as string)?.trim().toUpperCase();
-  const capacity = Number(formData.get("capacity") ?? 4);
   const label = (formData.get("label") as string)?.trim() || null;
 
   if (!shelfCode) {
@@ -74,7 +73,6 @@ export async function createBin(
     data: {
       binId,
       shelfId: shelf.id,
-      capacity: capacity > 0 ? capacity : 4,
       label,
       sortOrder: (maxOrder._max.sortOrder ?? 0) + 1,
     },

@@ -5,12 +5,12 @@ import { db } from "@/lib/db";
 import { getBinUtilization } from "@/lib/location";
 import {
   buildStagingReviewGroups,
-  countAvailableBlockSlots,
+  getQtyGroupWarnings,
 } from "@/lib/staging/review";
 import { FormalizeForm } from "../formalize-form";
 import { RecalculateBreakdownForm } from "../recalculate-form";
+import { DeleteStagingButton } from "../delete-staging-button";
 import { formatDate } from "@/lib/utils";
-
 export const dynamic = "force-dynamic";
 
 interface StagingImportPageProps {
@@ -24,7 +24,7 @@ export default async function StagingImportPage({ params }: StagingImportPagePro
     db.stagingImport.findUnique({
       where: { id: importId },
       include: {
-        cards: { orderBy: { sourceRow: "asc" } },
+        cards: { orderBy: [{ sourceRow: "asc" }, { expansionIndex: "asc" }] },
       },
     }),
     getBinUtilization(),
@@ -36,20 +36,13 @@ export default async function StagingImportPage({ params }: StagingImportPagePro
 
   const groups = buildStagingReviewGroups(stagingImport.cards);
   const totalCards = stagingImport.cards.reduce((sum, c) => sum + c.quantity, 0);
-  const availableSlots = countAvailableBlockSlots(bins);
   const alreadyAssigned = stagingImport.status === "ASSIGNED";
-
-  let capacityWarning: string | null = null;
-  if (!alreadyAssigned && groups.length > availableSlots) {
-    capacityWarning = `Need ${groups.length} block slots across bins, but only ${availableSlots} available. Add bins or increase capacity in Settings, or raise the target count to produce fewer blocks.`;
-  }
+  const { adjacencyReminders, crossBlockSplits } = getQtyGroupWarnings(stagingImport.cards);
 
   const binOptions = bins.map((bin) => ({
     id: bin.id,
     binId: bin.binId,
     shelfCode: bin.shelf?.code ?? "Unassigned",
-    available: bin.available,
-    capacity: bin.capacity,
     used: bin.used,
   }));
 
@@ -60,10 +53,16 @@ export default async function StagingImportPage({ params }: StagingImportPagePro
         description={stagingImport.filename}
         action={
           <Link href="/staging" className="text-sm text-zinc-400 hover:text-zinc-200">
-            ← All imports
-          </Link>
-        }
+            ← Staging
+          </Link>        }
       />
+
+      {!alreadyAssigned && (
+        <p className="mb-6 text-sm text-zinc-500">
+          Assign a bin for each suggested block, then formalize to receive MTG block IDs for your
+          team bag labels.
+        </p>
+      )}
 
       <div className="mb-6 grid gap-4 sm:grid-cols-4">
         <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 px-4 py-3">
@@ -84,17 +83,53 @@ export default async function StagingImportPage({ params }: StagingImportPagePro
         </div>
       </div>
 
+      {!alreadyAssigned && adjacencyReminders.length > 0 && (
+        <div className="mb-6 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+          <p className="font-medium text-amber-200">
+            Duplicate quantity detected — pack copies adjacent in the brick
+          </p>
+          <p className="mt-1 text-amber-100/80">
+            Mana Box collapsed these into one CSV row. Positions below are consecutive; place those
+            physical copies next to each other when packing.
+          </p>
+          <ul className="mt-2 list-inside list-disc space-y-1 text-amber-100/90">
+            {adjacencyReminders.map((group) => (
+              <li key={group.sourceRow}>
+                {group.count}× {group.name} — {group.placements.join("; ")}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {!alreadyAssigned && crossBlockSplits.length > 0 && (
+        <div className="mb-6 rounded-lg border border-sky-500/30 bg-sky-500/10 px-4 py-3 text-sm text-sky-100">
+          <p className="font-medium text-sky-200">Quantity group split across blocks</p>
+          <p className="mt-1 text-sky-100/80">
+            Block size is hard-capped at the target count, so some duplicate groups span more than
+            one block. Pack each block’s listed positions; adjacency is only within that block.
+          </p>
+          <ul className="mt-2 list-inside list-disc space-y-1 text-sky-100/90">
+            {crossBlockSplits.map((group) => (
+              <li key={group.sourceRow}>
+                {group.count}× {group.name} — {group.placements.join("; ")}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {!alreadyAssigned && (
         <section className="mb-8 rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">
           <h2 className="text-lg font-medium text-zinc-100">Block breakdown</h2>
           <p className="mt-1 text-sm text-zinc-400">
-            Adjust target count and recalculate before assigning bins. Breakdown uses total card
-            quantity, not line count.
+            Cards are split into blocks by target count (hard cap). Position 1 is the front card
+            facing you. Pack the physical stack to match CSV order after expanding quantities.
           </p>
           <div className="mt-4">
             <RecalculateBreakdownForm
               importId={stagingImport.id}
-              targetCount={stagingImport.targetCount ?? 200}
+              targetCount={stagingImport.targetCount ?? 50}
             />
           </div>
         </section>
@@ -104,9 +139,23 @@ export default async function StagingImportPage({ params }: StagingImportPagePro
         importId={stagingImport.id}
         groups={groups}
         bins={binOptions}
-        capacityWarning={capacityWarning}
         alreadyAssigned={alreadyAssigned}
       />
-    </>
+
+      {!alreadyAssigned && (
+        <section className="mt-8 rounded-xl border border-red-900/40 bg-red-950/10 p-6">
+          <h2 className="text-sm font-medium text-red-200">Discard staging</h2>
+          <p className="mt-1 text-sm text-zinc-400">
+            Remove this import without creating blocks. You will need to re-upload the CSV to start
+            over.
+          </p>
+          <div className="mt-3">
+            <DeleteStagingButton
+              importId={stagingImport.id}
+              filename={stagingImport.filename}
+            />
+          </div>
+        </section>
+      )}    </>
   );
 }

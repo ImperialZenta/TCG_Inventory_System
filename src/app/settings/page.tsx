@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
 export default async function SettingsPage() {
   let shelves: Awaited<ReturnType<typeof getShelvesWithBins>> = [];
   let bins: Awaited<ReturnType<typeof getBinUtilization>> = [];
-  let targetCount = "200";
+  let targetCount = "50";
   let dbError = false;
 
   try {
@@ -23,7 +23,7 @@ export default async function SettingsPage() {
     const setting = await db.appSetting.findUnique({
       where: { key: "default_staging_target_count" },
     });
-    targetCount = setting?.value ?? "200";
+    targetCount = setting?.value ?? "50";
   } catch {
     dbError = true;
   }
@@ -45,7 +45,8 @@ export default async function SettingsPage() {
         <section className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">
           <h2 className="text-lg font-medium text-zinc-100">Shelves & Bins</h2>
           <p className="mt-1 text-sm text-zinc-400">
-            Shelf code → Bin ID → Block. Set bin capacity for your physical bin shapes.
+            Shelf code → Bin ID → Block. Bins accept unlimited blocks; utilization shows how many
+            are assigned.
           </p>
 
           <SuggestedIds shelves={shelves} />
@@ -70,8 +71,8 @@ export default async function SettingsPage() {
                       <span className="font-mono text-zinc-100">{bin.binId}</span>
                       <span className="ml-2 text-zinc-500">{bin.shelf?.code ?? "Unassigned"}</span>
                     </div>
-                    <span className={bin.isFull ? "text-amber-400" : "text-zinc-400"}>
-                      {bin.used}/{bin.capacity} blocks
+                    <span className="text-zinc-400">
+                      {bin.used} block{bin.used === 1 ? "" : "s"}
                     </span>
                   </div>
                 ))

@@ -20,6 +20,22 @@ export interface ParsedManaboxRow {
   sourceRow: number;
 }
 
+/** One physical card after expanding CSV quantity. */
+export interface ExpandedManaboxUnit {
+  scryfallId: string | null;
+  name: string;
+  setCode: string;
+  collectorNumber: string | null;
+  finish: Finish;
+  condition: Condition;
+  language: string;
+  quantity: 1;
+  priceUsd: number | null;
+  imageUri: string | null;
+  sourceRow: number;
+  expansionIndex: number;
+}
+
 const HEADER_ALIASES: Record<string, string> = {
   name: "name",
   "card name": "name",
@@ -117,7 +133,7 @@ function mapFinish(foilRaw: string, finishRaw: string): Finish {
   if (finish in MANAPOOL_TO_FINISH) {
     return MANAPOOL_TO_FINISH[finish];
   }
-  if (finish === "NONFOIL" || finish === "NF") return "NONFOIL";
+  if (finish === "NONFOIL" || finish === "NF" || finish === "NORMAL") return "NONFOIL";
   if (finish === "FOIL" || finish === "FO") return "FOIL";
   if (finish === "ETCHED" || finish === "EF") return "ETCHED";
 
@@ -167,6 +183,32 @@ async function enrichRow(row: ParsedManaboxRow): Promise<ParsedManaboxRow> {
   } catch {
     return row;
   }
+}
+
+/** Expand CSV quantity into one unit per physical card (CSV row order preserved). */
+export function expandManaboxRowsToUnits(rows: ParsedManaboxRow[]): ExpandedManaboxUnit[] {
+  const units: ExpandedManaboxUnit[] = [];
+
+  for (const row of rows) {
+    for (let expansionIndex = 0; expansionIndex < row.quantity; expansionIndex++) {
+      units.push({
+        scryfallId: row.scryfallId,
+        name: row.name,
+        setCode: row.setCode,
+        collectorNumber: row.collectorNumber,
+        finish: row.finish,
+        condition: row.condition,
+        language: row.language,
+        quantity: 1,
+        priceUsd: row.priceUsd,
+        imageUri: row.imageUri,
+        sourceRow: row.sourceRow,
+        expansionIndex,
+      });
+    }
+  }
+
+  return units;
 }
 
 export async function parseManaboxCsv(

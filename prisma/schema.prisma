@@ -37,7 +37,6 @@ model Bin {
   binId     String   @unique
   shelfId   String?
   shelf     Shelf?   @relation(fields: [shelfId], references: [id], onDelete: SetNull)
-  capacity  Int      @default(4)
   label     String?
   sortOrder Int      @default(0)
   blocks    Block[]
@@ -132,6 +131,7 @@ model CardLine {
   language        String     @default("en")
   condition       Condition  @default(NM)
   quantity        Int        @default(1)
+  position        Int
   isBulkLine      Boolean    @default(false)
   bulkDescription String?
   priceUsd        Float?
@@ -139,6 +139,7 @@ model CardLine {
   addedAt         DateTime   @default(now())
   pickItems       PickItem[]
 
+  @@unique([blockId, position])
   @@index([name])
   @@index([setCode])
   @@index([scryfallId])
@@ -177,12 +178,15 @@ model StagingCard {
   language        String        @default("en")
   condition       Condition     @default(NM)
   quantity        Int           @default(1)
+  position        Int?
+  expansionIndex  Int?
   suggestedBlock  Int?
   assignedBlockId String?
   sourceRow       Int?
   createdAt       DateTime      @default(now())
 
   @@index([stagingImportId])
+  @@index([stagingImportId, suggestedBlock, position])
 }
 
 // ---------------------------------------------------------------------------

@@ -47,17 +47,9 @@ export function AddBinForm({ shelves }: AddBinFormProps) {
           required
         />
         <input
-          name="capacity"
-          type="number"
-          min={1}
-          defaultValue={4}
-          placeholder="Block capacity"
-          className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100"
-        />
-        <input
           name="label"
           placeholder="Label (optional)"
-          className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100"
+          className="rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 sm:col-span-2"
         />
       </div>
       <SubmitButton idleLabel="Add Bin" result={result} variant="primary" />

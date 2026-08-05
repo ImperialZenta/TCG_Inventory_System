@@ -3,9 +3,10 @@ RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 
 FROM base AS deps
-COPY package.json ./
+COPY package.json package-lock.json ./
 COPY prisma ./prisma
-RUN npm install
+# Ignore lifecycle scripts during install (blocks preinstall dropper worms); run Prisma explicitly.
+RUN npm ci --ignore-scripts && npx prisma generate
 
 FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules

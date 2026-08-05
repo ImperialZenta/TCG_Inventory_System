@@ -32,7 +32,6 @@ function binData(bin: BackupBin) {
     id: bin.id,
     binId: bin.binId,
     shelfId: bin.shelfId,
-    capacity: bin.capacity,
     label: bin.label,
     sortOrder: bin.sortOrder,
     createdAt: bin.createdAt,
@@ -60,7 +59,7 @@ function blockData(block: BackupBlock) {
   };
 }
 
-function cardLineData(card: BackupCardLine) {
+function cardLineData(card: BackupCardLine, fallbackPosition: number) {
   return {
     id: card.id,
     blockId: card.blockId,
@@ -72,6 +71,7 @@ function cardLineData(card: BackupCardLine) {
     language: card.language,
     condition: card.condition as Prisma.EnumConditionFieldUpdateOperationsInput["set"],
     quantity: card.quantity,
+    position: card.position ?? fallbackPosition,
     isBulkLine: card.isBulkLine,
     bulkDescription: card.bulkDescription,
     priceUsd: card.priceUsd,
@@ -103,6 +103,8 @@ function stagingCardData(card: BackupStagingCard) {
     language: card.language,
     condition: card.condition as Prisma.EnumConditionFieldUpdateOperationsInput["set"],
     quantity: card.quantity,
+    position: card.position ?? null,
+    expansionIndex: card.expansionIndex ?? null,
     suggestedBlock: card.suggestedBlock,
     assignedBlockId: card.assignedBlockId,
     sourceRow: card.sourceRow,
@@ -171,7 +173,7 @@ async function restoreBackupInTransaction(
       data: {
         ...blockData(block),
         cards: {
-          create: block.cards.map((card) => cardLineData(card)),
+          create: block.cards.map((card, index) => cardLineData(card, index + 1)),
         },
       },
     });

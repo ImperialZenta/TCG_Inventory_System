@@ -37,7 +37,7 @@ Status key: **Done** · **Partial** · **Schema** · **Stub** · **—**
 | B-001 | Create Block with auto ID (MTG-0001), label, location | Must | Partial |
 | B-002 | Block lifecycle: OPEN, SEALED, ACTIVE, ARCHIVED, LIQUIDATED | Must | Partial |
 | B-003 | Track packed, sealed, last pick dates | Must | Done |
-| B-004 | Location hierarchy: Shelf → Bin → Block | Must | Done |
+| B-004 | Location hierarchy: Shelf → Bin → Block; unlimited bin blocks + move/reassign | Must | Done |
 | B-005 | Block capacity hints (target count) | Should | Done |
 | B-006 | Block tags/tiers (bulk, trade-in, mystery, high-value) | Should | Partial |
 | B-007 | QR/barcode label generation | Should | — |
@@ -75,6 +75,12 @@ Status key: **Done** · **Partial** · **Schema** · **Stub** · **—**
 | I-010 | Block breakdown by Settings target count | Must | Done |
 | I-011 | Review suggested blocks before commit | Must | Done |
 | I-012 | Formalize staging → `Block` + `CardLine` (auto MTG ID, bin assign) | Must | Done |
+| I-013 | Position-indexed intake (expand qty, hard-cap blocks, packing reminders) | Must | Done |
+| I-014 | Live in-app sequential intake (ordered scan in-app) | Should | — |
+| I-015 | Remove block by block ID (only post-formalize mutation) | Must | — |
+| I-016 | Pending staging queue on `/staging` with review + delete per import | Should | Done |
+| I-017 | Upload activity log + batched large CSV import (5k+ cards) | Should | Done |
+| I-018 | Formalize UX: default bin for all blocks + per-block override | Should | — |
 
 ---
 
@@ -90,6 +96,8 @@ Status key: **Done** · **Partial** · **Schema** · **Stub** · **—**
 | P-006 | Group pick list by block | Must | — |
 | P-007 | TCGplayer pullsheet upload | Could | — |
 | P-008 | Pick performance metrics | Could | — |
+| P-009 | Position pick list (explicit position; lowest dupe; renumber after pick) | Must | — |
+| P-010 | Move picked card to history (dwell since pack / position-at-pick) | Should | — |
 
 Mana Pool order import (Orders page) — **Stub**, planned for Phase 4.
 
@@ -165,19 +173,43 @@ Mana Pool order import (Orders page) — **Stub**, planned for Phase 4.
 
 ### Phase 1 — Complete
 
-Docker, settings, shelf/bin/block model, dashboard, blocks list/detail, analytics aging, Mana Pool CSV export, backup export/restore, danger zone deletes.
+Docker, settings, shelf/bin/block model, dashboard, blocks list/detail, analytics aging, Mana Pool CSV export, backup export/restore, danger zone deletes. Staging intake delivered in Phase 2.
 
 ### Phase 2 — Complete (Staging)
 
-**I-009 → I-012:** ManaBox CSV upload, breakdown by target count, review screen, formalize blocks with manual bin assignment.
+**Intake path:** ManaBox CSV → position-indexed expand → hard-cap block breakdown → review → formalize (MTG IDs + bin assignment).
 
-### Phase 3 — Next (Block activation)
+**Delivered:**
 
-**I-001, I-003:** Open block workflow, seal/freeze contents, status transitions.
+- **I-009 … I-013, I-016, I-017** — full CSV staging pipeline through formalize
+- Upload activity log; batched DB writes (large imports validated at 5k+ cards)
+- Pending staging queue (review + delete per import)
+- Position 1 = front card; qty adjacency / cross-block split warnings
+- Unlimited bins (**B-004**); block move/reassign from block detail
+
+**Deferred:** **I-018** bulk bin assign at formalize (110-dropdown pain at scale).
+
+### Phase 3 — Next (Block activation & lifecycle)
+
+Goal: Manage blocks **after** staging formalize — seal for picking, open manually, remove safely.
+
+| Order | ID | Story | Why now |
+|-------|-----|-------|---------|
+| 1 | I-003 | Seal block (freeze contents) | Locks a packed brick before picks; status OPEN → SEALED |
+| 2 | I-001 | Open new block workflow | Manual block creation outside CSV staging |
+| 3 | I-015 | Remove block by block ID | Safe delete post-formalize; pairs with seal lifecycle |
+| 4 | B-002 | Block lifecycle UI (Partial → Done) | Wire SEALED / ACTIVE / ARCHIVED transitions on block detail |
+| 5 | B-007 | QR/barcode / team bag labels | MTG IDs exist after formalize; printable labels for physical bins |
+
+**Optional quick win (before or parallel):** **I-018** default-bin formalize — low effort, high payoff after large imports.
+
+**Out of scope for Phase 3:** Picking (Phase 4), position pick **P-009**, Mana Pool orders stub.
+
+**Suggested first slice (I-003):** Block detail **Seal block** action (OPEN → SEALED, set `sealedAt`); blocks list shows SEALED status; validate non-empty block before seal.
 
 ### Phase 4 — Orders & picking
 
-Mana Pool order import (Orders stub), **P-001**, **P-004**, **P-006**, pick list UI.
+Mana Pool order import (Orders stub), **P-001**, **P-004**, **P-006**, **P-009** position pick + renumber, **P-010** pick history.
 
 ### Phase 5 — Polish
 

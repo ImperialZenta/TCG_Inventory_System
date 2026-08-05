@@ -1,17 +1,24 @@
 "use server";
 
-import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { parseManaboxCsv } from "@/lib/manabox/csv-import";
+import { expandManaboxRowsToUnits, parseManaboxCsv } from "@/lib/manabox/csv-import";
 import { applyBreakdownToImport, getDefaultStagingTargetCount } from "@/lib/staging/apply-breakdown";
 import { FormalizeError, formalizeStagingImport } from "@/lib/staging/formalize";
+import {
+  createUploadLogger,
+  formatFileSize,
+  type StagingUploadResult,
+} from "@/lib/staging/upload-log";
 
 export type StagingActionResult =
   | { ok: true; message: string }
   | { ok: false; message: string };
 
+export type { StagingUploadResult } from "@/lib/staging/upload-log";
+
 const REVALIDATE_PATHS = ["/", "/staging", "/blocks", "/analytics"];
+const INSERT_CHUNK = 500;
 
 function revalidateStagingPaths() {
   for (const path of REVALIDATE_PATHS) {
@@ -19,62 +26,128 @@ function revalidateStagingPaths() {
   }
 }
 
+function fail(log: ReturnType<typeof createUploadLogger>, message: string): StagingUploadResult {
+  log.error(message);
+  return { ok: false, log: log.entries, message };
+}
+
 export async function uploadStagingCsv(
-  _prev: StagingActionResult | null,
+  _prev: StagingUploadResult | null,
   formData: FormData,
-): Promise<StagingActionResult> {
+): Promise<StagingUploadResult> {
+  const log = createUploadLogger();
+
   const file = formData.get("csv");
   if (!(file instanceof File) || file.size === 0) {
-    return { ok: false, message: "Select a CSV file" };
+    return fail(log, "Select a CSV file");
   }
 
-  const shelfCount = await db.shelf.count();
-  const binCount = await db.bin.count();
+  log.info(`Reading file: ${file.name} (${formatFileSize(file.size)})`);
+
+  log.info("Checking shelves and bins…");
+  const [shelfCount, binCount] = await Promise.all([
+    db.shelf.count(),
+    db.bin.count(),
+  ]);
   if (shelfCount === 0 || binCount === 0) {
-    return { ok: false, message: "Configure shelves and bins in Settings first" };
+    return fail(log, "Configure shelves and bins in Settings first");
+  }
+  log.info(`Found ${shelfCount} shelf(es) and ${binCount} bin(s)`);
+
+  let raw: string;
+  try {
+    raw = await file.text();
+  } catch {
+    return fail(log, "Failed to read CSV file");
   }
 
-  const raw = await file.text();
   let rows;
-  let errors: string[] = [];
+  let parseErrors: string[] = [];
   try {
-    ({ rows, errors } = await parseManaboxCsv(raw));
+    ({ rows, errors: parseErrors } = await parseManaboxCsv(raw));
   } catch {
-    return { ok: false, message: "Failed to parse CSV" };
+    return fail(log, "Failed to parse CSV");
   }
 
   if (rows.length === 0) {
-    const detail = errors[0] ?? "No valid rows found";
-    return { ok: false, message: detail };
+    const detail = parseErrors[0] ?? "No valid rows found";
+    return fail(log, detail);
+  }
+
+  log.info(`Parsed ${rows.length} CSV row(s)`);
+  if (parseErrors.length > 0) {
+    log.warn(`${parseErrors.length} row(s) skipped during parse`);
+    for (const err of parseErrors.slice(0, 5)) {
+      log.warn(err);
+    }
+    if (parseErrors.length > 5) {
+      log.warn(`… and ${parseErrors.length - 5} more parse warning(s)`);
+    }
   }
 
   const targetCount = await getDefaultStagingTargetCount();
+  log.info(`Target count: ${targetCount} cards per block`);
 
-  const stagingImport = await db.stagingImport.create({
-    data: {
-      filename: file.name,
-      rowCount: rows.length,
-      status: "PARSED",
-      targetCount,
-      cards: {
-        create: rows.map((row) => ({
-          scryfallId: row.scryfallId,
-          name: row.name,
-          setCode: row.setCode,
-          collectorNumber: row.collectorNumber,
-          finish: row.finish,
-          language: row.language,
-          condition: row.condition,
-          quantity: row.quantity,
-          sourceRow: row.sourceRow,
-        })),
+  const units = expandManaboxRowsToUnits(rows);
+  log.info(`Expanded to ${units.length} physical card(s)`);
+
+  try {
+    log.info("Saving staging import…");
+    const stagingImport = await db.stagingImport.create({
+      data: {
+        filename: file.name,
+        rowCount: units.length,
+        status: "PARSED",
+        targetCount,
       },
-    },
-  });
+    });
 
-  await applyBreakdownToImport(stagingImport.id, targetCount);
-  revalidateStagingPaths();
-  redirect(`/staging/${stagingImport.id}`);
+    for (let i = 0; i < units.length; i += INSERT_CHUNK) {
+      const chunk = units.slice(i, i + INSERT_CHUNK);
+      await db.stagingCard.createMany({
+        data: chunk.map((unit) => ({
+          stagingImportId: stagingImport.id,
+          scryfallId: unit.scryfallId,
+          name: unit.name,
+          setCode: unit.setCode,
+          collectorNumber: unit.collectorNumber,
+          finish: unit.finish,
+          language: unit.language,
+          condition: unit.condition,
+          quantity: 1,
+          expansionIndex: unit.expansionIndex,
+          sourceRow: unit.sourceRow,
+        })),
+      });
+      if (units.length > INSERT_CHUNK) {
+        log.info(`Saved cards ${Math.min(i + INSERT_CHUNK, units.length)} / ${units.length}`);
+      }
+    }
+
+    log.info("Assigning positions and block breakdown…");
+    const suggestedBlocks = await applyBreakdownToImport(stagingImport.id, targetCount);
+    log.info(`Suggested ${suggestedBlocks} block(s)`);
+    log.success("Import ready for review — MTG block IDs are assigned when you formalize");
+
+    revalidateStagingPaths();
+
+    return {
+      ok: true,
+      importId: stagingImport.id,
+      log: log.entries,
+      summary: {
+        filename: file.name,
+        csvRows: rows.length,
+        units: units.length,
+        suggestedBlocks,
+        targetCount,
+        parseWarnings: parseErrors.length,
+      },
+    };
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : "Unknown error";
+    return fail(log, `Import failed: ${detail}`);
+  }
 }
 
 export async function recalculateBreakdownAction(
@@ -143,4 +216,32 @@ export async function formalizeStagingImportAction(
     }
     return { ok: false, message: "Formalize failed" };
   }
+}
+
+export async function deleteStagingImportAction(
+  _prev: StagingActionResult | null,
+  formData: FormData,
+): Promise<StagingActionResult> {
+  const importId = (formData.get("importId") as string)?.trim();
+  if (!importId) {
+    return { ok: false, message: "Import not found" };
+  }
+
+  const stagingImport = await db.stagingImport.findUnique({ where: { id: importId } });
+  if (!stagingImport) {
+    return { ok: false, message: "Import not found" };
+  }
+
+  if (stagingImport.status === "ASSIGNED") {
+    return {
+      ok: false,
+      message: "Already formalized — remove blocks from inventory first if needed",
+    };
+  }
+
+  await db.stagingImport.delete({ where: { id: importId } });
+  revalidateStagingPaths();
+  revalidatePath(`/staging/${importId}`);
+
+  return { ok: true, message: "Staging deleted" };
 }

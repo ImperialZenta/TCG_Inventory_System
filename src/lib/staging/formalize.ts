@@ -25,22 +25,11 @@ export async function validateBinAssignments(
 
   const bins = await getBinUtilization();
   const binMap = new Map(bins.map((b) => [b.id, b]));
-  const usage = new Map<string, number>();
 
   for (let i = 1; i <= blockCount; i++) {
     const binId = binAssignments[i];
-    const bin = binMap.get(binId);
-    if (!bin) {
+    if (!binMap.has(binId)) {
       throw new FormalizeError(`Bin not found for block ${i}`);
-    }
-
-    const count = (usage.get(binId) ?? 0) + 1;
-    usage.set(binId, count);
-
-    if (bin.used + count > bin.capacity) {
-      throw new FormalizeError(
-        `Bin ${bin.binId} does not have enough capacity (${bin.used}/${bin.capacity} used, need ${count} more slot(s))`,
-      );
     }
   }
 }
@@ -99,18 +88,21 @@ export async function formalizeStagingImport(
           targetCount: stagingImport.targetCount,
           packedAt: new Date(),
           cards: {
-            create: stagingCards.map((card) => ({
-              scryfallId: card.scryfallId,
-              name: card.name,
-              setCode: card.setCode,
-              collectorNumber: card.collectorNumber,
-              finish: card.finish,
-              language: card.language,
-              condition: card.condition,
-              quantity: card.quantity,
-              priceUsd: null,
-              imageUri: null,
-            })),
+            create: [...stagingCards]
+              .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+              .map((card, index) => ({
+                scryfallId: card.scryfallId,
+                name: card.name,
+                setCode: card.setCode,
+                collectorNumber: card.collectorNumber,
+                finish: card.finish,
+                language: card.language,
+                condition: card.condition,
+                quantity: 1,
+                position: card.position ?? index + 1,
+                priceUsd: null,
+                imageUri: null,
+              })),
           },
         },
       });
