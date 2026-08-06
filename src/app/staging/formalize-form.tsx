@@ -24,7 +24,10 @@ interface FormalizeFormProps {
   bins: BinOption[];
   defaultBinId: string | null;
   alreadyAssigned: boolean;
+  formalizedBlockIds?: string[];
 }
+
+const MAX_VISIBLE_BLOCK_IDS = 10;
 
 function formatBinLabel(bin: BinOption): string {
   return `${bin.binId} (${bin.shelfCode}) — ${bin.used} block${bin.used === 1 ? "" : "s"}`;
@@ -51,6 +54,7 @@ export function FormalizeForm({
   bins,
   defaultBinId,
   alreadyAssigned,
+  formalizedBlockIds = [],
 }: FormalizeFormProps) {
   const router = useRouter();
   const [result, formAction] = useActionState(formalizeStagingImportAction, null);
@@ -81,8 +85,7 @@ export function FormalizeForm({
 
   useEffect(() => {
     if (result?.ok) {
-      const timer = setTimeout(() => router.push("/blocks"), 1500);
-      return () => clearTimeout(timer);
+      router.refresh();
     }
   }, [result, router]);
 
@@ -102,12 +105,38 @@ export function FormalizeForm({
   }
 
   if (alreadyAssigned) {
+    const visibleBlockIds = formalizedBlockIds.slice(0, MAX_VISIBLE_BLOCK_IDS);
+    const hiddenBlockCount = Math.max(0, formalizedBlockIds.length - visibleBlockIds.length);
+
     return (
       <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
-        This import has been formalized into blocks.{" "}
-        <Link href="/blocks" className="underline hover:text-emerald-100">
-          View blocks
-        </Link>
+        {formalizedBlockIds.length > 0 ? (
+          <>
+            <p>
+              Formalized into {formalizedBlockIds.length} block
+              {formalizedBlockIds.length === 1 ? "" : "s"}
+              {": "}
+              <span className="font-mono text-emerald-100">
+                {visibleBlockIds.join(", ")}
+                {hiddenBlockCount > 0 && ` +${hiddenBlockCount} more`}
+              </span>
+              .{" "}
+              <Link href="/blocks" className="underline hover:text-emerald-100">
+                View blocks
+              </Link>
+            </p>
+            <p className="mt-2 text-emerald-100/80">
+              Seal blocks or undo formalize below before leaving if this import looks wrong.
+            </p>
+          </>
+        ) : (
+          <p>
+            This import has been formalized into blocks.{" "}
+            <Link href="/blocks" className="underline hover:text-emerald-100">
+              View blocks
+            </Link>
+          </p>
+        )}
       </div>
     );
   }

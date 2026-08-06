@@ -1,15 +1,24 @@
 import type { StagingCard } from "@prisma/client";
 import { db } from "@/lib/db";
 import { findExpandedQtyGroups, type QtyGroupInfo } from "@/lib/staging/breakdown";
-export interface StagingReviewGroup {
+
+/** Minimum fields required to group cards by suggested block. */
+export type StagingReviewCard = Pick<
+  StagingCard,
+  "id" | "suggestedBlock" | "position" | "quantity"
+>;
+
+export interface StagingReviewGroup<T extends StagingReviewCard = StagingCard> {
   blockIndex: number;
-  cards: StagingCard[];
+  cards: T[];
   totalQuantity: number;
   lineCount: number;
 }
 
-export function buildStagingReviewGroups(cards: StagingCard[]): StagingReviewGroup[] {
-  const map = new Map<number, StagingCard[]>();
+export function buildStagingReviewGroups<T extends StagingReviewCard>(
+  cards: T[],
+): StagingReviewGroup<T>[] {
+  const map = new Map<number, T[]>();
 
   for (const card of cards) {
     const index = card.suggestedBlock ?? 1;

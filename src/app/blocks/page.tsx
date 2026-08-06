@@ -13,6 +13,10 @@ import { formatCurrency, formatDate, daysSince } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
+interface BlocksPageProps {
+  searchParams: Promise<{ removedBlock?: string; cardsRemoved?: string }>;
+}
+
 async function loadBinSealOptions() {
   const bins = await getBinUtilization();
   return Promise.all(
@@ -26,7 +30,11 @@ async function loadBinSealOptions() {
   );
 }
 
-export default async function BlocksPage() {
+export default async function BlocksPage({ searchParams }: BlocksPageProps) {
+  const query = await searchParams;
+  const removedBlock = query.removedBlock?.trim();
+  const cardsRemoved = query.cardsRemoved ? Number.parseInt(query.cardsRemoved, 10) : 0;
+
   let blocks: Awaited<ReturnType<typeof getBlocksWithStats>> = [];
   let binSealOptions: Awaited<ReturnType<typeof loadBinSealOptions>> = [];
   let defaultFormalizeBinId: string | null = null;
@@ -56,6 +64,20 @@ export default async function BlocksPage() {
           </Link>
         }
       />
+
+      {removedBlock && (
+        <div className="mb-6 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
+          <p className="font-medium text-emerald-200">
+            Removed {removedBlock}
+            {Number.isFinite(cardsRemoved) && cardsRemoved > 0 && (
+              <>
+                {" "}
+                ({cardsRemoved} card{cardsRemoved === 1 ? "" : "s"})
+              </>
+            )}
+          </p>
+        </div>
+      )}
 
       {dbError ? (
         <EmptyState

@@ -2,28 +2,41 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
 import { db } from "@/lib/db";
+import { STAGING_IMPORT_STATUS_LABELS } from "@/lib/constants";
 import { getBinUtilization } from "@/lib/location";
 import {
   buildStagingReviewGroups,
   getQtyGroupWarnings,
 } from "@/lib/staging/review";
+import { buildImportAssignmentSummary } from "@/lib/staging/assignment-summary";
+import { getLinkedBlocks } from "@/lib/staging/linked-blocks";
 import { FormalizeForm } from "../formalize-form";
 import { RecalculateBreakdownForm } from "../recalculate-form";
 import { DeleteStagingButton } from "../delete-staging-button";
+import { AssignmentBreakdown } from "../assignment-breakdown";
 import { formatDate } from "@/lib/utils";
 import { getDefaultFormalizeBinId } from "@/lib/staging/defaults";
 import { getImportSealSummary } from "@/lib/blocks/seal";
+import { getImportUndoSummary } from "@/lib/staging/undo-formalize";
 import { BulkSealImportForm } from "../bulk-seal-import-form";
+import { UndoFormalizeForm } from "../undo-formalize-form";
+import { RemoveBlockFlash } from "../remove-block-flash";
 export const dynamic = "force-dynamic";
 
 interface StagingImportPageProps {
   params: Promise<{ importId: string }>;
+  searchParams: Promise<{ removedBlock?: string; cardsRemoved?: string; lastBlock?: string }>;
 }
 
-export default async function StagingImportPage({ params }: StagingImportPageProps) {
+export default async function StagingImportPage({ params, searchParams }: StagingImportPageProps) {
   const { importId } = await params;
+  const query = await searchParams;
+  const removedBlock = query.removedBlock?.trim();
+  const cardsRemoved = query.cardsRemoved ? Number.parseInt(query.cardsRemoved, 10) : 0;
+  const lastBlockRemoved = query.lastBlock === "1";
 
-  const [stagingImport, bins, defaultBinId, importSealSummary] = await Promise.all([
+  const [stagingImport, bins, defaultBinId, importSealSummary, importUndoSummary, linkedBlocks] =
+    await Promise.all([
     db.stagingImport.findUnique({
       where: { id: importId },
       include: {
@@ -33,6 +46,8 @@ export default async function StagingImportPage({ params }: StagingImportPagePro
     getBinUtilization(),
     getDefaultFormalizeBinId(),
     getImportSealSummary(importId),
+    getImportUndoSummary(importId),
+    getLinkedBlocks(importId),
   ]);
 
   if (!stagingImport) {
@@ -42,6 +57,11 @@ export default async function StagingImportPage({ params }: StagingImportPagePro
   const groups = buildStagingReviewGroups(stagingImport.cards);
   const totalCards = stagingImport.cards.reduce((sum, c) => sum + c.quantity, 0);
   const alreadyAssigned = stagingImport.status === "ASSIGNED";
+  const assignmentSummary = alreadyAssigned
+    ? buildImportAssignmentSummary(stagingImport.cards, linkedBlocks)
+    : null;
+  const statusLabel =
+    STAGING_IMPORT_STATUS_LABELS[stagingImport.status] ?? stagingImport.status;
   const { adjacencyReminders, crossBlockSplits } = getQtyGroupWarnings(stagingImport.cards);
 
   const binOptions = bins.map((bin) => ({
@@ -73,21 +93,41 @@ export default async function StagingImportPage({ params }: StagingImportPagePro
       <div className="mb-6 grid gap-4 sm:grid-cols-4">
         <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 px-4 py-3">
           <p className="text-xs text-zinc-500">Status</p>
-          <p className="mt-1 text-sm font-medium text-zinc-100">{stagingImport.status}</p>
+          <p className="mt-1 text-sm font-medium text-zinc-100">{statusLabel}</p>
         </div>
         <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 px-4 py-3">
           <p className="text-xs text-zinc-500">Total cards</p>
           <p className="mt-1 text-sm font-medium text-zinc-100">{totalCards}</p>
         </div>
         <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 px-4 py-3">
-          <p className="text-xs text-zinc-500">Suggested blocks</p>
-          <p className="mt-1 text-sm font-medium text-zinc-100">{groups.length}</p>
+          <p className="text-xs text-zinc-500">
+            {alreadyAssigned ? "In inventory" : "Suggested blocks"}
+          </p>
+          <p className="mt-1 text-sm font-medium text-zinc-100">
+            {alreadyAssigned && assignmentSummary
+              ? `${assignmentSummary.inBlockUnits} · ${assignmentSummary.blocks.length} block${assignmentSummary.blocks.length === 1 ? "" : "s"}`
+              : groups.length}
+          </p>
+          {alreadyAssigned && assignmentSummary && assignmentSummary.unassignedUnits > 0 && (
+            <p className="mt-0.5 text-xs text-amber-400">
+              {assignmentSummary.unassignedUnits} unassigned
+            </p>
+          )}
         </div>
         <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 px-4 py-3">
           <p className="text-xs text-zinc-500">Imported</p>
           <p className="mt-1 text-sm font-medium text-zinc-100">{formatDate(stagingImport.createdAt)}</p>
         </div>
       </div>
+
+      {removedBlock && (
+        <RemoveBlockFlash
+          removedBlock={removedBlock}
+          cardsRemoved={Number.isFinite(cardsRemoved) ? cardsRemoved : 0}
+          lastBlock={lastBlockRemoved}
+          importStillFormalized={alreadyAssigned}
+        />
+      )}
 
       {!alreadyAssigned && adjacencyReminders.length > 0 && (
         <div className="mb-6 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
@@ -141,8 +181,20 @@ export default async function StagingImportPage({ params }: StagingImportPagePro
         </section>
       )}
 
+      {alreadyAssigned && assignmentSummary && (
+        <AssignmentBreakdown summary={assignmentSummary} />
+      )}
+
       {alreadyAssigned && (
         <BulkSealImportForm importId={stagingImport.id} sealSummary={importSealSummary} />
+      )}
+
+      {alreadyAssigned && (
+        <UndoFormalizeForm
+          importId={stagingImport.id}
+          filename={stagingImport.filename}
+          summary={importUndoSummary}
+        />
       )}
 
       <FormalizeForm
@@ -151,6 +203,7 @@ export default async function StagingImportPage({ params }: StagingImportPagePro
         bins={binOptions}
         defaultBinId={defaultBinId}
         alreadyAssigned={alreadyAssigned}
+        formalizedBlockIds={alreadyAssigned ? importUndoSummary.blockIds : undefined}
       />
 
       {!alreadyAssigned && (

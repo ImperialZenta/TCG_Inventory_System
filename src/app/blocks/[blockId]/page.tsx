@@ -10,9 +10,11 @@ import {
   FINISH_LABELS,
 } from "@/lib/constants";
 import { getLocationLabel, formatSealedAt, isSealedAtPending } from "@/lib/blocks";
+import { BLOCK_HAS_PICK_HISTORY_MESSAGE } from "@/lib/blocks/pick-guard";
 import { getBinUtilization } from "@/lib/location";
 import { aggregateCardLinesForListing, toManaPoolCsv } from "@/lib/manapool/csv-export";
 import { MoveBlockForm } from "../move-block-form";
+import { RemoveBlockForm } from "../remove-block-form";
 import { SealBlockForm } from "../seal-block-form";
 import { formatCurrency, formatDate, daysSince } from "@/lib/utils";
 
@@ -31,6 +33,7 @@ export default async function BlockDetailPage({ params }: BlockDetailPageProps) 
       bin: { include: { shelf: true } },
       cards: { orderBy: { position: "asc" } },
       auditLogs: { orderBy: { createdAt: "desc" }, take: 10 },
+      _count: { select: { pickItems: true } },
     },
   });
 
@@ -54,6 +57,7 @@ export default async function BlockDetailPage({ params }: BlockDetailPageProps) 
   const csvPreview = listingRows.length > 0 ? toManaPoolCsv(listingRows) : null;
   const canSeal = block.status === "OPEN" && cardCount > 0;
   const sealedPending = isSealedAtPending(block);
+  const hasPickHistory = block._count.pickItems > 0;
 
   return (
     <>
@@ -171,6 +175,21 @@ export default async function BlockDetailPage({ params }: BlockDetailPageProps) 
                 blockId={block.blockId}
                 currentBinId={block.binId}
                 bins={binOptions}
+              />
+            </div>
+          </div>
+
+          <div>
+            <h2 className="mb-4 text-lg font-medium text-red-200">Remove block</h2>
+            <div className="rounded-xl border border-red-900/40 bg-red-950/20 p-4">
+              <RemoveBlockForm
+                blockId={block.blockId}
+                cardCount={cardCount}
+                statusLabel={BLOCK_STATUS_LABELS[block.status]}
+                canRemove={!hasPickHistory}
+                removeBlockedReason={
+                  hasPickHistory ? BLOCK_HAS_PICK_HISTORY_MESSAGE : undefined
+                }
               />
             </div>
           </div>

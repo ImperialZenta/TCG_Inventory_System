@@ -1,0 +1,144 @@
+import { db } from "@/lib/db";
+import {
+  assertBlockHasNoPickItems,
+  BLOCK_HAS_PICK_HISTORY_MESSAGE,
+  isForeignKeyViolation,
+  PickGuardError,
+} from "@/lib/blocks/pick-guard";
+
+export class RemoveBlockError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "RemoveBlockError";
+  }
+}
+
+export interface RemoveBlockResult {
+  blockId: string;
+  cardCount: number;
+  /** @deprecated Use importUnlocked — count of imports reset to PARSED */
+  stagingImportsReset: number;
+  stagingImportId: string | null;
+  stagingImportIds: string[];
+  importUnlocked: boolean;
+  remainingBlocksOnImport: number;
+}
+
+/**
+ * Permanently removes a block and its card lines.
+ * Clears staging links so formalized imports can be re-formalized or deleted
+ * once all of their blocks are gone. Refuses when pick items still reference the block.
+ */
+export async function removeBlockByBlockId(blockId: string): Promise<RemoveBlockResult> {
+  const block = await db.block.findUnique({
+    where: { blockId },
+    include: {
+      cards: { select: { quantity: true } },
+      _count: { select: { pickItems: true } },
+    },
+  });
+
+  if (!block) {
+    throw new RemoveBlockError("Block not found");
+  }
+
+  if (block._count.pickItems > 0) {
+    throw new RemoveBlockError(BLOCK_HAS_PICK_HISTORY_MESSAGE);
+  }
+
+  const cardCount = block.cards.reduce((sum, card) => sum + card.quantity, 0);
+  const blockInternalId = block.id;
+  const humanBlockId = block.blockId;
+  const blockStatus = block.status;
+
+  const outcome = await db.$transaction(async (tx) => {
+      try {
+        await assertBlockHasNoPickItems(tx, blockInternalId);
+      } catch (error) {
+        if (error instanceof PickGuardError) {
+          throw new RemoveBlockError(error.message);
+        }
+        throw new RemoveBlockError("Block not found");
+      }
+
+      const linkedCards = await tx.stagingCard.findMany({
+        where: { assignedBlockId: blockInternalId },
+        select: { stagingImportId: true },
+        distinct: ["stagingImportId"],
+      });
+      const importIds = linkedCards.map((row) => row.stagingImportId);
+
+      await tx.stagingCard.updateMany({
+        where: { assignedBlockId: blockInternalId },
+        data: { assignedBlockId: null },
+      });
+
+      await tx.auditLog.updateMany({
+        where: { blockId: blockInternalId },
+        data: { blockId: null },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          blockId: null,
+          action: "REMOVED_BLOCK",
+          details: `${humanBlockId} · ${cardCount} card${cardCount === 1 ? "" : "s"} · was ${blockStatus}`,
+        },
+      });
+
+      try {
+        await tx.block.delete({ where: { id: blockInternalId } });
+      } catch (error) {
+        if (isForeignKeyViolation(error)) {
+          throw new RemoveBlockError(BLOCK_HAS_PICK_HISTORY_MESSAGE);
+        }
+        throw error;
+      }
+
+      let resetCount = 0;
+      let importUnlocked = false;
+      let remainingBlocksOnImport = 0;
+      const primaryImportId = importIds[0] ?? null;
+
+      for (const importId of importIds) {
+        const stillAssigned = await tx.stagingCard.count({
+          where: { stagingImportId: importId, assignedBlockId: { not: null } },
+        });
+        if (stillAssigned === 0) {
+          await tx.stagingImport.updateMany({
+            where: { id: importId, status: "ASSIGNED" },
+            data: { status: "PARSED" },
+          });
+          resetCount++;
+          if (importId === primaryImportId) {
+            importUnlocked = true;
+          }
+        } else if (importId === primaryImportId) {
+          const distinctBlocks = await tx.stagingCard.findMany({
+            where: { stagingImportId: importId, assignedBlockId: { not: null } },
+            select: { assignedBlockId: true },
+            distinct: ["assignedBlockId"],
+          });
+          remainingBlocksOnImport = distinctBlocks.length;
+        }
+      }
+
+      return {
+        stagingImportsReset: resetCount,
+        stagingImportId: primaryImportId,
+        stagingImportIds: importIds,
+        importUnlocked,
+      remainingBlocksOnImport,
+    };
+  });
+
+  return {
+    blockId: humanBlockId,
+    cardCount,
+    stagingImportsReset: outcome.stagingImportsReset,
+    stagingImportId: outcome.stagingImportId,
+    stagingImportIds: outcome.stagingImportIds,
+    importUnlocked: outcome.importUnlocked,
+    remainingBlocksOnImport: outcome.remainingBlocksOnImport,
+  };
+}

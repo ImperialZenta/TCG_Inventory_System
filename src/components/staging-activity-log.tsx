@@ -61,8 +61,8 @@ export function StagingActivityLog({
       </div>
 
       {summary && importId && (
-        <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
-          <p className="font-medium text-emerald-200">Import complete</p>
+        <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+          <p className="font-medium text-emerald-200">Breakdown complete</p>
           <ul className="mt-2 space-y-1 text-emerald-100/90">
             <li>
               {summary.filename}: {summary.csvRows} CSV row(s) → {summary.units} card(s)
@@ -74,8 +74,9 @@ export function StagingActivityLog({
               <li>{summary.parseWarnings} parse warning(s) — see log above</li>
             )}
           </ul>
-          <p className="mt-2 text-xs text-emerald-200/70">
-            MTG block IDs (e.g. MTG-0003) are assigned when you formalize on the review page.
+          <p className="mt-2 text-emerald-100/80">
+            MTG block IDs are assigned when you formalize on the review page. Continue when you are
+            ready — this import also appears in Pending staging below.
           </p>
           <Link
             href={`/staging/${importId}`}

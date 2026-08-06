@@ -1,7 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
+import { RemoveBlockError, removeBlockByBlockId } from "@/lib/blocks/remove";
+import { getRemoveRedirectUrl } from "@/lib/blocks/remove-redirect";
 import {
   sealBlocksFromStagingImport,
   sealOpenBlocksByInternalIds,
@@ -119,6 +122,43 @@ export async function sealBlockAction(
 
   revalidateBlockPaths(blockId);
   return { ok: true, message: "Block sealed" };
+}
+
+export async function removeBlockAction(
+  _prev: BlockActionResult | null,
+  formData: FormData,
+): Promise<BlockActionResult> {
+  const blockId = (formData.get("blockId") as string)?.trim();
+  const confirmation = (formData.get("confirmation") as string)?.trim();
+
+  if (!blockId) {
+    return { ok: false, message: "Block not found" };
+  }
+
+  if (confirmation !== blockId) {
+    return { ok: false, message: `Type ${blockId} to confirm` };
+  }
+
+  let result;
+  try {
+    result = await removeBlockByBlockId(blockId);
+  } catch (error) {
+    if (error instanceof RemoveBlockError) {
+      return { ok: false, message: error.message };
+    }
+    return { ok: false, message: "Remove failed" };
+  }
+
+  revalidatePath("/blocks");
+  revalidatePath("/");
+  revalidatePath("/analytics");
+  revalidatePath("/staging");
+  revalidatePath("/settings");
+  if (result.stagingImportId) {
+    revalidatePath(`/staging/${result.stagingImportId}`);
+  }
+
+  redirect(getRemoveRedirectUrl(result));
 }
 
 export async function sealBlocksByBinAction(

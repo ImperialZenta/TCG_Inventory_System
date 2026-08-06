@@ -43,6 +43,13 @@ export const CONDITION_LABELS: Record<string, string> = {
   DMG: "Damaged",
 };
 
+/** Staff-facing labels for StagingImport.status (PARSED, ASSIGNED, …). */
+export const STAGING_IMPORT_STATUS_LABELS: Record<string, string> = {
+  PARSED: "Awaiting formalize",
+  ASSIGNED: "Formalized",
+  ARCHIVED: "Archived",
+};
+
 export const NAV_ITEMS = [
   { href: "/", label: "Dashboard" },
   { href: "/staging", label: "Staging" },

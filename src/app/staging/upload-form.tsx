@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useCallback, useEffect, useRef, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { SubmitButton } from "@/components/submit-button";
 import { StagingActivityLog } from "@/components/staging-activity-log";
@@ -15,14 +15,6 @@ export function StagingUploadForm() {
   const router = useRouter();
   const [result, formAction, isPending] = useActionState(uploadStagingCsv, null);
   const [entries, setEntries] = useState<StagingLogEntry[]>([]);
-  const autoNavRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const clearAutoNav = useCallback(() => {
-    if (autoNavRef.current) {
-      clearTimeout(autoNavRef.current);
-      autoNavRef.current = null;
-    }
-  }, []);
 
   useEffect(() => {
     if (!result) return;
@@ -30,18 +22,11 @@ export function StagingUploadForm() {
     setEntries((prev) => [...prev, ...result.log]);
 
     if (result.ok) {
-      autoNavRef.current = setTimeout(() => {
-        router.push(`/staging/${result.importId}`);
-      }, 8000);
+      router.refresh();
     }
-
-    return clearAutoNav;
-  }, [result, router, clearAutoNav]);
-
-  useEffect(() => () => clearAutoNav(), [clearAutoNav]);
+  }, [result, router]);
 
   function handleSubmit(formData: FormData) {
-    clearAutoNav();
     const file = formData.get("csv");
     const fileName = file instanceof File ? file.name : "unknown";
     setEntries([

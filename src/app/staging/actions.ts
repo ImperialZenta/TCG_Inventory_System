@@ -8,6 +8,10 @@ import { getDefaultFormalizeBinId } from "@/lib/staging/defaults";
 import { FormalizeError, formalizeStagingImport } from "@/lib/staging/formalize";
 import { buildStagingReviewGroups } from "@/lib/staging/review";
 import {
+  UndoFormalizeError,
+  undoFormalizeImport,
+} from "@/lib/staging/undo-formalize";
+import {
   createUploadLogger,
   formatFileSize,
   type StagingUploadResult,
@@ -253,10 +257,15 @@ export async function deleteStagingImportAction(
   }
 
   if (stagingImport.status === "ASSIGNED") {
-    return {
-      ok: false,
-      message: "Already formalized — remove blocks from inventory first if needed",
-    };
+    const stillLinked = await db.stagingCard.count({
+      where: { stagingImportId: importId, assignedBlockId: { not: null } },
+    });
+    if (stillLinked > 0) {
+      return {
+        ok: false,
+        message: "Already formalized — use Undo formalize on the import review page, or remove blocks first",
+      };
+    }
   }
 
   await db.stagingImport.delete({ where: { id: importId } });
@@ -264,4 +273,37 @@ export async function deleteStagingImportAction(
   revalidatePath(`/staging/${importId}`);
 
   return { ok: true, message: "Staging deleted" };
+}
+
+export async function undoFormalizeImportAction(
+  _prev: StagingActionResult | null,
+  formData: FormData,
+): Promise<StagingActionResult> {
+  const importId = (formData.get("importId") as string)?.trim();
+  const confirmation = (formData.get("confirmation") as string)?.trim();
+
+  if (!importId) {
+    return { ok: false, message: "Import not found" };
+  }
+
+  if (confirmation !== "UNDO") {
+    return { ok: false, message: "Type UNDO to confirm" };
+  }
+
+  try {
+    const result = await undoFormalizeImport(importId);
+    revalidateStagingPaths();
+    revalidatePath("/settings");
+    revalidatePath(`/staging/${importId}`);
+
+    return {
+      ok: true,
+      message: `Undid formalize for "${result.filename}" — removed ${result.blocksRemoved} block${result.blocksRemoved === 1 ? "" : "s"}. Re-upload your export file on Staging to start over. MTG IDs are not reused.`,
+    };
+  } catch (error) {
+    if (error instanceof UndoFormalizeError) {
+      return { ok: false, message: error.message };
+    }
+    return { ok: false, message: "Undo failed" };
+  }
 }

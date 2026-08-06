@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Badge } from "@/components/page-header";
 import { DeleteStagingButton } from "./delete-staging-button";
 import { formatDate } from "@/lib/utils";
 
@@ -33,11 +34,17 @@ export function PendingStagingList({ items }: PendingStagingListProps) {
             href={`/staging/${item.id}`}
             className="min-w-0 flex-1 transition hover:opacity-90"
           >
-            <p className="truncate font-medium text-zinc-100">{item.filename}</p>
-            <p className="mt-1 text-sm text-zinc-400">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="truncate font-medium text-zinc-100">{item.filename}</p>
+              <Badge variant="warning">Awaiting formalize</Badge>
+            </div>
+            <p className="mt-1.5 text-sm text-zinc-400">
               {item.rowCount} card{item.rowCount === 1 ? "" : "s"} · {item.suggestedBlocks}{" "}
               block{item.suggestedBlocks === 1 ? "" : "s"} · target{" "}
               {item.targetCount ?? 50} · {formatDate(item.createdAt)}
+            </p>
+            <p className="mt-1 text-xs text-zinc-500">
+              Not in inventory yet — review to assign bins or discard to re-upload.
             </p>
           </Link>
           <div className="flex shrink-0 items-center gap-2">
