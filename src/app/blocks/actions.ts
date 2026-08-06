@@ -10,6 +10,11 @@ import {
   sealOpenBlocksByInternalIds,
   sealOpenBlocksInBin,
 } from "@/lib/blocks/seal";
+import {
+  LifecycleError,
+  transitionBlockStatus,
+  type LifecycleTransition,
+} from "@/lib/blocks/lifecycle";
 
 export type BlockActionResult =
   | { ok: true; message: string }
@@ -122,6 +127,42 @@ export async function sealBlockAction(
 
   revalidateBlockPaths(blockId);
   return { ok: true, message: "Block sealed" };
+}
+
+const LIFECYCLE_TRANSITIONS = new Set<LifecycleTransition>([
+  "ACTIVATE",
+  "ARCHIVE",
+  "LIQUIDATE",
+]);
+
+export async function lifecycleBlockAction(
+  _prev: BlockActionResult | null,
+  formData: FormData,
+): Promise<BlockActionResult> {
+  const blockId = (formData.get("blockId") as string)?.trim();
+  const transition = (formData.get("transition") as string)?.trim();
+
+  if (!blockId) {
+    return { ok: false, message: "Block not found" };
+  }
+
+  if (!LIFECYCLE_TRANSITIONS.has(transition as LifecycleTransition)) {
+    return { ok: false, message: "Invalid lifecycle action" };
+  }
+
+  try {
+    const outcome = await transitionBlockStatus(
+      blockId,
+      transition as LifecycleTransition,
+    );
+    revalidateBlockPaths(blockId);
+    return { ok: true, message: outcome.message };
+  } catch (error) {
+    if (error instanceof LifecycleError) {
+      return { ok: false, message: error.message };
+    }
+    return { ok: false, message: "Lifecycle update failed" };
+  }
 }
 
 export async function removeBlockAction(

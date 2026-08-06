@@ -88,8 +88,8 @@ Ship together only when a concrete **non-CSV** use case justifies the build:
 |------|---------|------|
 | **Primary (Done)** | I-009–I-013, I-016, I-017 | ManaBox CSV through formalize |
 | **Primary polish** | I-018, I-024 ✓, I-025 ✓ | Default bin at formalize; list badges; manual upload→review navigation |
-| **Post-formalize lifecycle** | I-003 ✓, I-015 Partial, B-002, B-007 | Phase 3 |
-| **I-015 hardening (QA)** | PL-008; I-021 Should; B-012–B-018; B-010 ✓, B-011 ✓; I-022 ✓, I-023 ✓ | Phase 3a |
+| **Post-formalize lifecycle** | I-003 ✓, I-015 Partial, B-002 ✓, B-007 | Phase 3 |
+| **I-015 hardening (QA)** | PL-008 ✓; I-021 Should; B-012–B-018; B-010 ✓, B-011 ✓; I-022 ✓, I-023 ✓ | Phase 3a |
 | **Exception intake (bundle)** | I-001 + I-002 (+ optional I-005, bulk line UI) | Phase 3b — defer until needed |
 | **Future scan-in-app** | I-014, I-006 | Only if bringing scanner into app; large build; CSV bridge sufficient for now |
 
@@ -106,7 +106,7 @@ Ship together only when a concrete **non-CSV** use case justifies the build:
 | PL-005 | Mana Pool listing CSV export per block | Must | Done |
 | PL-006 | Settings: shelves, bins, staging target, save feedback | Must | Done |
 | PL-007 | Language mapping (Scryfall ↔ Mana Pool) | Must | Done |
-| PL-008 | Automated tests for block remove and staging redo flows | Should | — — QA finding #4 |
+| PL-008 | Automated tests for block remove and staging redo flows | Should | Done — Vitest integration tests (undo, remove, re-formalize, lifecycle, pick guard) |
 
 ---
 
@@ -115,7 +115,7 @@ Ship together only when a concrete **non-CSV** use case justifies the build:
 | ID | Story | Priority | Status |
 |----|-------|----------|--------|
 | B-001 | Create Block with auto ID (MTG-0001), label, location | Must | Partial — via staging formalize; manual create is **I-001** (exception path) |
-| B-002 | Block lifecycle: OPEN, SEALED, ACTIVE, ARCHIVED, LIQUIDATED | Must | Partial — **P-011** may add `NEEDS_REPAIR` or pick-hold flag |
+| B-002 | Block lifecycle: OPEN, SEALED, ACTIVE, ARCHIVED, LIQUIDATED | Must | Done — seal (I-003) + activate/archive/liquidate on block detail |
 | B-003 | Track packed, sealed, last pick dates | Must | Done |
 | B-004 | Location hierarchy: Shelf → Bin → Block; unlimited bin blocks + move/reassign | Must | Done |
 | B-005 | Block capacity hints (target count) | Should | Done |
@@ -370,7 +370,7 @@ Stories below came from QA review of **I-015** (Aug 2026). Each is written for *
 | **I-022** | **As a** staff member reviewing a formalized staging import, **I want** the breakdown to show which cards are in blocks vs unassigned, **so that** I trust card counts and know when a partial remove left gaps. | Must | Done |
 | **I-021** | **As a** packer who trusts the scan but packed one brick wrong, **I want** to remove or repair one block without redoing the whole import, **so that** I fix a physical mistake without re-scanning 5,000 cards. | Should | — |
 | **B-010** | **As a** picker or manager removing a block, **I want** the system to reject removal if pick items exist at delete time, **so that** I never get a cryptic failure mid-transaction when picking and removal overlap. | Must | Done |
-| **PL-008** | **As a** developer shipping lifecycle changes, **I want** automated tests for full-redo and partial-removal staging paths, **so that** regressions in remove/formalize/delete are caught before deploy. | Should | — |
+| **PL-008** | **As a** developer shipping lifecycle changes, **I want** automated tests for full-redo and partial-removal staging paths, **so that** regressions in remove/formalize/delete are caught before deploy. | Should | Done |
 | **B-013** | **As an** owner auditing inventory changes, **I want** a global log of block removals (who/when/which MTG ID), **so that** I can answer disputes and trace mistakes after the block detail page is gone. | Should | — |
 | **B-012** | **As a** listing manager, **I want** removal blocked or gated for ACTIVE blocks until archived/liquidated, **so that** Mana Pool listings and physical inventory stay in sync. | Should | — |
 | **B-011** | **As a** staff member on block detail, **I want** the remove action hidden or disabled when pick history exists, **so that** I discover constraints before typing a confirmation. | Should | Done |
@@ -432,7 +432,7 @@ Stories below came from QA review of **I-015** (Aug 2026). Each is written for *
 
 1. **I-023** + **I-022** — ~~scan redo~~ **I-023 Done**; staging assignment visibility next
 2. **B-010** + **B-011** — harden per-block remove before Phase 4 picking
-3. **PL-008** — lock **I-023** and remove paths with tests
+3. **PL-008** — ~~lock **I-023** and remove paths with tests~~ **Done**
 4. **I-021** — only if partial brick repair is still needed after **I-023** in production
 5. **B-013**, **B-012**, **B-017** — ops safety and audit
 6. **B-014**, **B-015**, **B-016**, **B-018** — polish
@@ -479,7 +479,7 @@ Goal: Manage blocks **after** staging formalize — seal, remove safely, full li
 |-------|-----|-------|---------|
 | 1 | I-003 | Seal block (freeze contents) | **Done** — OPEN → SEALED, Unsealed labels in UI |
 | 2 | I-015 | Remove block by block ID | **Partial** — per-block delete; whole-import redo → **I-023** Done |
-| 3 | B-002 | Block lifecycle UI (Partial → Done) | Wire SEALED → ACTIVE → ARCHIVED (and LIQUIDATED) on block detail |
+| 3 | B-002 | Block lifecycle UI (Partial → Done) | **Done** — SEALED → ACTIVE → ARCHIVED → LIQUIDATED on block detail |
 | 4 | B-007 | QR/barcode / team bag labels | MTG IDs exist after formalize; printable labels for physical bins |
 | 5 | I-018 | Default bin at formalize + per-block override | **Done** — Settings default, summary view for large imports |
 
@@ -499,7 +499,7 @@ Goal: Close gaps found in QA review of block remove — prioritize **scan redo**
 | 2 | I-022 | Staging assignment visibility | **Done** — in inventory vs unassigned on review page |
 | 3 | B-010 | Atomic pick guard | **Done** — in-tx re-check + FK mapping |
 | 4 | B-011 | Disable remove when picks exist | **Done** — blocked UI on block detail |
-| 5 | PL-008 | Remove/staging/undo tests | Prevent regressions |
+| 5 | PL-008 | Remove/staging/undo tests | **Done** — Vitest against `tcg_inventory_test` |
 | 6 | I-021 | Safe partial block removal | Should — only if one-brick repair still needed |
 | 7 | B-013 | Global removal audit | Traceability after block page gone |
 | 8 | B-012 | Status-aware removal | Protect ACTIVE listings |

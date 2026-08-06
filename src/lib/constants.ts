@@ -15,6 +15,30 @@ export const BLOCK_STATUS_LABELS: Record<string, string> = {
   LIQUIDATED: "Liquidated",
 };
 
+export const LIFECYCLE_TRANSITION_LABELS: Record<
+  "ACTIVATE" | "ARCHIVE" | "LIQUIDATE",
+  { button: string; pending: string; description: string }
+> = {
+  ACTIVATE: {
+    button: "Mark as listed",
+    pending: "Activating…",
+    description:
+      "Set status to Active after importing the Mana Pool CSV. Records activation date.",
+  },
+  ARCHIVE: {
+    button: "Take offline",
+    pending: "Archiving…",
+    description:
+      "Remove from new picks and listings. Use for stale inventory or bricks pulled before listing.",
+  },
+  LIQUIDATE: {
+    button: "Mark as liquidated",
+    pending: "Liquidating…",
+    description:
+      "Final disposition — sold through, sorted out, or otherwise removed from active inventory.",
+  },
+};
+
 export const BLOCK_TIER_LABELS: Record<string, string> = {
   GENERAL: "General",
   BULK_COMMONS: "Bulk Commons",

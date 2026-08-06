@@ -95,6 +95,23 @@ export function isSealedAtPending(block: {
   return block.status === "OPEN" && !block.sealedAt;
 }
 
+export type StatusBadgeVariant = "default" | "warning" | "success" | "muted";
+
+export function getStatusBadgeVariant(status: BlockStatus): StatusBadgeVariant {
+  switch (status) {
+    case "OPEN":
+      return "warning";
+    case "ACTIVE":
+      return "success";
+    case "SEALED":
+    case "ARCHIVED":
+    case "LIQUIDATED":
+      return "muted";
+    default:
+      return "default";
+  }
+}
+
 export function getPickSortKey(block: BlockWithRelations): string {
   if (!block.bin) return `zzz-${block.blockId}`;
   if (!block.bin.shelf) {

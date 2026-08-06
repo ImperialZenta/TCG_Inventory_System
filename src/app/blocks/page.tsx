@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { PageHeader, Badge, EmptyState } from "@/components/page-header";
-import { getBlocksWithStats, getLocationLabel, formatSealedAt, isSealedAtPending } from "@/lib/blocks";
+import { getBlocksWithStats, getLocationLabel, formatSealedAt, isSealedAtPending, getStatusBadgeVariant } from "@/lib/blocks";
 import { getBinSealSummary } from "@/lib/blocks/seal";
 import { getBinUtilization } from "@/lib/location";
 import { getDefaultFormalizeBinId } from "@/lib/staging/defaults";
@@ -134,15 +134,7 @@ export default async function BlocksPage({ searchParams }: BlocksPageProps) {
                       {getLocationLabel(block)}
                     </td>
                     <td className="px-4 py-3">
-                      <Badge
-                        variant={
-                          block.status === "OPEN"
-                            ? "warning"
-                            : block.status === "SEALED"
-                              ? "muted"
-                              : "default"
-                        }
-                      >
+                      <Badge variant={getStatusBadgeVariant(block.status)}>
                         {BLOCK_STATUS_LABELS[block.status]}
                       </Badge>
                     </td>

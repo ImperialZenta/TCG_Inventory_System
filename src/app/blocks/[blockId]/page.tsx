@@ -9,13 +9,15 @@ import {
   CONDITION_LABELS,
   FINISH_LABELS,
 } from "@/lib/constants";
-import { getLocationLabel, formatSealedAt, isSealedAtPending } from "@/lib/blocks";
+import { getLocationLabel, formatSealedAt, isSealedAtPending, getStatusBadgeVariant } from "@/lib/blocks";
 import { BLOCK_HAS_PICK_HISTORY_MESSAGE } from "@/lib/blocks/pick-guard";
+import { getAvailableTransitions } from "@/lib/blocks/lifecycle";
 import { getBinUtilization } from "@/lib/location";
 import { aggregateCardLinesForListing, toManaPoolCsv } from "@/lib/manapool/csv-export";
 import { MoveBlockForm } from "../move-block-form";
 import { RemoveBlockForm } from "../remove-block-form";
 import { SealBlockForm } from "../seal-block-form";
+import { BlockLifecycleSection } from "../block-lifecycle-section";
 import { formatCurrency, formatDate, daysSince } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -58,6 +60,7 @@ export default async function BlockDetailPage({ params }: BlockDetailPageProps) 
   const canSeal = block.status === "OPEN" && cardCount > 0;
   const sealedPending = isSealedAtPending(block);
   const hasPickHistory = block._count.pickItems > 0;
+  const availableTransitions = getAvailableTransitions(block.status);
 
   return (
     <>
@@ -74,7 +77,7 @@ export default async function BlockDetailPage({ params }: BlockDetailPageProps) 
       <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-4">
           <p className="text-xs text-zinc-500">Status</p>
-          <Badge variant={block.status === "OPEN" ? "warning" : "muted"}>
+          <Badge variant={getStatusBadgeVariant(block.status)}>
             {BLOCK_STATUS_LABELS[block.status]}
           </Badge>
         </div>
@@ -167,6 +170,12 @@ export default async function BlockDetailPage({ params }: BlockDetailPageProps) 
               </div>
             </div>
           )}
+
+          <BlockLifecycleSection
+            blockId={block.blockId}
+            status={block.status}
+            availableTransitions={availableTransitions}
+          />
 
           <div>
             <h2 className="mb-4 text-lg font-medium text-zinc-100">Move block</h2>
