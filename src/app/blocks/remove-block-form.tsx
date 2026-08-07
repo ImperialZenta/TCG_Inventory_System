@@ -10,6 +10,7 @@ interface RemoveBlockFormProps {
   statusLabel: string;
   canRemove: boolean;
   removeBlockedReason?: string;
+  removeRemediation?: string;
 }
 
 export function RemoveBlockForm({
@@ -18,6 +19,7 @@ export function RemoveBlockForm({
   statusLabel,
   canRemove,
   removeBlockedReason,
+  removeRemediation,
 }: RemoveBlockFormProps) {
   const [result, formAction] = useActionState(removeBlockAction, null);
   const [confirmation, setConfirmation] = useState("");
@@ -35,9 +37,9 @@ export function RemoveBlockForm({
           {removeBlockedReason ??
             "Remove is not available for this block. Complete or cancel related picks first."}
         </p>
-        <p className="text-xs text-zinc-500">
-          Listed or archived blocks will require lifecycle transitions before removal (**B-012**).
-        </p>
+        {removeRemediation && (
+          <p className="text-xs text-zinc-400">{removeRemediation}</p>
+        )}
       </div>
     );
   }

@@ -1,6 +1,7 @@
 import type { BlockStatus } from "@prisma/client";
 import { db } from "@/lib/db";
 import { BLOCK_STATUS_LABELS } from "@/lib/constants";
+import { INVENTORY_EVENT_TYPES, recordInventoryEvent } from "@/lib/events";
 
 export type LifecycleTransition = "ACTIVATE" | "ARCHIVE" | "LIQUIDATE";
 
@@ -18,15 +19,6 @@ const TRANSITION_TARGETS: Record<
   ACTIVATE: { SEALED: "ACTIVE" },
   ARCHIVE: { SEALED: "ARCHIVED", ACTIVE: "ARCHIVED" },
   LIQUIDATE: { ARCHIVED: "LIQUIDATED" },
-};
-
-const TRANSITION_AUDIT: Record<
-  LifecycleTransition,
-  { action: string; details: string }
-> = {
-  ACTIVATE: { action: "ACTIVATED_BLOCK", details: "Listed on Mana Pool" },
-  ARCHIVE: { action: "ARCHIVED_BLOCK", details: "Taken offline" },
-  LIQUIDATE: { action: "LIQUIDATED_BLOCK", details: "Final disposition" },
 };
 
 export function getAvailableTransitions(status: BlockStatus): LifecycleTransition[] {
@@ -76,7 +68,7 @@ export async function transitionBlockStatus(
     throw new LifecycleError("Cannot transition an empty block");
   }
 
-  const audit = TRANSITION_AUDIT[transition];
+  const fromStatus = block.status;
 
   await db.$transaction(async (tx) => {
     const current = await tx.block.findUnique({
@@ -109,12 +101,15 @@ export async function transitionBlockStatus(
       data,
     });
 
-    await tx.auditLog.create({
-      data: {
-        blockId: block.id,
-        action: audit.action,
-        details: audit.details,
+    await recordInventoryEvent(tx, {
+      eventType: INVENTORY_EVENT_TYPES.BLOCK_LIFECYCLE,
+      payload: {
+        mtgBlockId: block.blockId,
+        fromStatus,
+        toStatus: targetStatus,
+        transition,
       },
+      blockId: block.id,
     });
   });
 

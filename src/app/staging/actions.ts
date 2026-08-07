@@ -11,6 +11,7 @@ import {
   UndoFormalizeError,
   undoFormalizeImport,
 } from "@/lib/staging/undo-formalize";
+import { INVENTORY_EVENT_TYPES, recordInventoryEvent } from "@/lib/events";
 import {
   createUploadLogger,
   formatFileSize,
@@ -268,7 +269,19 @@ export async function deleteStagingImportAction(
     }
   }
 
-  await db.stagingImport.delete({ where: { id: importId } });
+  await db.$transaction(async (tx) => {
+    await recordInventoryEvent(tx, {
+      eventType: INVENTORY_EVENT_TYPES.STAGING_DELETED,
+      payload: {
+        importId,
+        filename: stagingImport.filename,
+        status: stagingImport.status,
+      },
+      correlationId: importId,
+      stagingImportId: importId,
+    });
+    await tx.stagingImport.delete({ where: { id: importId } });
+  });
   revalidateStagingPaths();
   revalidatePath(`/staging/${importId}`);
 

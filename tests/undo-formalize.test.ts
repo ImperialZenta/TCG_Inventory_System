@@ -44,12 +44,12 @@ describe("undo formalize (I-023)", () => {
     });
     expect(remainingBlocks).toHaveLength(0);
 
-    const audit = await db.auditLog.findFirst({
-      where: { action: "UNDO_FORMALIZE" },
+    const event = await db.inventoryEvent.findFirst({
+      where: { eventType: "staging.undo_formalize" },
       orderBy: { createdAt: "desc" },
     });
-    expect(audit).not.toBeNull();
-    expect(audit?.details).toContain("discard");
+    expect(event).not.toBeNull();
+    expect(event?.summary).toContain("Undo formalize");
   });
 
   it("reports canUndo true before undo and nothing after import is gone", async () => {

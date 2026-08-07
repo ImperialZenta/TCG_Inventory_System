@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { INVENTORY_EVENT_TYPES, recordInventoryEvent } from "@/lib/events";
 
 export interface SealBlockCandidate {
   id: string;
@@ -134,12 +135,13 @@ export async function sealOpenBlocksByInternalIds(
           where: { id: block.id },
           data: { status: "SEALED", sealedAt },
         });
-        await tx.auditLog.create({
-          data: {
-            blockId: block.id,
-            action: "SEALED_BLOCK",
-            details: `${cardCount} card${cardCount === 1 ? "" : "s"}`,
+        await recordInventoryEvent(tx, {
+          eventType: INVENTORY_EVENT_TYPES.BLOCK_SEALED,
+          payload: {
+            mtgBlockId: block.blockId,
+            cardCount,
           },
+          blockId: block.id,
         });
       }
     },

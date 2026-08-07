@@ -33,10 +33,14 @@ describe("block lifecycle (B-002)", () => {
     expect(block?.status).toBe("ACTIVE");
     expect(block?.activatedAt).not.toBeNull();
 
-    const audit = await db.auditLog.findFirst({
-      where: { blockId: fixture.internalIds[0], action: "ACTIVATED_BLOCK" },
+    const event = await db.inventoryEvent.findFirst({
+      where: {
+        blockId: fixture.internalIds[0],
+        eventType: "block.lifecycle",
+      },
     });
-    expect(audit).not.toBeNull();
+    expect(event).not.toBeNull();
+    expect(event?.summary).toMatch(/active/i);
   });
 
   it("archives from ACTIVE", async () => {

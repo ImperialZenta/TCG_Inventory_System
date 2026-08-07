@@ -7,7 +7,7 @@ const TRUNCATE_TABLES = [
   "ExternalOrder",
   "PickList",
   "CardLine",
-  "AuditLog",
+  "InventoryEvent",
   "StagingCard",
   "StagingImport",
   "Block",

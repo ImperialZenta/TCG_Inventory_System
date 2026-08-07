@@ -118,6 +118,12 @@ export default async function SettingsPage() {
             >
               Download backup JSON
             </Link>
+            <Link
+              href="/activity"
+              className="mt-3 inline-flex text-sm text-zinc-400 hover:text-zinc-200"
+            >
+              View activity log →
+            </Link>
 
             <RestoreBackupForm action={restoreBackupAction} />
           </section>

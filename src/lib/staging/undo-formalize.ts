@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { BLOCK_STATUS_LABELS } from "@/lib/constants";
 import { BLOCK_HAS_PICK_HISTORY_MESSAGE } from "@/lib/blocks/pick-guard";
 import { getLinkedBlocks } from "@/lib/staging/linked-blocks";
+import { INVENTORY_EVENT_TYPES, recordInventoryEvent } from "@/lib/events";
 
 export class UndoFormalizeError extends Error {
   constructor(message: string) {
@@ -131,19 +132,20 @@ export async function undoFormalizeImport(importId: string): Promise<UndoFormali
     }
 
     for (const block of freshBlocks) {
-      await tx.auditLog.updateMany({
-        where: { blockId: block.id },
-        data: { blockId: null },
-      });
       await tx.block.delete({ where: { id: block.id } });
     }
 
-    await tx.auditLog.create({
-      data: {
-        blockId: null,
-        action: "UNDO_FORMALIZE",
-        details: `${stagingImport.filename} · ${freshBlocks.length} block${freshBlocks.length === 1 ? "" : "s"} · ${cardsRemoved} card${cardsRemoved === 1 ? "" : "s"} · ${humanBlockIds.join(", ")} · discard`,
+    await recordInventoryEvent(tx, {
+      eventType: INVENTORY_EVENT_TYPES.STAGING_UNDO_FORMALIZE,
+      payload: {
+        importId,
+        filename: stagingImport.filename,
+        mtgBlockIds: humanBlockIds,
+        cardCount: cardsRemoved,
+        mode: "discard",
       },
+      correlationId: importId,
+      stagingImportId: importId,
     });
 
     await tx.stagingImport.delete({ where: { id: importId } });

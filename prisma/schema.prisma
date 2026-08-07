@@ -93,9 +93,9 @@ model Block {
   targetCount Int?
   notes       String?
   cards       CardLine[]
-  pickItems   PickItem[]
-  auditLogs   AuditLog[]
-  createdAt   DateTime     @default(now())
+  pickItems       PickItem[]
+  inventoryEvents InventoryEvent[]
+  createdAt       DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
   @@index([status])
@@ -162,8 +162,9 @@ model StagingImport {
   rowCount   Int                 @default(0)
   status     StagingImportStatus @default(PARSED)
   targetCount Int?
-  cards      StagingCard[]
-  createdAt  DateTime            @default(now())
+  cards           StagingCard[]
+  inventoryEvents InventoryEvent[]
+  createdAt       DateTime            @default(now())
 }
 
 model StagingCard {
@@ -210,6 +211,7 @@ model ExternalOrder {
   lines           ExternalOrderLine[]
   pickListId      String?
   pickList        PickList?           @relation(fields: [pickListId], references: [id])
+  inventoryEvents InventoryEvent[]
 }
 
 model ExternalOrderLine {
@@ -252,9 +254,10 @@ model PickList {
   pickerCount Int            @default(1)
   items       PickItem[]
   waves       PickWave[]
-  orders      ExternalOrder[]
-  createdAt   DateTime       @default(now())
-  completedAt DateTime?
+  orders          ExternalOrder[]
+  inventoryEvents InventoryEvent[]
+  createdAt       DateTime       @default(now())
+  completedAt     DateTime?
 }
 
 model PickWave {
@@ -286,20 +289,31 @@ model PickItem {
 }
 
 // ---------------------------------------------------------------------------
-// Audit
+// Inventory event log (append-only audit trail)
 // ---------------------------------------------------------------------------
 
-model AuditLog {
-  id        String   @id @default(cuid())
-  blockId   String?
-  block     Block?   @relation(fields: [blockId], references: [id])
-  action    String
-  details   String?
-  actor     String?
-  createdAt DateTime @default(now())
+model InventoryEvent {
+  id              String         @id @default(cuid())
+  eventType       String
+  summary         String
+  payload         Json
+  correlationId   String?
+  blockId         String?
+  block           Block?         @relation(fields: [blockId], references: [id], onDelete: SetNull)
+  stagingImportId String?
+  stagingImport   StagingImport? @relation(fields: [stagingImportId], references: [id], onDelete: SetNull)
+  pickListId      String?
+  pickList        PickList?      @relation(fields: [pickListId], references: [id], onDelete: SetNull)
+  externalOrderId String?
+  externalOrder   ExternalOrder? @relation(fields: [externalOrderId], references: [id], onDelete: SetNull)
+  actor           String?
+  createdAt       DateTime       @default(now())
 
-  @@index([blockId])
   @@index([createdAt])
+  @@index([eventType])
+  @@index([blockId])
+  @@index([correlationId])
+  @@index([stagingImportId])
 }
 
 model BlockSequence {

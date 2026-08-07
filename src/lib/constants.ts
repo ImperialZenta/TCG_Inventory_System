@@ -82,5 +82,6 @@ export const NAV_ITEMS = [
   { href: "/pick", label: "Pick Lists" },
   { href: "/inventory", label: "Inventory" },
   { href: "/analytics", label: "Analytics" },
+  { href: "/activity", label: "Activity" },
   { href: "/settings", label: "Settings" },
 ] as const;

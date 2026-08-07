@@ -31,7 +31,7 @@ export async function deleteOperationalInventory(tx: TransactionClient) {
   await tx.externalOrderLine.deleteMany();
   await tx.externalOrder.deleteMany();
   await tx.pickList.deleteMany();
-  await tx.auditLog.deleteMany();
+  await tx.inventoryEvent.deleteMany();
   await tx.stagingImport.deleteMany();
   await tx.block.deleteMany();
   await resetBlockSequences(tx);
@@ -62,7 +62,7 @@ export async function wipeAllForRestore(tx: TransactionClient) {
   await tx.externalOrderLine.deleteMany();
   await tx.externalOrder.deleteMany();
   await tx.pickList.deleteMany();
-  await tx.auditLog.deleteMany();
+  await tx.inventoryEvent.deleteMany();
   await tx.stagingImport.deleteMany();
   await tx.block.deleteMany();
   await tx.bin.deleteMany();

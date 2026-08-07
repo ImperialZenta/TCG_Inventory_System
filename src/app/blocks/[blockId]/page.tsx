@@ -10,7 +10,8 @@ import {
   FINISH_LABELS,
 } from "@/lib/constants";
 import { getLocationLabel, formatSealedAt, isSealedAtPending, getStatusBadgeVariant } from "@/lib/blocks";
-import { BLOCK_HAS_PICK_HISTORY_MESSAGE } from "@/lib/blocks/pick-guard";
+import { getBlockRemovalEligibility } from "@/lib/blocks/removal-eligibility";
+import { formatEventTypeLabel, listEventsForBlock } from "@/lib/events";
 import { getAvailableTransitions } from "@/lib/blocks/lifecycle";
 import { getBinUtilization } from "@/lib/location";
 import { aggregateCardLinesForListing, toManaPoolCsv } from "@/lib/manapool/csv-export";
@@ -34,12 +35,13 @@ export default async function BlockDetailPage({ params }: BlockDetailPageProps) 
     include: {
       bin: { include: { shelf: true } },
       cards: { orderBy: { position: "asc" } },
-      auditLogs: { orderBy: { createdAt: "desc" }, take: 10 },
       _count: { select: { pickItems: true } },
     },
   });
 
   if (!block) notFound();
+
+  const recentEvents = await listEventsForBlock(block.id, block.blockId, 10);
 
   const bins = await getBinUtilization();
   const binOptions = bins.map((bin) => ({
@@ -59,7 +61,10 @@ export default async function BlockDetailPage({ params }: BlockDetailPageProps) 
   const csvPreview = listingRows.length > 0 ? toManaPoolCsv(listingRows) : null;
   const canSeal = block.status === "OPEN" && cardCount > 0;
   const sealedPending = isSealedAtPending(block);
-  const hasPickHistory = block._count.pickItems > 0;
+  const removalEligibility = getBlockRemovalEligibility({
+    status: block.status,
+    pickItemCount: block._count.pickItems,
+  });
   const availableTransitions = getAvailableTransitions(block.status);
 
   return (
@@ -195,10 +200,9 @@ export default async function BlockDetailPage({ params }: BlockDetailPageProps) 
                 blockId={block.blockId}
                 cardCount={cardCount}
                 statusLabel={BLOCK_STATUS_LABELS[block.status]}
-                canRemove={!hasPickHistory}
-                removeBlockedReason={
-                  hasPickHistory ? BLOCK_HAS_PICK_HISTORY_MESSAGE : undefined
-                }
+                canRemove={removalEligibility.allowed}
+                removeBlockedReason={removalEligibility.reason}
+                removeRemediation={removalEligibility.remediation}
               />
             </div>
           </div>
@@ -235,18 +239,21 @@ export default async function BlockDetailPage({ params }: BlockDetailPageProps) 
             </dl>
           </div>
 
-          {block.auditLogs.length > 0 && (
+          {recentEvents.length > 0 && (
             <div>
-              <h2 className="mb-4 text-lg font-medium text-zinc-100">Recent activity</h2>
+              <div className="mb-4 flex items-center justify-between gap-2">
+                <h2 className="text-lg font-medium text-zinc-100">Recent activity</h2>
+                <Link href="/activity" className="text-xs text-zinc-500 hover:text-zinc-300">
+                  All activity →
+                </Link>
+              </div>
               <ul className="space-y-2 rounded-xl border border-zinc-800 bg-zinc-900/50 p-4 text-sm">
-                {block.auditLogs.map((entry) => (
+                {recentEvents.map((entry) => (
                   <li key={entry.id} className="text-zinc-400">
                     <span className="text-zinc-500">{formatDate(entry.createdAt)}</span>
                     {" · "}
-                    <span className="text-zinc-300">{entry.action}</span>
-                    {entry.details && (
-                      <span className="text-zinc-400"> — {entry.details}</span>
-                    )}
+                    <span className="text-zinc-300">{formatEventTypeLabel(entry.eventType)}</span>
+                    <span className="text-zinc-400"> — {entry.summary}</span>
                   </li>
                 ))}
               </ul>

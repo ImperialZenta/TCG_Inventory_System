@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { allocateNextBlockId } from "@/lib/blocks";
 import { getBinUtilization } from "@/lib/location";
+import { INVENTORY_EVENT_TYPES, recordInventoryEvent } from "@/lib/events";
 
 export class FormalizeError extends Error {
   constructor(message: string) {
@@ -72,6 +73,7 @@ export async function formalizeStagingImport(
   await validateBinAssignments(blockCount, binAssignments);
 
   const createdBlockIds: string[] = [];
+  const totalCards = stagingImport.cards.reduce((sum, c) => sum + c.quantity, 0);
 
   await db.$transaction(async (tx) => {
     for (const [blockIndex, stagingCards] of groups) {
@@ -118,6 +120,18 @@ export async function formalizeStagingImport(
     await tx.stagingImport.update({
       where: { id: importId },
       data: { status: "ASSIGNED" },
+    });
+
+    await recordInventoryEvent(tx, {
+      eventType: INVENTORY_EVENT_TYPES.STAGING_FORMALIZED,
+      payload: {
+        importId,
+        filename: stagingImport.filename,
+        mtgBlockIds: createdBlockIds,
+        cardCount: totalCards,
+      },
+      correlationId: importId,
+      stagingImportId: importId,
     });
   });
 

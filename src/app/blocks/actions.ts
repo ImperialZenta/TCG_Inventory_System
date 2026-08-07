@@ -15,6 +15,7 @@ import {
   transitionBlockStatus,
   type LifecycleTransition,
 } from "@/lib/blocks/lifecycle";
+import { INVENTORY_EVENT_TYPES, recordInventoryEvent } from "@/lib/events";
 
 export type BlockActionResult =
   | { ok: true; message: string }
@@ -67,19 +68,21 @@ export async function moveBlockToBin(
     : "Unassigned";
   const toLabel = formatBinLocation(targetBin.shelf?.code, targetBin.binId);
 
-  await db.$transaction([
-    db.block.update({
+  await db.$transaction(async (tx) => {
+    await tx.block.update({
       where: { id: block.id },
       data: { binId: targetBin.id },
-    }),
-    db.auditLog.create({
-      data: {
-        blockId: block.id,
-        action: "MOVED_BIN",
-        details: `${fromLabel} → ${toLabel}`,
+    });
+    await recordInventoryEvent(tx, {
+      eventType: INVENTORY_EVENT_TYPES.BLOCK_MOVED,
+      payload: {
+        mtgBlockId: block.blockId,
+        fromBin: fromLabel,
+        toBin: toLabel,
       },
-    }),
-  ]);
+      blockId: block.id,
+    });
+  });
 
   revalidatePath("/blocks");
   revalidatePath(`/blocks/${blockId}`);

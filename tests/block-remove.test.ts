@@ -3,6 +3,12 @@ import { db } from "@/lib/db";
 import { removeBlockByBlockId, RemoveBlockError } from "@/lib/blocks/remove";
 import { formalizeStagingImport } from "@/lib/staging/formalize";
 import { BLOCK_HAS_PICK_HISTORY_MESSAGE } from "@/lib/blocks/pick-guard";
+import { sealOpenBlocksByInternalIds } from "@/lib/blocks/seal";
+import { transitionBlockStatus } from "@/lib/blocks/lifecycle";
+import {
+  ACTIVE_BLOCK_REMOVE_MESSAGE,
+  LIQUIDATED_BLOCK_REMOVE_MESSAGE,
+} from "@/lib/blocks/removal-eligibility";
 import { disconnectTestDb, resetTestDb } from "./helpers/db";
 import {
   createFormalizedImport,
@@ -155,5 +161,92 @@ describe("block remove (I-015 / I-021 current behavior)", () => {
 
     const stillThere = await db.block.findUnique({ where: { blockId } });
     expect(stillThere).not.toBeNull();
+  });
+});
+
+describe("block remove status gates (B-012)", () => {
+  let binId: string;
+
+  beforeEach(async () => {
+    ({ binId } = await resetTestDb());
+  });
+
+  afterAll(async () => {
+    await disconnectTestDb();
+  });
+
+  it("allows remove on SEALED block", async () => {
+    const fixture = await createFormalizedImport(binId, 1);
+    const blockId = fixture.blockIds[0]!;
+    await sealOpenBlocksByInternalIds([fixture.internalIds[0]!]);
+
+    await removeBlockByBlockId(blockId);
+
+    const gone = await db.block.findUnique({ where: { blockId } });
+    expect(gone).toBeNull();
+  });
+
+  it("refuses remove on ACTIVE block", async () => {
+    const fixture = await createFormalizedImport(binId, 1);
+    const blockId = fixture.blockIds[0]!;
+    await sealOpenBlocksByInternalIds([fixture.internalIds[0]!]);
+    await transitionBlockStatus(blockId, "ACTIVATE");
+
+    await expect(removeBlockByBlockId(blockId)).rejects.toBeInstanceOf(RemoveBlockError);
+    await expect(removeBlockByBlockId(blockId)).rejects.toThrow(ACTIVE_BLOCK_REMOVE_MESSAGE);
+
+    const stillThere = await db.block.findUnique({ where: { blockId } });
+    expect(stillThere).not.toBeNull();
+  });
+
+  it("allows remove after archiving an ACTIVE block", async () => {
+    const fixture = await createFormalizedImport(binId, 1);
+    const blockId = fixture.blockIds[0]!;
+    await sealOpenBlocksByInternalIds([fixture.internalIds[0]!]);
+    await transitionBlockStatus(blockId, "ACTIVATE");
+    await transitionBlockStatus(blockId, "ARCHIVE");
+
+    await removeBlockByBlockId(blockId);
+
+    const gone = await db.block.findUnique({ where: { blockId } });
+    expect(gone).toBeNull();
+  });
+
+  it("allows remove on ARCHIVED block", async () => {
+    const fixture = await createFormalizedImport(binId, 1);
+    const blockId = fixture.blockIds[0]!;
+    await sealOpenBlocksByInternalIds([fixture.internalIds[0]!]);
+    await transitionBlockStatus(blockId, "ARCHIVE");
+
+    await removeBlockByBlockId(blockId);
+
+    const gone = await db.block.findUnique({ where: { blockId } });
+    expect(gone).toBeNull();
+  });
+
+  it("refuses remove on LIQUIDATED block", async () => {
+    const fixture = await createFormalizedImport(binId, 1);
+    const blockId = fixture.blockIds[0]!;
+    await sealOpenBlocksByInternalIds([fixture.internalIds[0]!]);
+    await transitionBlockStatus(blockId, "ARCHIVE");
+    await transitionBlockStatus(blockId, "LIQUIDATE");
+
+    await expect(removeBlockByBlockId(blockId)).rejects.toBeInstanceOf(RemoveBlockError);
+    await expect(removeBlockByBlockId(blockId)).rejects.toThrow(LIQUIDATED_BLOCK_REMOVE_MESSAGE);
+
+    const stillThere = await db.block.findUnique({ where: { blockId } });
+    expect(stillThere).not.toBeNull();
+  });
+
+  it("pick history blocks remove before status check", async () => {
+    const fixture = await createFormalizedImport(binId, 1);
+    const blockId = fixture.blockIds[0]!;
+    await sealOpenBlocksByInternalIds([fixture.internalIds[0]!]);
+    await transitionBlockStatus(blockId, "ACTIVATE");
+    await seedPickItemForBlock(blockId);
+
+    await expect(removeBlockByBlockId(blockId)).rejects.toThrow(
+      BLOCK_HAS_PICK_HISTORY_MESSAGE,
+    );
   });
 });

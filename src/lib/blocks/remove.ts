@@ -5,6 +5,8 @@ import {
   isForeignKeyViolation,
   PickGuardError,
 } from "@/lib/blocks/pick-guard";
+import { getBlockRemovalEligibility } from "@/lib/blocks/removal-eligibility";
+import { INVENTORY_EVENT_TYPES, recordInventoryEvent } from "@/lib/events";
 
 export class RemoveBlockError extends Error {
   constructor(message: string) {
@@ -42,8 +44,12 @@ export async function removeBlockByBlockId(blockId: string): Promise<RemoveBlock
     throw new RemoveBlockError("Block not found");
   }
 
-  if (block._count.pickItems > 0) {
-    throw new RemoveBlockError(BLOCK_HAS_PICK_HISTORY_MESSAGE);
+  const eligibility = getBlockRemovalEligibility({
+    status: block.status,
+    pickItemCount: block._count.pickItems,
+  });
+  if (!eligibility.allowed) {
+    throw new RemoveBlockError(eligibility.reason ?? "Cannot remove this block");
   }
 
   const cardCount = block.cards.reduce((sum, card) => sum + card.quantity, 0);
@@ -52,6 +58,26 @@ export async function removeBlockByBlockId(blockId: string): Promise<RemoveBlock
   const blockStatus = block.status;
 
   const outcome = await db.$transaction(async (tx) => {
+      const current = await tx.block.findUnique({
+        where: { id: blockInternalId },
+        select: {
+          status: true,
+          _count: { select: { pickItems: true } },
+        },
+      });
+
+      if (!current) {
+        throw new RemoveBlockError("Block not found");
+      }
+
+      const txEligibility = getBlockRemovalEligibility({
+        status: current.status,
+        pickItemCount: current._count.pickItems,
+      });
+      if (!txEligibility.allowed) {
+        throw new RemoveBlockError(txEligibility.reason ?? "Cannot remove this block");
+      }
+
       try {
         await assertBlockHasNoPickItems(tx, blockInternalId);
       } catch (error) {
@@ -73,17 +99,15 @@ export async function removeBlockByBlockId(blockId: string): Promise<RemoveBlock
         data: { assignedBlockId: null },
       });
 
-      await tx.auditLog.updateMany({
-        where: { blockId: blockInternalId },
-        data: { blockId: null },
-      });
-
-      await tx.auditLog.create({
-        data: {
-          blockId: null,
-          action: "REMOVED_BLOCK",
-          details: `${humanBlockId} · ${cardCount} card${cardCount === 1 ? "" : "s"} · was ${blockStatus}`,
+      await recordInventoryEvent(tx, {
+        eventType: INVENTORY_EVENT_TYPES.BLOCK_REMOVED,
+        payload: {
+          mtgBlockId: humanBlockId,
+          cardCount,
+          priorStatus: blockStatus,
         },
+        blockId: blockInternalId,
+        stagingImportId: importIds[0] ?? null,
       });
 
       try {

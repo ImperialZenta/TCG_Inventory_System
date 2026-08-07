@@ -124,8 +124,29 @@ Dockerfile
 
 ## Roadmap
 
-See [docs/BACKLOG.md](docs/BACKLOG.md) for the full prioritized backlog.
+[docs/BACKLOG.md](docs/BACKLOG.md) is the index. Story detail, INVEST framing and Gherkin acceptance criteria live in [docs/backlog/](docs/backlog/), one file per epic.
 
-**Implemented:** Docker stack, Shelf/Bin/Block model, settings, backup export/restore, Mana Pool CSV export, **ManaBox position-indexed staging and formalize**
+| Document | Contents |
+|----------|----------|
+| [Conventions](docs/backlog/CONVENTIONS.md) | INVEST definition of ready, Gherkin house style, ID prefix registry |
+| [SortSwift parity matrix](docs/backlog/PARITY-SORTSWIFT.md) | Gap analysis, dual inventory rationale, parity phasing |
+| [Intake strategy](docs/backlog/INTAKE-STRATEGY.md) | Scan → CSV → staging, the sort decision, recovery paths |
+| [Status audit, Aug 2026](docs/backlog/AUDIT-2026-08.md) | Status corrections found by reading the code |
 
-**Next:** Block activation (seal / remove-by-ID), Mana Pool order import, position pick lists
+**Implemented:** Docker stack, Shelf/Bin/Block model, settings, backup export/restore, Mana Pool CSV export, ManaBox position-indexed staging and formalize, block lifecycle and seal, guarded block removal and undo formalize, inventory event log with Activity feed, aging analytics.
+
+**Next (Phase 4):** Mana Pool order import, position pick lists with renumber, pick integrity and block repair.
+
+### Dual inventory direction
+
+Phases 6+ pursue feature parity with SortSwift by adding a **second inventory mode** beside chaos blocks: sorted sellable stock with a live per-SKU quantity that can be priced by rules and synced to marketplaces without overselling.
+
+| | Chaos bulk mode | Sorted stock mode |
+|---|---|---|
+| Model | `Block` + `CardLine` | `StockItem` + `StockMovement` (planned) |
+| Address | `MTG-0007` position 14 | Shelf / bin / row |
+| Sellable individually | No — sealed brick, picked by position | Yes — quantity syncs to channels |
+
+A physical card lives in exactly one mode; moving between them is an explicit, audited promote action. Chaos blocks are not being replaced — they remain the right answer for bulk that is not worth sorting.
+
+**Known defect blocking that work:** market prices fetched during CSV import are discarded at formalize, so every value figure in the app currently reads $0. Tracked as **V-005**; see the [audit](docs/backlog/AUDIT-2026-08.md).
