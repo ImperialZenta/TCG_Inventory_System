@@ -41,6 +41,9 @@ yarn-error.log*
 /backups/*
 !/backups/.gitkeep
 
+# local order exports and ad-hoc fixtures (committed samples live in docs/fixtures/)
+/orders/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
