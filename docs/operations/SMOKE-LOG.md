@@ -5,6 +5,7 @@ Append one entry per smoke session. Evidence for phase closure and Agent B follo
 | Date | Build / branch | Path | Result | Notes |
 |------|----------------|------|--------|-------|
 | YYYY-MM-DD | main / local | Phase 4 golden | PASS / FAIL | e.g. Vitest 48/48; steps 1–14 manual |
+| 2026-08-07 | local | Phase 4 golden (DB restore + `manapool-order-from-db.json`) | PASS | Steps through quarantine→clear→complete; clear quarantine auto-released ON_HOLD (no manual Resume); order PICKED; Activity + Analytics populated; short rate 25% / median pick ~82m noted for later metric check; quarantine UX fix verified (general “Quarantined” copy) |
 
 ---
 

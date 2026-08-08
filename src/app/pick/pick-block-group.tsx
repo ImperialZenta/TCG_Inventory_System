@@ -2,18 +2,19 @@
 
 import { useState } from "react";
 import { Badge } from "@/components/page-header";
+import { CONDITION_LABELS, FINISH_LABELS } from "@/lib/constants";
 import {
-  CONDITION_LABELS,
-  FINISH_LABELS,
-  PICK_STATUS_LABELS,
-} from "@/lib/constants";
-import { SHORT_REASON_LABELS, type ShortReason } from "@/lib/pick/types";
+  SHORT_REASON_LABELS,
+  formatPickHoldReason,
+  type ShortReason,
+} from "@/lib/pick/types";
 import { PickItemActions } from "./pick-item-actions";
 
 export interface PickGroupItem {
   id: string;
   status: string;
   shortReason: string | null;
+  blockedReason: string | null;
   cardLine: { position: number; name: string; condition: string; finish: string } | null;
   externalOrderLine: {
     name: string;
@@ -63,7 +64,13 @@ export function PickBlockGroup({
         <div className="flex items-center gap-2">
           {allResolved && <Badge variant="success">Complete</Badge>}
           {blockOnHold && (
-            <Badge variant="warning">Pick hold · {holdReason ?? "Quarantined"}</Badge>
+            <Badge variant="warning">
+              Quarantined
+              {holdReason &&
+              formatPickHoldReason(holdReason) !== "Quarantined"
+                ? ` · ${formatPickHoldReason(holdReason)}`
+                : ""}
+            </Badge>
           )}
           <span className="text-xs text-zinc-500">{collapsed ? "Show" : "Hide"}</span>
         </div>
@@ -84,11 +91,16 @@ export function PickBlockGroup({
                 className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
               >
                 <div>
-                  <div className="text-zinc-100">
+                  <div className="flex flex-wrap items-center gap-2 text-zinc-100">
                     {position != null && (
-                      <span className="mr-2 font-mono text-amber-400/90">pos {position}</span>
+                      <span className="font-mono text-amber-400/90">pos {position}</span>
                     )}
-                    {cardName}
+                    <span>{cardName}</span>
+                    {item.status === "PENDING" && item.blockedReason && (
+                      <Badge variant="warning">
+                        Blocked · {formatPickHoldReason(item.blockedReason)}
+                      </Badge>
+                    )}
                   </div>
                   <div className="mt-1 text-xs text-zinc-500">
                     {CONDITION_LABELS[condition as keyof typeof CONDITION_LABELS]} ·{" "}
@@ -108,6 +120,7 @@ export function PickBlockGroup({
                   mtgBlockId={mtgBlockId}
                   status={item.status}
                   blockOnHold={blockOnHold}
+                  blockedReason={item.blockedReason}
                   alternatePositions={alternatePositions.filter(
                     (alt) => alt.position !== position,
                   )}

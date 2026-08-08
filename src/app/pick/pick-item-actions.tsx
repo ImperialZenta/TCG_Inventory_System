@@ -19,6 +19,7 @@ interface PickItemActionsProps {
   mtgBlockId: string;
   status: string;
   blockOnHold: boolean;
+  blockedReason?: string | null;
   alternatePositions?: { cardLineId: string; position: number; label: string }[];
 }
 
@@ -28,6 +29,7 @@ export function PickItemActions({
   mtgBlockId,
   status,
   blockOnHold,
+  blockedReason = null,
   alternatePositions = [],
 }: PickItemActionsProps) {
   const router = useRouter();
@@ -71,7 +73,7 @@ export function PickItemActions({
       <button
         type="button"
         onClick={runPick}
-        disabled={isPending || blockOnHold}
+        disabled={isPending || blockOnHold || Boolean(blockedReason)}
         className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-500 disabled:opacity-50"
       >
         Picked
@@ -80,7 +82,7 @@ export function PickItemActions({
         <select
           className="rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-xs text-zinc-200"
           defaultValue=""
-          disabled={isPending || blockOnHold}
+          disabled={isPending || blockOnHold || Boolean(blockedReason)}
           onChange={(e) => {
             const value = e.target.value;
             if (value) runSubstitute(value);
@@ -132,7 +134,7 @@ export function PickItemActions({
           disabled={isPending}
           onClick={() =>
             startTransition(async () => {
-              await quarantineBlockAction(mtgBlockId, pickListId, "POSITION_MISMATCH");
+              await quarantineBlockAction(mtgBlockId, pickListId, "Quarantined for picking");
               router.refresh();
             })
           }

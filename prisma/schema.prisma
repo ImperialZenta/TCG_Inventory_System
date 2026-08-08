@@ -304,6 +304,8 @@ model PickItem {
   quantity             Int                @default(1)
   status               PickStatus         @default(PENDING)
   shortReason          String?
+  /** Set when the allocated block is quarantined; cleared on clear/reallocate. */
+  blockedReason        String?
   notes                String?
 
   @@index([pickListId])

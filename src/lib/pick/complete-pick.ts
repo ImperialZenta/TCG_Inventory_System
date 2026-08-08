@@ -71,7 +71,7 @@ export async function executePickItemInTx(
 
   await tx.pickItem.update({
     where: { id: pickItemId },
-    data: { status: "PICKED" },
+    data: { status: "PICKED", blockedReason: null },
   });
 
   const dwellDays = differenceInDays(now, cardLine.addedAt);
@@ -136,20 +136,44 @@ export async function executePickItemInTx(
 
 export async function completePickListIfReady(
   pickListId: string,
-  ctx: DomainContext,
+  _ctx: DomainContext,
 ): Promise<boolean> {
   return db.$transaction(async (tx) => {
-    const existing = await tx.pickList.findUnique({ where: { id: pickListId } });
+    const existing = await tx.pickList.findUnique({
+      where: { id: pickListId },
+      include: {
+        items: {
+          where: { status: "PENDING" },
+          include: {
+            block: true,
+            cardLine: { select: { position: true, name: true } },
+            externalOrderLine: { select: { name: true } },
+          },
+        },
+      },
+    });
     if (!existing) return false;
 
     if (existing.status === "ON_HOLD") {
-      return false;
+      const blocked = existing.items
+        .filter((item) => item.block?.pickHoldAt || item.blockedReason)
+        .map((item) => {
+          const name = item.externalOrderLine?.name ?? item.cardLine?.name ?? "unknown";
+          const pos = item.cardLine?.position;
+          const blockId = item.block?.blockId ?? "?";
+          const reason = item.blockedReason ?? "on hold";
+          return `${blockId}${pos != null ? ` pos ${pos}` : ""} ${name} (${reason})`;
+        });
+      const detail =
+        blocked.length > 0
+          ? `Blocked lines:\n${blocked.join("\n")}`
+          : existing.holdReason
+            ? `Hold reason: ${existing.holdReason}`
+            : "Pick list is on hold";
+      throw new PickError(`Cannot complete pick list while ON_HOLD. ${detail}`);
     }
 
-    const pending = await tx.pickItem.count({
-      where: { pickListId, status: "PENDING" },
-    });
-
+    const pending = existing.items.length;
     if (pending > 0) return false;
 
     const pickList = await tx.pickList.update({

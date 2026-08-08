@@ -43,10 +43,40 @@ export async function holdPickListInTx(
   });
 }
 
-export async function resumePickList(pickListId: string, ctx: DomainContext): Promise<void> {
+function formatBlockedLines(
+  items: {
+    blockedReason: string | null;
+    cardLine: { position: number; name: string } | null;
+    externalOrderLine: { name: string } | null;
+    block: { blockId: string; pickHoldAt: Date | null } | null;
+  }[],
+): string[] {
+  return items
+    .filter((item) => item.block?.pickHoldAt || item.blockedReason)
+    .map((item) => {
+      const name = item.externalOrderLine?.name ?? item.cardLine?.name ?? "unknown";
+      const pos = item.cardLine?.position;
+      const blockId = item.block?.blockId ?? "unknown block";
+      const reason =
+        item.blockedReason ?? (item.block?.pickHoldAt ? "quarantined" : "blocked");
+      const posLabel = pos != null ? `pos ${pos} ` : "";
+      return `${blockId} ${posLabel}${name} (${reason})`;
+    });
+}
+
+export async function resumePickList(pickListId: string, _ctx: DomainContext): Promise<void> {
   const pickList = await db.pickList.findUnique({
     where: { id: pickListId },
-    include: { items: { where: { status: "PENDING" } } },
+    include: {
+      items: {
+        where: { status: "PENDING" },
+        include: {
+          block: true,
+          cardLine: { select: { position: true, name: true } },
+          externalOrderLine: { select: { name: true } },
+        },
+      },
+    },
   });
 
   if (!pickList) {
@@ -55,6 +85,13 @@ export async function resumePickList(pickListId: string, ctx: DomainContext): Pr
 
   if (pickList.status !== "ON_HOLD") {
     throw new PickError("Pick list is not on hold");
+  }
+
+  const blockedLines = formatBlockedLines(pickList.items);
+  if (blockedLines.length > 0) {
+    throw new PickError(
+      `Cannot resume while lines are blocked by quarantine:\n${blockedLines.join("\n")}`,
+    );
   }
 
   const hasPending = pickList.items.length > 0;
@@ -85,7 +122,9 @@ export async function tryAutoReleaseHold(
     return false;
   }
 
-  const blockedOnQuarantine = pickList.items.some((item) => item.block?.pickHoldAt);
+  const blockedOnQuarantine = pickList.items.some(
+    (item) => item.block?.pickHoldAt || item.blockedReason,
+  );
   if (blockedOnQuarantine) {
     return false;
   }

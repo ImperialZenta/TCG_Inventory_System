@@ -148,6 +148,7 @@ export async function markPickItemShort(
       data: {
         status: "SHORT",
         shortReason: reason,
+        blockedReason: null,
         cardLineId: null,
         blockId: null,
       },

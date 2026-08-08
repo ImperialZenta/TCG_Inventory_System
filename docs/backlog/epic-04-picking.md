@@ -35,10 +35,10 @@ Epic 17 (**FUL-**) depends on this epic. Picking must work before a unified orde
 | **I want** | a pick list generated from the order's lines against real inventory |
 | **So that** | a picker gets a walk list instead of a customer receipt |
 
-**Priority:** Must · **Status:** Stub
+**Priority:** Must · **Status:** Done
 
 ```gherkin
-@pending
+@done
 Feature: P-001 Pick list from order
 
   Scenario: Generate a pick list from an imported order
@@ -292,10 +292,10 @@ Feature: P-008 Pick performance metrics
 | **I want** | the exact position of the card, and the block renumbered after I remove it |
 | **So that** | positions stay truthful and the next pick from that block still lands on the right card |
 
-**Priority:** Must · **Status:** — · **This is the core of chaos picking**
+**Priority:** Must · **Status:** Done · **This is the core of chaos picking**
 
 ```gherkin
-@pending
+@done
 Feature: P-009 Position pick list with renumber
 
   Scenario: The pick item names an explicit position
@@ -382,10 +382,10 @@ Depends on core Phase 4: **P-001**, **P-003**, **P-009**, plus **S-001** and **B
 | **I want** | to quarantine that block for repair |
 | **So that** | no other pick list allocates from unreliable inventory until a manager fixes the brick |
 
-**Priority:** Must · **Status:** —
+**Priority:** Must · **Status:** Done
 
 ```gherkin
-@pending
+@done
 Feature: P-011 Quarantine block for repair
 
   Scenario: Quarantine a block with a reason
@@ -404,7 +404,7 @@ Feature: P-011 Quarantine block for repair
   Scenario: Pending items on other lists are flagged
     Given two other open pick lists have pending items against "MTG-0007"
     When it is quarantined
-    Then those items are flagged
+    Then each of those pending items is blocked with the quarantine reason
     And their lists are held per P-012
 
   Scenario: A liquidated block cannot be quarantined
@@ -428,10 +428,10 @@ Feature: P-011 Quarantine block for repair
 | **I want** | to put the list on hold when a block is quarantined or a line fails |
 | **So that** | we do not complete an order with the wrong cards while we repair or re-route |
 
-**Priority:** Must · **Status:** — · **Depends on:** P-011
+**Priority:** Must · **Status:** Done · **Depends on:** P-011
 
 ```gherkin
-@pending
+@done
 Feature: P-012 Hold pick list
 
   Scenario: A quarantine holds the affected lists
@@ -447,8 +447,9 @@ Feature: P-012 Hold pick list
     And the blocking lines are listed with their reasons
 
   Scenario: Releasing a hold is explicit
-    Given a pick list is ON_HOLD
-    Then it leaves hold only when the repair is recorded, the lines are re-allocated, or the list is cancelled
+    Given a pick list is ON_HOLD because a block is quarantined
+    Then Resume is refused while any pending line's block is still quarantined
+    And the list leaves hold only when the quarantine is cleared or the lines are re-allocated
 
   Scenario: Held lists are visible to the lead
     When the lead opens the pick dashboard

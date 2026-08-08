@@ -13,6 +13,7 @@
     "db:studio": "prisma studio",
     "db:seed": "tsx prisma/seed.ts",
     "db:restore-test": "tsx scripts/restore-test.ts",
+    "fixtures:from-db": "tsx scripts/generate-fixtures-from-db.ts",
     "test": "vitest run",
     "test:docker": "docker compose --profile test run --rm test",
     "test:watch": "vitest",

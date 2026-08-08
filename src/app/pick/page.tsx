@@ -62,14 +62,21 @@ export default async function PickPage() {
                     href={`/pick/${list.id}`}
                     className="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-900/50 px-4 py-3 transition hover:border-zinc-700"
                   >
-                    <div>
-                      <span className="font-mono text-zinc-100">{list.pickListId}</span>
-                      <span className="ml-3 text-sm text-zinc-500">
-                        {list._count.items} items
-                        {list.orders[0]?.reference
-                          ? ` · ${list.orders[0].reference}`
-                          : ""}
-                      </span>
+                    <div className="min-w-0 flex-1 pr-3">
+                      <div>
+                        <span className="font-mono text-zinc-100">{list.pickListId}</span>
+                        <span className="ml-3 text-sm text-zinc-500">
+                          {list._count.items} items
+                          {list.orders[0]?.reference
+                            ? ` · ${list.orders[0].reference}`
+                            : ""}
+                        </span>
+                      </div>
+                      {list.status === "ON_HOLD" && list.holdReason && (
+                        <p className="mt-1 truncate text-xs text-amber-300/90">
+                          {list.holdReason}
+                        </p>
+                      )}
                     </div>
                     <Badge variant={list.status === "ON_HOLD" ? "warning" : "default"}>
                       {PICK_LIST_STATUS_LABELS[list.status] ?? list.status}

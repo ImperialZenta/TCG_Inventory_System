@@ -106,6 +106,7 @@ export async function reallocatePendingPickItems(
           data: {
             status: "PENDING",
             shortReason: null,
+            blockedReason: null,
             cardLineId: allocation.cardLine.id,
             blockId: allocation.blockId,
           },
@@ -133,6 +134,7 @@ export async function reallocatePendingPickItems(
           data: {
             status: "SHORT",
             shortReason: "NO_STOCK",
+            blockedReason: null,
             cardLineId: null,
             blockId: null,
           },

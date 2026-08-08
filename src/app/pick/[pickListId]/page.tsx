@@ -102,7 +102,13 @@ export default async function PickDetailPage({ params }: PickDetailPageProps) {
           {PICK_LIST_STATUS_LABELS[pickList.status] ?? pickList.status}
         </Badge>
         {pickList.holdReason && (
-          <span className="text-amber-300">Hold: {pickList.holdReason}</span>
+          <span className="text-amber-300">
+            Hold:{" "}
+            {pickList.holdReason
+              .replaceAll("POSITION_MISMATCH", "Position mismatch")
+              .replaceAll("NO_STOCK", "No stock")
+              .replaceAll("BLOCK_QUARANTINED", "Block quarantined")}
+          </span>
         )}
         {pickList.orders.map((order) => (
           <Link
@@ -129,6 +135,7 @@ export default async function PickDetailPage({ params }: PickDetailPageProps) {
               id: item.id,
               status: item.status,
               shortReason: item.shortReason,
+              blockedReason: item.blockedReason,
               cardLine: item.cardLine
                 ? {
                     position: item.cardLine.position,
