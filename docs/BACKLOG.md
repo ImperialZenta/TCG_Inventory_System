@@ -4,6 +4,9 @@ Index. Story detail, INVEST framing and Gherkin acceptance criteria live in the 
 
 | Document | Contents |
 |----------|----------|
+| [Architecture](architecture/ARCHITECTURE.md) | Runways, target shape, ADR index — read before cross-cutting stories |
+| [Testing](TESTING.md) | Vitest, Docker test service, Agent B / spec compliance workflow |
+| [Testing playbook](TESTING-PLAYBOOK.md) | When to test, golden paths, smoke log, reminders |
 | [Conventions](backlog/CONVENTIONS.md) | INVEST definition of ready, Gherkin house style, status keys, ID prefix registry |
 | [SortSwift parity matrix](backlog/PARITY-SORTSWIFT.md) | Gap analysis across all ten SortSwift categories, dual-model rationale, parity phasing |
 | [Intake strategy](backlog/INTAKE-STRATEGY.md) | Design context for intake: scan → CSV → staging, the sort decision, recovery paths |
@@ -123,20 +126,20 @@ Read [intake strategy](backlog/INTAKE-STRATEGY.md) before implementing I-001, I-
 
 | ID | Story | Priority | Status |
 |----|-------|----------|--------|
-| P-001 | Pick list from order | Must | Stub |
-| P-002 | Route optimization by location | Must | Schema |
-| P-003 | Mark picked / short / substitute | Must | Schema |
-| P-004 | Decrement inventory on pick | Must | — |
-| P-005 | Single-block pick for counter sales | Must | — |
-| P-006 | Group pick list by block | Must | — |
-| P-007 | TCGplayer pullsheet upload | Could | — |
-| P-008 | Pick performance metrics | Could | — |
-| P-009 | Position pick list with renumber | Must | — |
-| P-010 | Move picked card to history | Should | — |
-| P-011 | Quarantine block for repair | Must | — |
-| P-012 | Hold pick list | Must | — |
-| P-013 | Correction re-scan intake | Should | — |
-| P-014 | Re-allocate held pick lines | Must | — |
+| P-001 | Pick list from order | Must | Done |
+| P-002 | Route optimization by location | Must | Done |
+| P-003 | Mark picked / short / substitute | Must | Done |
+| P-004 | Decrement inventory on pick | Must | Done |
+| P-005 | Single-block pick for counter sales | Must | Done |
+| P-006 | Group pick list by block | Must | Done |
+| P-007 | TCGplayer pullsheet upload | Could | Done |
+| P-008 | Pick performance metrics | Could | Done |
+| P-009 | Position pick list with renumber | Must | Done |
+| P-010 | Move picked card to history | Should | Done |
+| P-011 | Quarantine block for repair | Must | Done |
+| P-012 | Hold pick list | Must | Done |
+| P-013 | Correction re-scan intake | Should | Done |
+| P-014 | Re-allocate held pick lines | Must | Done |
 
 ## Epic 5 — [Block Aging & Analytics](backlog/epic-05-aging.md) · `A-`
 
@@ -298,7 +301,7 @@ See the [parity matrix](backlog/PARITY-SORTSWIFT.md) for the full gap analysis.
 | ID | Story | Priority | Status |
 |----|-------|----------|--------|
 | FUL-001 | Unified order queue | Must | — |
-| FUL-002 | Mana Pool order import | Must | — |
+| FUL-002 | Mana Pool order import | Must | Done |
 | FUL-003 | Fulfilment and stock deduction | Must | — |
 | FUL-004 | Shipping label purchase and printing | Must | — |
 | FUL-005 | Tracking and status writeback | Must | — |
@@ -366,11 +369,24 @@ Deferred: **B-007** labels, **I-001** + **I-002** manual creation.
 
 ## Phase 4 — Orders & picking
 
-**Core:** Mana Pool order import, **P-001**, **P-003**, **P-004**, **P-006**, **P-009** position pick and renumber, **P-010** pick history.
+**Status:** Complete — Mana Pool import (API, fixture, webhook, cron), pick lists, location sort, pick/short/substitute/renumber, `PickHistory`, counter pick, TCGplayer pullsheet, pick metrics, quarantine/hold/re-allocate, correction intake.
 
-**Pick integrity, after core picking works:** **P-011** quarantine → **P-012** hold → **P-014** re-allocate → **P-013** correction re-scan.
-
-Prerequisite for Phase 11.
+| ID | Story | Priority | Status |
+|----|-------|----------|--------|
+| P-001 | Pick list from order | Must | Done |
+| P-002 | Route optimization by location | Must | Done |
+| P-003 | Mark picked / short / substitute | Must | Done |
+| P-004 | Decrement inventory on pick | Must | Done |
+| P-005 | Single-block pick for counter sales | Must | Done |
+| P-006 | Group pick list by block | Must | Done |
+| P-007 | TCGplayer pullsheet upload | Could | Done |
+| P-008 | Pick performance metrics | Could | Done |
+| P-009 | Position pick list with renumber | Must | Done |
+| P-010 | Move picked card to history | Should | Done |
+| P-011 | Quarantine block for repair | Must | Done |
+| P-012 | Hold pick list | Must | Done |
+| P-013 | Correction re-scan intake | Should | Done |
+| P-014 | Re-allocate held pick lines | Must | Done |
 
 ## Phase 5 — Polish
 

@@ -73,7 +73,7 @@ Feature: V-005 Persist market price through formalize
     And lines that cannot be resolved are reported rather than silently skipped
 ```
 
-**Schema notes (negotiable):** add `priceUsd` and `imageUri` to `StagingCard` so the parse-time fetch has somewhere to land, then carry both through formalize. An alternative is to re-fetch at formalize, but that repeats thousands of lookups per import and makes the price reflect formalize time rather than intake time. The first option is preferred, and **C-004**'s catalog cache would make either cheap.
+**Schema notes (negotiable):** add `priceUsd` and `imageUri` to `StagingCard` so the parse-time fetch has somewhere to land, then carry both through formalize. An alternative is to re-fetch at formalize, but that repeats thousands of lookups per import and makes the price reflect formalize time rather than intake time. The first option is preferred, and **C-004**'s catalog cache would make either cheap. Store prices as integer cents per [ADR-003](../../architecture/adr/003-money-as-integer-cents.md).
 
 **Related:** **C-001** (where the fetch happens), **A-005**, **A-009**, **I-008**, **SKU-006**, all of **PRC-**.
 
@@ -152,7 +152,7 @@ Feature: V-002 Block total value
     And the sealed-value snapshot is unchanged
 ```
 
-**Schema notes (negotiable):** `Block.sealedValueCents` plus `Block.valueRefreshedAt`. Store money as integer cents, not floats — `CardLine.priceUsd` is currently a float, which is a rounding hazard the pricing engine will magnify. Consider migrating to cents as part of **V-005**.
+**Schema notes (negotiable):** `Block.sealedValueCents` plus `Block.valueRefreshedAt`. See [ADR-003](../../architecture/adr/003-money-as-integer-cents.md) — migrate `CardLine.priceUsd` float as part of **V-005**.
 
 ---
 
@@ -190,7 +190,7 @@ Feature: V-003 Cost basis per block or batch
     Then each card carries the same share
 ```
 
-**Schema notes (negotiable):** cost belongs on the import and on the card line, so it survives promotion into sorted stock (**SKU-004**). Money in integer cents.
+**Schema notes (negotiable):** cost belongs on the import and on the card line, so it survives promotion into sorted stock (**SKU-004**). Money in integer cents ([ADR-003](../../architecture/adr/003-money-as-integer-cents.md)).
 
 ---
 

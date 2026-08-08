@@ -74,6 +74,28 @@ export const STAGING_IMPORT_STATUS_LABELS: Record<string, string> = {
   ARCHIVED: "Archived",
 };
 
+export const ORDER_STATUS_LABELS: Record<string, string> = {
+  IMPORTED: "Imported",
+  PICKING: "Picking",
+  PICKED: "Picked",
+  CANCELLED: "Cancelled",
+};
+
+export const PICK_LIST_STATUS_LABELS: Record<string, string> = {
+  OPEN: "Open",
+  IN_PROGRESS: "In progress",
+  ON_HOLD: "On hold",
+  COMPLETED: "Completed",
+  CANCELLED: "Cancelled",
+};
+
+export const PICK_STATUS_LABELS: Record<string, string> = {
+  PENDING: "Pending",
+  PICKED: "Picked",
+  SHORT: "Short",
+  SUBSTITUTED: "Substituted",
+};
+
 export const NAV_ITEMS = [
   { href: "/", label: "Dashboard" },
   { href: "/staging", label: "Staging" },

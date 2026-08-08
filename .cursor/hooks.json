@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "hooks": {
+    "afterFileEdit": [
+      {
+        "command": "node .cursor/hooks/testing-context.mjs"
+      }
+    ],
+    "stop": [
+      {
+        "command": "node .cursor/hooks/testing-stop-reminder.mjs"
+      }
+    ]
+  }
+}

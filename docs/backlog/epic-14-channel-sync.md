@@ -8,6 +8,8 @@ Back to [index](../BACKLOG.md) · [conventions](CONVENTIONS.md) · [parity matri
 
 **Order of work is deliberate.** CSV templates first (**CHN-006**), because they cover every marketplace immediately at low risk and keep working when an API breaks. One live API second (**CHN-002**), to prove the sync model. The oversell guard (**CHN-005**) is the point of the whole epic and is a Must.
 
+**Architecture:** availability gatekeeper ([ADR-005](../architecture/adr/005-reservation-and-availability-engine.md)); listing push via transactional outbox ([ADR-007](../architecture/adr/007-transactional-outbox-channel-sync.md)); channel adapters ([ADR-008](../architecture/adr/008-provider-adapter-registry.md)); worker drains outbox ([ADR-006](../architecture/adr/006-background-worker-pg-boss.md)).
+
 | ID | Story | Priority | Status |
 |----|-------|----------|--------|
 | CHN-001 | Channel registry and configuration | Must | — |

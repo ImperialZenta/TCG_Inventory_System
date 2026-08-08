@@ -79,7 +79,7 @@ Feature: ACC-001 User accounts and authentication
     And its historical events keep a null actor rather than being falsely attributed
 ```
 
-**Schema notes (negotiable):** a `User` table with email, hashed password, display name, role and an enabled flag. Prefer a maintained library for session handling over hand-rolled cookies. The last scenario matters — do not backfill `actor` with a guess.
+**Schema notes (negotiable):** a `User` table with email, hashed password, display name, role and an enabled flag. Prefer a maintained library for session handling over hand-rolled cookies. The last scenario matters — do not backfill `actor` with a guess. Protected surface per [ADR-009](../../architecture/adr/009-protected-api-surface.md); actor threading per [ADR-002](../../architecture/adr/002-actor-context-propagation.md).
 
 ---
 

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { PageHeader, EmptyState } from "@/components/page-header";
 import { getBlocksWithStats, getAgingBucketCounts, getStaleBlocks, getLocationLabel } from "@/lib/blocks";
+import { getPickMetrics } from "@/lib/pick/metrics";
 import { STALE_BLOCK_DAYS } from "@/lib/constants";
 import { formatCurrency, daysSince } from "@/lib/utils";
 
@@ -10,13 +11,15 @@ export default async function AnalyticsPage() {
   let blocks: Awaited<ReturnType<typeof getBlocksWithStats>> = [];
   let aging = { buckets: [] as { label: string; count: number }[], staleThreshold: STALE_BLOCK_DAYS };
   let staleBlocks: Awaited<ReturnType<typeof getStaleBlocks>> = [];
+  let pickMetrics: Awaited<ReturnType<typeof getPickMetrics>> | null = null;
   let dbError = false;
 
   try {
-    [blocks, aging, staleBlocks] = await Promise.all([
+    [blocks, aging, staleBlocks, pickMetrics] = await Promise.all([
       getBlocksWithStats(),
       getAgingBucketCounts(STALE_BLOCK_DAYS),
       getStaleBlocks(STALE_BLOCK_DAYS),
+      getPickMetrics(),
     ]);
   } catch {
     dbError = true;
@@ -57,6 +60,44 @@ export default async function AnalyticsPage() {
               <p className="mt-1 text-2xl font-semibold text-zinc-100">{formatCurrency(totalValue)}</p>
             </div>
           </div>
+
+          {pickMetrics && (
+            <section className="mb-8 rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">
+              <h2 className="text-lg font-medium text-zinc-100">Pick performance</h2>
+              <div className="mt-4 grid gap-4 sm:grid-cols-4">
+                <div className="rounded-lg border border-zinc-800 bg-zinc-950/50 p-4">
+                  <p className="text-xs text-zinc-500">Completed lists</p>
+                  <p className="mt-1 text-2xl font-semibold text-zinc-100">
+                    {pickMetrics.completedLists}
+                  </p>
+                </div>
+                <div className="rounded-lg border border-zinc-800 bg-zinc-950/50 p-4">
+                  <p className="text-xs text-zinc-500">Median pick time</p>
+                  <p className="mt-1 text-2xl font-semibold text-zinc-100">
+                    {pickMetrics.medianDurationMinutes != null
+                      ? `${Math.round(pickMetrics.medianDurationMinutes)}m`
+                      : "—"}
+                  </p>
+                </div>
+                <div className="rounded-lg border border-zinc-800 bg-zinc-950/50 p-4">
+                  <p className="text-xs text-zinc-500">Short rate</p>
+                  <p className="mt-1 text-2xl font-semibold text-amber-400">
+                    {pickMetrics.shortRatePercent != null
+                      ? `${pickMetrics.shortRatePercent.toFixed(1)}%`
+                      : "—"}
+                  </p>
+                </div>
+                <div className="rounded-lg border border-zinc-800 bg-zinc-950/50 p-4">
+                  <p className="text-xs text-zinc-500">Median dwell (days)</p>
+                  <p className="mt-1 text-2xl font-semibold text-zinc-100">
+                    {pickMetrics.medianDwellDays != null
+                      ? Math.round(pickMetrics.medianDwellDays)
+                      : "—"}
+                  </p>
+                </div>
+              </div>
+            </section>
+          )}
 
           <section className="mb-8 rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">
             <h2 className="text-lg font-medium text-zinc-100">Aging Buckets</h2>

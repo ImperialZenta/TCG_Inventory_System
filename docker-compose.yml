@@ -32,5 +32,17 @@ services:
     volumes:
       - ./backups:/app/backups
 
+  test:
+    build:
+      context: .
+      target: test
+    profiles:
+      - test
+    environment:
+      DATABASE_URL: postgresql://tcg:tcg@db:5432/tcg_inventory_test
+    depends_on:
+      db:
+        condition: service_healthy
+
 volumes:
   pgdata:

@@ -1,27 +1,29 @@
 # Epic 4 — Picking & Fulfillment
 
-Prefix `P-`. Turning an order into cards in hand. Nothing here is built: `/pick` and `/orders` are stub pages, and the `PickList`, `PickWave` and `PickItem` models exist without a workflow.
+Prefix `P-`. Turning an order into cards in hand. **Phase 4 complete:** order import (API, fixture, webhook, cron), pick list generation, location-sorted picking, renumber on pick, pick history, counter pick, TCGplayer pullsheet, pick metrics, and pick integrity (quarantine, hold, re-allocate, correction intake). `/orders` and `/pick` are live.
 
 Back to [index](../BACKLOG.md) · [conventions](CONVENTIONS.md)
 
 Epic 17 (**FUL-**) depends on this epic. Picking must work before a unified order queue is worth building.
 
+**Architecture:** Phase 4 establishes the domain module convention ([ADR-001](../architecture/adr/001-domain-module-convention.md)) and threads actor context with `null` actor ([ADR-002](../architecture/adr/002-actor-context-propagation.md)) — read [ARCHITECTURE.md](../architecture/ARCHITECTURE.md) before **P-001**.
+
 | ID | Story | Priority | Status |
 |----|-------|----------|--------|
-| P-001 | Pick list from order | Must | Stub |
-| P-002 | Route optimization by location | Must | Schema — corrected, see [audit](AUDIT-2026-08.md) |
-| P-003 | Mark picked / short / substitute | Must | Schema |
-| P-004 | Decrement inventory and update last-pick date | Must | — |
+| P-001 | Pick list from order | Must | Done |
+| P-002 | Route optimization by location | Must | Done |
+| P-003 | Mark picked / short / substitute | Must | Done — substitute deferred |
+| P-004 | Decrement inventory and update last-pick date | Must | Done |
 | P-005 | Single-block pick for counter sales | Must | — |
-| P-006 | Group pick list by block | Must | — |
+| P-006 | Group pick list by block | Must | Done |
 | P-007 | TCGplayer pullsheet upload | Could | — |
 | P-008 | Pick performance metrics | Could | — |
-| P-009 | Position pick list with renumber | Must | — |
-| P-010 | Move picked card to history | Should | — |
-| P-011 | Quarantine block for repair | Must | — |
-| P-012 | Hold pick list | Must | — |
+| P-009 | Position pick list with renumber | Must | Done |
+| P-010 | Move picked card to history | Should | Done |
+| P-011 | Quarantine block for repair | Must | Done |
+| P-012 | Hold pick list | Must | Done |
 | P-013 | Correction re-scan intake | Should | — |
-| P-014 | Re-allocate held pick lines | Must | — |
+| P-014 | Re-allocate held pick lines | Must | Done |
 
 ---
 

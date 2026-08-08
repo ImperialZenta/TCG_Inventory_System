@@ -95,8 +95,8 @@ Feature: SKU-001 Stock item ledger
 **Schema notes (negotiable):**
 
 - `StockItem` — `gameId`, `catalogCardId`, `setCode`, `collectorNumber`, `finish`, `language`, `condition`, `onHandQuantity`, `reservedQuantity`, `costBasisCents`, `marketPriceCents`, `locationId`, timestamps. Unique index on the identity tuple.
-- `StockMovement` — `stockItemId`, `delta`, `reason` (`RECEIVE`, `PROMOTE`, `SALE`, `RETURN`, `COUNT_ADJUST`, `TRANSFER`, `DAMAGE`), `actor`, `referenceType`, `referenceId`, `createdAt`.
-- Money in integer cents everywhere. `CardLine.priceUsd` is a float today; do not repeat that here.
+- `StockMovement` — append-only ledger per [ADR-004](../../architecture/adr/004-append-only-ledger-pattern.md).
+- Money in integer cents ([ADR-003](../../architecture/adr/003-money-as-integer-cents.md)).
 - `StockMovement` complements rather than replaces `InventoryEvent`: movements are the quantity ledger, events are the human-readable audit feed. Write both.
 
 ---
@@ -160,6 +160,8 @@ Feature: SKU-002 Sort staged cards to stock
 | **So that** | two channels cannot sell the same physical card |
 
 **Priority:** Must · **Status:** — · **Depends on:** SKU-001 · **Prerequisite for:** CHN-005
+
+**Architecture:** implement via the reservation gatekeeper in [ADR-005](../../architecture/adr/005-reservation-and-availability-engine.md). Reservation expiry uses the worker from [ADR-006](../../architecture/adr/006-background-worker-pg-boss.md).
 
 **Definition.** Available equals on-hand minus reserved. Channels are offered available, never on-hand. This one rule is what "never oversell" reduces to.
 

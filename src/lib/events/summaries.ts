@@ -38,6 +38,53 @@ export function buildEventSummary<T extends RecordableEventType>(
       const p = payload as EventPayloadMap[typeof INVENTORY_EVENT_TYPES.STAGING_DELETED];
       return `Deleted staging ${p.filename} (${p.status})`;
     }
+    case INVENTORY_EVENT_TYPES.ORDER_IMPORTED: {
+      const p = payload as EventPayloadMap[typeof INVENTORY_EVENT_TYPES.ORDER_IMPORTED];
+      const ref = p.reference ? ` · ${p.reference}` : "";
+      return `Imported ${p.channel} order · ${p.lineCount} line${p.lineCount === 1 ? "" : "s"}${ref}`;
+    }
+    case INVENTORY_EVENT_TYPES.PICK_LIST_CREATED: {
+      const p = payload as EventPayloadMap[typeof INVENTORY_EVENT_TYPES.PICK_LIST_CREATED];
+      return `Created ${p.pickListId} · ${p.itemCount} item${p.itemCount === 1 ? "" : "s"}`;
+    }
+    case INVENTORY_EVENT_TYPES.PICK_ITEM_ALLOCATED: {
+      const p = payload as EventPayloadMap[typeof INVENTORY_EVENT_TYPES.PICK_ITEM_ALLOCATED];
+      return `${p.mtgBlockId} pos ${p.position} · ${p.cardName}`;
+    }
+    case INVENTORY_EVENT_TYPES.PICK_ITEM_PICKED: {
+      const p = payload as EventPayloadMap[typeof INVENTORY_EVENT_TYPES.PICK_ITEM_PICKED];
+      return `Picked ${p.mtgBlockId} pos ${p.position} · ${p.cardName}`;
+    }
+    case INVENTORY_EVENT_TYPES.PICK_ITEM_SHORT: {
+      const p = payload as EventPayloadMap[typeof INVENTORY_EVENT_TYPES.PICK_ITEM_SHORT];
+      const block = p.mtgBlockId ? `${p.mtgBlockId} · ` : "";
+      return `Short ${block}${p.cardName} · ${p.reason}`;
+    }
+    case INVENTORY_EVENT_TYPES.INVENTORY_DECREMENTED: {
+      const p = payload as EventPayloadMap[typeof INVENTORY_EVENT_TYPES.INVENTORY_DECREMENTED];
+      return `${p.mtgBlockId} · −${p.quantity} · pick item`;
+    }
+    case INVENTORY_EVENT_TYPES.PICK_ITEM_SUBSTITUTED: {
+      const p = payload as EventPayloadMap[typeof INVENTORY_EVENT_TYPES.PICK_ITEM_SUBSTITUTED];
+      return `Substituted ${p.fromMtgBlockId} pos ${p.fromPosition} → ${p.toMtgBlockId} pos ${p.toPosition} · ${p.cardName}`;
+    }
+    case INVENTORY_EVENT_TYPES.PICK_COUNTER: {
+      const p = payload as EventPayloadMap[typeof INVENTORY_EVENT_TYPES.PICK_COUNTER];
+      return `Counter pick ${p.mtgBlockId} pos ${p.position} · ${p.cardName}`;
+    }
+    case INVENTORY_EVENT_TYPES.BLOCK_QUARANTINED: {
+      const p = payload as EventPayloadMap[typeof INVENTORY_EVENT_TYPES.BLOCK_QUARANTINED];
+      return `Quarantined ${p.mtgBlockId} · ${p.reason}`;
+    }
+    case INVENTORY_EVENT_TYPES.BLOCK_QUARANTINE_CLEARED: {
+      const p = payload as EventPayloadMap[typeof INVENTORY_EVENT_TYPES.BLOCK_QUARANTINE_CLEARED];
+      return `Quarantine cleared ${p.mtgBlockId}`;
+    }
+    case INVENTORY_EVENT_TYPES.STAGING_CORRECTION_CREATED: {
+      const p = payload as EventPayloadMap[typeof INVENTORY_EVENT_TYPES.STAGING_CORRECTION_CREATED];
+      const link = p.sourceMtgBlockId ? ` · from ${p.sourceMtgBlockId}` : "";
+      return `Correction intake ${p.filename} · ${p.cardCount} card${p.cardCount === 1 ? "" : "s"}${link}`;
+    }
     default:
       return eventType;
   }
@@ -57,7 +104,12 @@ export function formatEventTypeLabel(eventType: string): string {
     [INVENTORY_EVENT_TYPES.PICK_ITEM_ALLOCATED]: "Pick allocated",
     [INVENTORY_EVENT_TYPES.PICK_ITEM_PICKED]: "Card picked",
     [INVENTORY_EVENT_TYPES.PICK_ITEM_SHORT]: "Pick shorted",
+    [INVENTORY_EVENT_TYPES.PICK_ITEM_SUBSTITUTED]: "Pick substituted",
+    [INVENTORY_EVENT_TYPES.PICK_COUNTER]: "Counter pick",
     [INVENTORY_EVENT_TYPES.INVENTORY_DECREMENTED]: "Inventory decremented",
+    [INVENTORY_EVENT_TYPES.BLOCK_QUARANTINED]: "Block quarantined",
+    [INVENTORY_EVENT_TYPES.BLOCK_QUARANTINE_CLEARED]: "Quarantine cleared",
+    [INVENTORY_EVENT_TYPES.STAGING_CORRECTION_CREATED]: "Correction intake",
   };
   return labels[eventType] ?? eventType;
 }

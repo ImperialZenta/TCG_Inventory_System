@@ -8,6 +8,8 @@ Back to [index](../BACKLOG.md) · [conventions](CONVENTIONS.md) · [parity matri
 
 **Design stance.** SortSwift advertises 20+ rule steps. Step count is not the goal; a deterministic, explainable pipeline is. Every rule run must be able to answer "why is this card priced at 4.25" with the chain that produced it — that is **PRC-008**, and it is a Must, not polish.
 
+**Architecture:** money in cents ([ADR-003](../architecture/adr/003-money-as-integer-cents.md)); scheduled refresh via worker ([ADR-006](../architecture/adr/006-background-worker-pg-boss.md)); price sources via registry ([ADR-008](../architecture/adr/008-provider-adapter-registry.md)).
+
 | ID | Story | Priority | Status |
 |----|-------|----------|--------|
 | PRC-001 | Multiple market price sources | Should | — |

@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 
 const TRUNCATE_TABLES = [
+  "PickHistory",
   "PickItem",
   "PickWave",
   "ExternalOrderLine",

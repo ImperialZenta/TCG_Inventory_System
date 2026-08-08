@@ -1,5 +1,10 @@
 import { db } from "@/lib/db";
 import { formalizeStagingImport } from "@/lib/staging/formalize";
+import { importExternalOrder } from "@/lib/orders/import-order";
+import { TEST_CONTEXT } from "@/lib/context/domain-context";
+import type { ImportedOrderDTO } from "@/lib/orders/types";
+import { sealOpenBlocksByInternalIds } from "@/lib/blocks/seal";
+import { transitionBlockStatus } from "@/lib/blocks/lifecycle";
 
 export interface FormalizedImportFixture {
   importId: string;
@@ -132,4 +137,41 @@ export async function seedPickItemForBlock(blockId: string): Promise<{ pickItemI
   });
 
   return { pickItemId: item.id };
+}
+
+/** Import a test order whose line names match createMultiBlockImport cards. */
+export async function createTestExternalOrder(
+  options?: Partial<ImportedOrderDTO>,
+): Promise<{ externalOrderId: string; manapoolOrderId: string }> {
+  const order: ImportedOrderDTO = {
+    manapoolOrderId: options?.manapoolOrderId ?? `test-order-${Date.now()}`,
+    reference: options?.reference ?? "TEST-ORDER",
+    lines: options?.lines ?? [
+      {
+        name: "Test Card B1-P1",
+        setCode: "tst",
+        condition: "NM",
+        finish: "NONFOIL",
+        language: "en",
+        quantity: 1,
+      },
+    ],
+  };
+
+  const result = await importExternalOrder(order, TEST_CONTEXT);
+  return {
+    externalOrderId: result.externalOrderId,
+    manapoolOrderId: result.manapoolOrderId,
+  };
+}
+
+/** Seal and activate blocks so they are pickable. */
+export async function makeBlocksPickable(internalIds: string[]): Promise<void> {
+  await sealOpenBlocksByInternalIds(internalIds);
+  for (const id of internalIds) {
+    const block = await db.block.findUnique({ where: { id } });
+    if (block) {
+      await transitionBlockStatus(block.blockId, "ACTIVATE");
+    }
+  }
 }

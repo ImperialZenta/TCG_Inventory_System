@@ -16,6 +16,10 @@ import {
   type LifecycleTransition,
 } from "@/lib/blocks/lifecycle";
 import { INVENTORY_EVENT_TYPES, recordInventoryEvent } from "@/lib/events";
+import { SYSTEM_CONTEXT } from "@/lib/context/domain-context";
+import { recordCounterPick } from "@/lib/pick/counter-pick";
+import { clearBlockPickHold } from "@/lib/blocks/quarantine";
+import { PickError } from "@/lib/pick/errors";
 
 export type BlockActionResult =
   | { ok: true; message: string }
@@ -243,4 +247,42 @@ export async function sealBlocksByImportAction(
   revalidateBlockPaths();
   revalidatePath(`/staging/${importId}`);
   return { ok: true, message: outcome.message };
+}
+
+export async function counterPickAction(
+  mtgBlockId: string,
+  position: number,
+): Promise<BlockActionResult> {
+  try {
+    const result = await recordCounterPick({ mtgBlockId, position }, SYSTEM_CONTEXT);
+    revalidateBlockPaths(mtgBlockId);
+    revalidatePath("/pick");
+    revalidatePath("/activity");
+    return {
+      ok: true,
+      message: `Counter pick: ${result.cardName} from ${result.mtgBlockId} pos ${result.position}`,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      message: error instanceof PickError ? error.message : "Counter pick failed",
+    };
+  }
+}
+
+export async function clearQuarantineAction(mtgBlockId: string): Promise<BlockActionResult> {
+  try {
+    const block = await db.block.findUnique({ where: { blockId: mtgBlockId } });
+    if (!block) return { ok: false, message: "Block not found" };
+    await clearBlockPickHold(block.id, SYSTEM_CONTEXT);
+    revalidateBlockPaths(mtgBlockId);
+    revalidatePath("/pick");
+    revalidatePath("/activity");
+    return { ok: true, message: `Quarantine cleared on ${mtgBlockId}` };
+  } catch (error) {
+    return {
+      ok: false,
+      message: error instanceof PickError ? error.message : "Clear quarantine failed",
+    };
+  }
 }

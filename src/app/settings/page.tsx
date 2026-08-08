@@ -111,6 +111,18 @@ export default async function SettingsPage() {
               <p>
                 <code className="text-zinc-300">MANAPOOL_API_TOKEN</code> — from Mana Pool account
               </p>
+              <p>
+                <code className="text-zinc-300">MANAPOOL_WEBHOOK_SECRET</code> — verify inbound order
+                webhooks (optional)
+              </p>
+              <p>
+                <code className="text-zinc-300">CRON_SECRET</code> — protect{" "}
+                <code className="text-zinc-300">POST /api/cron/sync-manapool-orders</code>
+              </p>
+              <p className="pt-2 text-zinc-500">
+                Webhook URL:{" "}
+                <code className="text-zinc-300">/api/webhooks/manapool</code>
+              </p>
             </div>
             <Link
               href="/api/backup/export"

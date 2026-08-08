@@ -41,6 +41,7 @@ Open [http://localhost:3000](http://localhost:3000).
 | Rebuild after code changes | `docker compose up --build` |
 | View logs | `docker compose logs -f app` |
 | Seed / re-seed | `docker compose exec app npm run db:seed` |
+| Run tests | `docker compose --profile test run --rm test` (or `npm run test:docker` if npm is on PATH) |
 | Prisma Studio | `docker compose exec app npx prisma studio` |
 | Backup JSON | Settings → Download backup, or `/api/backup/export` |
 | Restore backup | Settings → Backup section → upload JSON, type `RESTORE` |
@@ -85,6 +86,8 @@ git add package.json package-lock.json
 | `STALE_BLOCK_DAYS` | Days without pick before block is stale (default 90) |
 | `MANAPOOL_EMAIL` | Mana Pool seller email (optional, for API) |
 | `MANAPOOL_API_TOKEN` | Mana Pool API token (optional) |
+| `MANAPOOL_WEBHOOK_SECRET` | HMAC secret for inbound order webhooks (optional) |
+| `CRON_SECRET` | Bearer token for `POST /api/cron/sync-manapool-orders` (optional) |
 | `RUN_SEED` | Set `true` on container start to auto-seed |
 
 ## Supply-chain hygiene
@@ -128,14 +131,17 @@ Dockerfile
 
 | Document | Contents |
 |----------|----------|
+| [Architecture](docs/architecture/ARCHITECTURE.md) | Runways, target shape, ADR index |
 | [Conventions](docs/backlog/CONVENTIONS.md) | INVEST definition of ready, Gherkin house style, ID prefix registry |
+| [Testing](docs/TESTING.md) | Vitest, Docker test service, two-agent workflow, spec compliance |
+| [Testing playbook](docs/TESTING-PLAYBOOK.md) | When to test, golden paths, smoke log, Cursor hooks |
 | [SortSwift parity matrix](docs/backlog/PARITY-SORTSWIFT.md) | Gap analysis, dual inventory rationale, parity phasing |
 | [Intake strategy](docs/backlog/INTAKE-STRATEGY.md) | Scan → CSV → staging, the sort decision, recovery paths |
 | [Status audit, Aug 2026](docs/backlog/AUDIT-2026-08.md) | Status corrections found by reading the code |
 
-**Implemented:** Docker stack, Shelf/Bin/Block model, settings, backup export/restore, Mana Pool CSV export, ManaBox position-indexed staging and formalize, block lifecycle and seal, guarded block removal and undo formalize, inventory event log with Activity feed, aging analytics.
+**Implemented:** Docker stack, Shelf/Bin/Block model, settings, backup export/restore, Mana Pool CSV export, ManaBox position-indexed staging and formalize, block lifecycle and seal, guarded block removal and undo formalize, inventory event log with Activity feed, aging analytics, **Phase 4 orders and picking** (Mana Pool import, pick lists, counter pick, TCGplayer pullsheet, pick metrics, pick integrity).
 
-**Next (Phase 4):** Mana Pool order import, position pick lists with renumber, pick integrity and block repair.
+**Next (Phase 5):** Card search (**S-001**), global quantity (**S-004**), bulk block transfer (**O-002**), fix **V-005** price persistence defect.
 
 ### Dual inventory direction
 

@@ -15,6 +15,16 @@ RUN npx prisma generate
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
+# Full source tree for running Vitest against PostgreSQL (not used in production).
+FROM builder AS test
+RUN apk add --no-cache postgresql-client
+COPY scripts/docker-test-entrypoint.sh /app/scripts/docker-test-entrypoint.sh
+RUN sed -i 's/\r$//' /app/scripts/docker-test-entrypoint.sh && chmod +x /app/scripts/docker-test-entrypoint.sh
+ENV NODE_ENV=test
+WORKDIR /app
+ENTRYPOINT ["/app/scripts/docker-test-entrypoint.sh"]
+CMD ["npm", "test"]
+
 FROM base AS runner
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1

@@ -92,8 +92,11 @@ model Block {
   activatedAt DateTime?
   targetCount Int?
   notes       String?
+  pickHoldAt     DateTime?
+  pickHoldReason String?
   cards       CardLine[]
   pickItems       PickItem[]
+  pickHistory     PickHistory[]
   inventoryEvents InventoryEvent[]
   createdAt       DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
@@ -156,12 +159,21 @@ enum StagingImportStatus {
   ARCHIVED
 }
 
+enum StagingImportKind {
+  TRADE_IN
+  CORRECTION
+}
+
 model StagingImport {
   id         String              @id @default(cuid())
   filename   String
   rowCount   Int                 @default(0)
   status     StagingImportStatus @default(PARSED)
+  kind       StagingImportKind   @default(TRADE_IN)
   targetCount Int?
+  sourcePickListId String?
+  sourceMtgBlockId String?
+  sourceNotes      String?
   cards           StagingCard[]
   inventoryEvents InventoryEvent[]
   createdAt       DateTime            @default(now())
@@ -221,12 +233,14 @@ model ExternalOrderLine {
   scryfallId      String?
   name            String
   setCode         String?
+  collectorNumber String?
   condition       Condition     @default(NM)
   finish          Finish        @default(NONFOIL)
   language        String        @default("en")
   quantity        Int           @default(1)
   priceCents      Int?
   manapoolLineId  String?
+  pickItems       PickItem[]
 }
 
 // ---------------------------------------------------------------------------
@@ -243,6 +257,7 @@ enum PickStatus {
 enum PickListStatus {
   OPEN
   IN_PROGRESS
+  ON_HOLD
   COMPLETED
   CANCELLED
 }
@@ -251,9 +266,13 @@ model PickList {
   id          String         @id @default(cuid())
   pickListId  String         @unique
   status      PickListStatus @default(OPEN)
+  holdReason  String?
+  sourceLabel String?
+  notes       String?
   pickerCount Int            @default(1)
   items       PickItem[]
   waves       PickWave[]
+  pickHistory PickHistory[]
   orders          ExternalOrder[]
   inventoryEvents InventoryEvent[]
   createdAt       DateTime       @default(now())
@@ -270,22 +289,53 @@ model PickWave {
 }
 
 model PickItem {
-  id              String     @id @default(cuid())
-  pickListId      String
-  pickList        PickList   @relation(fields: [pickListId], references: [id], onDelete: Cascade)
-  pickWaveId      String?
-  pickWave        PickWave?  @relation(fields: [pickWaveId], references: [id])
-  cardLineId      String
-  cardLine        CardLine   @relation(fields: [cardLineId], references: [id])
-  blockId         String
-  block           Block      @relation(fields: [blockId], references: [id])
-  externalOrderId String?
-  quantity        Int        @default(1)
-  status          PickStatus @default(PENDING)
-  notes           String?
+  id                   String             @id @default(cuid())
+  pickListId           String
+  pickList             PickList           @relation(fields: [pickListId], references: [id], onDelete: Cascade)
+  pickWaveId           String?
+  pickWave             PickWave?          @relation(fields: [pickWaveId], references: [id])
+  cardLineId           String?
+  cardLine             CardLine?          @relation(fields: [cardLineId], references: [id], onDelete: SetNull)
+  blockId              String?
+  block                Block?             @relation(fields: [blockId], references: [id], onDelete: SetNull)
+  externalOrderId      String?
+  externalOrderLineId  String?
+  externalOrderLine    ExternalOrderLine? @relation(fields: [externalOrderLineId], references: [id], onDelete: SetNull)
+  quantity             Int                @default(1)
+  status               PickStatus         @default(PENDING)
+  shortReason          String?
+  notes                String?
 
   @@index([pickListId])
   @@index([blockId])
+  @@index([cardLineId])
+}
+
+model PickHistory {
+  id                String     @id @default(cuid())
+  blockId           String?
+  block             Block?     @relation(fields: [blockId], references: [id], onDelete: SetNull)
+  mtgBlockId        String
+  blockTierAtPick   BlockTier?
+  positionAtPick    Int
+  scryfallId        String?
+  name              String
+  setCode           String
+  collectorNumber   String?
+  condition         Condition
+  finish            Finish
+  language          String
+  pickListId        String
+  pickList          PickList   @relation(fields: [pickListId], references: [id], onDelete: Cascade)
+  pickItemId        String?    @unique
+  externalOrderId   String?
+  isCounterPick     Boolean    @default(false)
+  dwellDays         Int?
+  pickedAt          DateTime   @default(now())
+
+  @@index([blockId])
+  @@index([pickListId])
+  @@index([pickedAt])
 }
 
 // ---------------------------------------------------------------------------

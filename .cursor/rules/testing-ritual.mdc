@@ -1,0 +1,39 @@
+---
+description: Remind user when and how to test after implementation; orchestrate Layers 1–3
+alwaysApply: true
+---
+
+# Testing ritual
+
+Read [docs/TESTING-PLAYBOOK.md](docs/TESTING-PLAYBOOK.md) for full golden paths.
+
+## When to proactively suggest testing
+
+| Situation | Suggest |
+|-----------|---------|
+| Finished implementing backlog story(ies) in `src/` or `tests/` | Layer 1 docker test + Layer 2 Agent B for touched story IDs + focused smoke |
+| User asks to mark story Done or flip `@done` | Agent B spec compliance first; do not update tags without coverage |
+| User reports app "feels wrong" | FINDING template → map to Gherkin → classify before fixing |
+| User closes a phase or epic | Full golden path + Agent B on all Must stories + SMOKE-LOG entry |
+| User only changed docs | Skip docker test unless they ask |
+
+## What to say (short)
+
+After non-trivial implementation, end with:
+
+1. **Regression:** `docker compose --profile test run --rm test`
+2. **Spec:** Fresh chat → `Read .cursor/skills/spec-compliance-review/SKILL.md and review story {ID}`
+3. **Smoke:** Link playbook section (Phase 4 golden path or story-specific steps)
+
+## Agent roles
+
+- **This chat (Agent A):** implement; add tests when assertable; do not self-certify `@done`
+- **Fresh chat (Agent B):** read-only spec compliance; run docker tests; report GAPs
+
+## Smoke finding format
+
+When user describes unexpected behavior, ask them to fill or infer:
+
+`Observed` / `Expected` / `Story ID` / `Route` / `Severity`
+
+Then recommend Agent B before code changes.

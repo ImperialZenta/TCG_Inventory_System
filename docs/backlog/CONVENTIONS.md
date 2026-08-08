@@ -8,6 +8,7 @@ How stories are written in this repo. Read before adding or editing any story.
 
 | File | Contains |
 |------|----------|
+| [`docs/architecture/ARCHITECTURE.md`](../architecture/ARCHITECTURE.md) | Runways, ADR index — read before cross-cutting stories |
 | [`docs/BACKLOG.md`](../BACKLOG.md) | Index only — epic tables, IDs, priority, status, phase roadmap, build order |
 | [`docs/backlog/CONVENTIONS.md`](CONVENTIONS.md) | This file |
 | [`docs/backlog/PARITY-SORTSWIFT.md`](PARITY-SORTSWIFT.md) | SortSwift gap matrix and parity phasing |
@@ -38,7 +39,7 @@ Acceptance criteria never live in the index. The index links out.
 | **Stub** | Page or route placeholder only; no behaviour |
 | **—** | Not started |
 
-A story is only **Done** when every `@done` scenario in its Feature block passes by hand or in Vitest. If any scenario is `@pending`, the story is at most **Partial**.
+A story is only **Done** when every `@done` scenario in its Feature block passes by hand or in Vitest. If any scenario is `@pending`, the story is at most **Partial**. See [TESTING.md](../TESTING.md) for the two-agent workflow and spec compliance skill.
 
 ---
 

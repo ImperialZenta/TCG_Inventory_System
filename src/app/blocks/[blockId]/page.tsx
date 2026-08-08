@@ -19,6 +19,8 @@ import { MoveBlockForm } from "../move-block-form";
 import { RemoveBlockForm } from "../remove-block-form";
 import { SealBlockForm } from "../seal-block-form";
 import { BlockLifecycleSection } from "../block-lifecycle-section";
+import { CounterPickForm } from "../counter-pick-form";
+import { ClearQuarantineButton } from "../clear-quarantine-button";
 import { formatCurrency, formatDate, daysSince } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -104,6 +106,23 @@ export default async function BlockDetailPage({ params }: BlockDetailPageProps) 
           </p>
         </div>
       </div>
+
+      {block.pickHoldAt && (
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+          <div>
+            <p className="font-medium text-amber-200">Quarantined for picking</p>
+            <p>{block.pickHoldReason ?? "On pick hold"}</p>
+          </div>
+          <ClearQuarantineButton mtgBlockId={block.blockId} />
+        </div>
+      )}
+
+      {(block.status === "ACTIVE" || block.status === "SEALED") && !block.pickHoldAt && (
+        <CounterPickForm
+          mtgBlockId={block.blockId}
+          positions={block.cards.map((c) => ({ position: c.position, name: c.name }))}
+        />
+      )}
 
       {csvPreview && (
         <section className="mb-8 rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">

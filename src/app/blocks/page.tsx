@@ -134,9 +134,14 @@ export default async function BlocksPage({ searchParams }: BlocksPageProps) {
                       {getLocationLabel(block)}
                     </td>
                     <td className="px-4 py-3">
-                      <Badge variant={getStatusBadgeVariant(block.status)}>
-                        {BLOCK_STATUS_LABELS[block.status]}
-                      </Badge>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant={getStatusBadgeVariant(block.status)}>
+                          {BLOCK_STATUS_LABELS[block.status]}
+                        </Badge>
+                        {block.pickHoldAt && (
+                          <Badge variant="warning">Quarantined</Badge>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3">
                       <span
