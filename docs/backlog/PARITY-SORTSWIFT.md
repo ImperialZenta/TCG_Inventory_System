@@ -52,7 +52,7 @@ Status uses the keys in [`CONVENTIONS.md`](CONVENTIONS.md). "Target" names the e
 | Chaos sorting of mixed piles | **Partial** | Mixed sets and conditions accepted in one CSV, but the pile must be scanned by an external app first | **SCN-** |
 | 26+ TCGs | **—** | MTG only; Scryfall is the sole catalog | **GAM-** |
 | Phone / web camera scanning | **—** | No camera path; **I-006**, **I-014** deferred | **SCN-** |
-| Auto-identify set, printing, foil, language, condition | **Partial** | Set, printing, foil, language come from the CSV; condition is human-set; nothing is identified from an image | **SCN-** |
+| Auto-identify set, printing, foil, language, condition | **Partial** | Set, printing, foil, language come from the CSV; condition is human-set in the scanner app and mapped at import (ADR-012, **C-007**); nothing is identified from an image | **SCN-** |
 | Alternate printing picker | **—** | No candidate UI; a wrong match must be fixed in the source CSV | **SCN-** |
 | Front/back image association | **Partial** | `imageUri` persists through formalize (**V-005**); scan UI not built | **SCN-** |
 | Live price overlay during scan | **—** | No price shown at intake | **SCN-**, **PRC-** |

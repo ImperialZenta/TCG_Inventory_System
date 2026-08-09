@@ -10,6 +10,10 @@ Back to [backlog index](../BACKLOG.md) · [backlog conventions](../backlog/CONVE
 
 The app is a **Next.js 15 monolith** with **Prisma + PostgreSQL 16** (Docker). There is no authentication, no background worker, and no external write integrations — only read-only Scryfall lookups and manual Mana Pool CSV export.
 
+### Deployment topology (ADR-011)
+
+Two compose stacks run side by side on one machine: the **production store** (`docker-compose.prod.yml`, project `tcg-prod`, app at `localhost:3000`, data on the external volume `tcg_prod_pgdata`, built only from `store-vN` git tags, strict migrations) and **development** (`docker-compose.yml`, default project, app at `localhost:3010`, Postgres on 5432 with the `tcg_inventory_test` database for the test profile). Store disaster recovery is `pg_dump` via `scripts/backup-store.ps1`; runbook: [docs/operations/STORE-OPERATIONS.md](../operations/STORE-OPERATIONS.md).
+
 ### What works well
 
 Domain logic lives in [`src/lib/<domain>/`](../../src/lib/) and is composed inside **`db.$transaction`**. Mutations write an append-only row to **`InventoryEvent`** via [`recordInventoryEvent(tx, ...)`](../../src/lib/events/record.ts). Failures return through typed error classes (`LifecycleError`, `RemoveBlockError`) to thin server actions in [`src/app/*/actions.ts`](../../src/app/).
@@ -69,6 +73,8 @@ The web app remains the primary UI. A **second Node process** drains scheduled j
 | [ADR-008](adr/008-provider-adapter-registry.md) | Provider/adapter registry (catalog, price, channel) | **GAM-002** |
 | [ADR-009](adr/009-protected-api-surface.md) | Protected API surface (session, webhooks, portals) | **ACC-001** |
 | [ADR-010](adr/010-saas-evolution-strategy.md) | Staged SaaS evolution: tenancy seams now, deploy-per-tenant first, shared schema on fleet pain | **SAS-001** |
+| [ADR-011](adr/011-production-dev-environment-separation.md) | Production/dev separation: two compose stacks, external prod volume, strict migrations, pg_dump DR | **PL-009** |
+| [ADR-012](adr/012-condition-vocabulary-import-mapping.md) | Condition vocabulary: TCGplayer internal scale; ManaBox 7→5 import map; channel export separate | **C-007** |
 
 Read an ADR before implementing the story named as its first implementer.
 

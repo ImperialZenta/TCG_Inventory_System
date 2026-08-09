@@ -14,6 +14,7 @@ Epic 11 (**GAM-**) generalises this epic beyond MTG. Nothing here is thrown away
 | C-004 | Cache Scryfall data locally | Should | — |
 | C-005 | Bulk line entry | Should | Done |
 | C-006 | Set-level shortcuts | Could | — |
+| C-007 | ManaBox condition grades map to TCGplayer-aligned internal scale | Must | Partial |
 
 ---
 
@@ -231,3 +232,44 @@ Feature: C-006 Set-level shortcuts
 ```
 
 **Depends on:** **I-005** (set + collector quick-add) — build that first; this is its bulk form.
+
+---
+
+### C-007 — ManaBox condition grades map to TCGplayer-aligned internal scale
+
+| | |
+|---|---|
+| **As a** | staff member grading cards in ManaBox before CSV export |
+| **I want** | `near_mint` and the other ManaBox grades to import as the TCGplayer-aligned internal codes |
+| **So that** | staging, block detail, and Mana Pool listing export show the grade I set at the counter |
+
+**Priority:** Must · **Status:** Partial — map + integration tests (upload, formalize, label); prod re-import pending before `@done`
+
+**Architecture:** [ADR-012](../../architecture/adr/012-condition-vocabulary-import-mapping.md)
+
+```gherkin
+@pending
+Feature: C-007 ManaBox condition import mapping
+
+  Scenario: near_mint imports as Near Mint
+    Given a ManaBox CSV row with Condition "near_mint"
+    When the CSV is uploaded to staging
+    Then the staged card has condition NM
+    And the UI label is "Near Mint"
+
+  Scenario: All seven ManaBox grades map per ADR-012
+    Given CSV rows with mint, near_mint, excellent, good, light_played, played and poor
+    When the CSV is parsed
+    Then conditions are NM, NM, LP, MP, HP, HP and DMG respectively
+
+  Scenario: Empty condition defaults to NM
+    Given a CSV row with an empty Condition column
+    Then the staged card has condition NM
+
+  Scenario: Condition is unchanged through formalize
+    Given a staged card with condition NM from near_mint
+    When the import is formalized
+    Then the block card line has condition NM
+```
+
+**Cross-ref:** **C-003** (internal enum), **I-009** (ManaBox upload), **GAM-006** (future multi-game vocab). Recovery on prod: re-upload CSV after deploy — no schema migration.

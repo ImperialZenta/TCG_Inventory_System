@@ -256,4 +256,4 @@ Feature: GAM-006 Per-game condition and finish vocabularies
     Then Magic conditions and finishes behave exactly as before
 ```
 
-**Note:** this generalises **PL-007**'s language mapping into a broader vocabulary mapping. Reuse the pattern rather than inventing a second one.
+**Note:** this generalises **PL-007**'s language mapping into a broader vocabulary mapping. Reuse the pattern rather than inventing a second one. Magic intake already implements the condition slice via **C-007** and [ADR-012](../../architecture/adr/012-condition-vocabulary-import-mapping.md) (`MANABOX_CONDITION_MAP`).

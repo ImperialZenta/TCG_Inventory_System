@@ -33,6 +33,7 @@ Back to [index](../BACKLOG.md) · [conventions](CONVENTIONS.md)
 | I-023 | Undo formalize import | Must | Done |
 | I-024 | Staging list status badges | Should | Done |
 | I-025 | Upload success without auto-redirect | Should | Done |
+| I-026 | Optional batch condition override on CSV upload | Could | — |
 
 ---
 
@@ -841,3 +842,31 @@ Feature: I-025 Manual navigation after upload
   Scenario: The pending list refreshes in place
     Then the new import appears in the pending list without leaving the page
 ```
+
+---
+
+### I-026 — Optional batch condition override on CSV upload
+
+| | |
+|---|---|
+| **As a** | staff member uploading a CSV where every card is the same grade |
+| **I want** | to override or set one condition for the whole import before formalize |
+| **So that** | I am not re-exporting from ManaBox when the file omitted or mis-set condition |
+
+**Priority:** Could · **Status:** — · **Deferred:** not part of **C-007**; per-row ManaBox map is sufficient for the primary path
+
+```gherkin
+@pending
+Feature: I-026 Batch condition override on upload
+
+  Scenario: Apply one condition to all staged rows
+    Given a CSV has been parsed to staging
+    When staff choose "All Near Mint" before formalize
+    Then every staged card has condition NM
+
+  Scenario: Override does not change finish or identity
+    When staff apply a batch condition override
+    Then scryfall ID, set, collector number and finish are unchanged
+```
+
+**Cross-ref:** **C-007** / ADR-012 (per-row map); **I-009** (upload entry point).

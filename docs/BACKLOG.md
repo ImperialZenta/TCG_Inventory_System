@@ -57,6 +57,7 @@ The two inventory modes coexist. A physical card is in exactly one of them, and 
 | PL-006 | Settings: shelves, bins, staging target | Must | Done |
 | PL-007 | Language mapping (Scryfall ↔ Mana Pool) | Must | Done |
 | PL-008 | Automated tests for remove and staging flows | Should | Done |
+| PL-009 | Production store stack separated from development | Must | Done |
 
 ## Epic 1 — [Block & Location Foundation](backlog/epic-01-blocks.md) · `B-`
 
@@ -91,6 +92,7 @@ The two inventory modes coexist. A physical card is in exactly one of them, and 
 | C-004 | Cache Scryfall data locally | Should | — |
 | C-005 | Bulk line entry | Should | Done |
 | C-006 | Set-level shortcuts | Could | — |
+| C-007 | ManaBox condition grades map to TCGplayer-aligned internal scale | Must | Partial |
 
 ## Epic 3 — [Intake (Chaos Packing)](backlog/epic-03-intake.md) · `I-`
 
@@ -122,6 +124,7 @@ Read [intake strategy](backlog/INTAKE-STRATEGY.md) before implementing I-001, I-
 | I-023 | Undo formalize import | Must | Done |
 | I-024 | Staging list status badges | Should | Done |
 | I-025 | Upload without auto-redirect | Should | Done |
+| I-026 | Optional batch condition override on CSV upload | Could | — |
 
 ## Epic 4 — [Picking & Fulfillment](backlog/epic-04-picking.md) · `P-`
 

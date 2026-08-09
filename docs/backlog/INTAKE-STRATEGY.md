@@ -38,6 +38,22 @@ Store credit at the counter is manual today. Epic 16 (**BUY-**) makes it a syste
 
 ---
 
+## Condition from CSV (ADR-012)
+
+Staff set condition in the scanner app (ManaBox condition tap at counter). The exported CSV carries
+that value per row; this app **maps** it to the internal TCGplayer-aligned scale (`NM`–`DMG`) at
+import — there is no second condition prompt on staging upload.
+
+- ManaBox seven grades → internal five: see [ADR-012](../architecture/adr/012-condition-vocabulary-import-mapping.md) and **C-007**.
+- Empty or missing condition defaults to `NM` (**C-003**).
+- Formalize copies condition unchanged onto block lines; seal does not re-grade.
+- Mana Pool listing export emits internal codes; Mana Pool's ManaBox roundtrip collapse is **not**
+  intake policy (**CHN-006** future).
+
+Optional future polish: apply one condition to the whole upload (**I-026**, deferred).
+
+---
+
 ## The sort decision: chaos block or sorted stock
 
 New in the dual model. At review time, each staged group goes to one of two destinations, and this is now an explicit choice rather than an assumption.

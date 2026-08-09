@@ -14,6 +14,7 @@ Back to [index](../BACKLOG.md) · [conventions](CONVENTIONS.md)
 | PL-006 | Settings: shelves, bins, staging target | Must | Done |
 | PL-007 | Language mapping (Scryfall ↔ Mana Pool) | Must | Done |
 | PL-008 | Automated tests for remove and staging flows | Should | Done |
+| PL-009 | Production store stack separated from development | Must | Done |
 
 ---
 
@@ -34,8 +35,9 @@ Feature: PL-001 Docker + PostgreSQL 16 stack
   Scenario: First run brings up app and database together
     Given Docker Desktop is running and ".env" exists
     When the owner runs "docker compose up --build"
-    Then the app is reachable at "http://localhost:3000"
+    Then the dev app is reachable at "http://localhost:3010"
     And a PostgreSQL 16 container is running with the schema applied
+    # Port moved from 3000 to 3010 by PL-009: the production store owns 3000.
 
   Scenario: Inventory survives a restart
     Given blocks exist in the database
@@ -291,3 +293,59 @@ Feature: PL-008 Automated tests for remove and staging flows
 ```
 
 **Known gaps (tracked, not blocking Done):** Scryfall client, CSV parsing, backup restore, Mana Pool export format and analytics pages have no automated coverage.
+
+---
+
+### PL-009 — Production store stack separated from development
+
+| | |
+|---|---|
+| **As a** | shop owner selling real cards while development continues on the same machine |
+| **I want** | the store to run as its own production stack with an undeletable data volume, full-database backups, and migration-only upgrades |
+| **So that** | dev work, test runs, and fat-fingered Docker commands can never dirty or destroy live store data |
+
+**Priority:** Must · **Status:** Done · **Refs:** ADR-011, [docs/operations/STORE-OPERATIONS.md](../operations/STORE-OPERATIONS.md), `tests/pl009-prod-separation.test.ts`
+
+```gherkin
+@done
+Feature: PL-009 Production store stack separated from development
+
+  Scenario: Production and development stacks run side by side
+    Given the external volume "tcg_prod_pgdata" exists
+    When the owner runs "docker compose -f docker-compose.prod.yml up -d --build"
+    Then the store is reachable at "http://localhost:3000" under compose project "tcg-prod"
+    And the dev stack at "http://localhost:3010" uses a different project and volume
+    And no dev compose command can address the store's database
+
+  Scenario: Volume removal cannot delete store data
+    Given the store stack is running with inventory in the database
+    When the owner runs "docker compose -f docker-compose.prod.yml down -v"
+    Then the "tcg_prod_pgdata" volume survives because it is external
+    And the next start finds all store data intact
+
+  Scenario: Strict migrations refuse the data-loss fallback on a non-empty store
+    Given "MIGRATE_STRICT" is "true" in the production stack
+    And the store database already holds application tables
+    When "prisma migrate deploy" fails at container start
+    Then the container exits with an error
+    And "prisma db push --accept-data-loss" is never executed
+
+  Scenario: Empty first boot is baselined once
+    Given a brand-new external volume with no application tables
+    When the production stack starts with "MIGRATE_STRICT" true
+    Then the entrypoint baselines the schema once and marks existing migrations applied
+    And subsequent starts apply only "prisma migrate deploy"
+
+  Scenario: Backup script produces a restorable archive
+    Given the store database holds inventory, orders, picks, users and events
+    When the owner runs "scripts/backup-store.ps1"
+    Then a pg_dump archive is written to "backups/store" with the timestamp and git ref in its name
+    And restoring it with "scripts/restore-store.ps1" reproduces the full database including orders and users
+
+  Scenario: Restore requires explicit confirmation
+    When the owner runs "scripts/restore-store.ps1" without "-ConfirmRestore RESTORE"
+    Then nothing is restored
+    And the script explains the confirmation requirement
+```
+
+**Operational drill (one deferred And, not blocking Done):** Before the first `store-vN` prod upgrade, run a full `pg_restore` roundtrip (backup → restore → verify orders/users survive) on a post-backup drill and append a row to [SMOKE-LOG.md](../operations/SMOKE-LOG.md). See [STORE-OPERATIONS.md](../operations/STORE-OPERATIONS.md) upgrade runbook.

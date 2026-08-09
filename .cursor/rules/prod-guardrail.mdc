@@ -1,0 +1,28 @@
+---
+description: Production store guardrails and mental model (ADR-011); protect real store data from dev work
+alwaysApply: true
+---
+
+# Production store guardrail (ADR-011)
+
+The user runs a REAL store on this machine alongside development. Store data is real money.
+
+## Mental model (explain this on request)
+
+- **Store (production):** `http://localhost:3000` · compose project `tcg-prod` via `docker-compose.prod.yml` · data on external Docker volume `tcg_prod_pgdata`, which `docker compose down -v` **cannot** delete · only rebuilt from a git tag (`store-vN`).
+- **Dev:** default compose project (`docker-compose.yml`) at `http://localhost:3010`, Postgres on 5432. Different project + different volume: dev commands physically cannot reach store data.
+- **Backups:** `powershell -ExecutionPolicy Bypass -File scripts/backup-store.ps1` → `pg_dump` archives in `backups/store/` (full DB: orders, picks, users, events — unlike the JSON export, which is inventory-only). Restore: `scripts/restore-store.ps1 -File <name>.dump -ConfirmRestore RESTORE`.
+- **Schema changes** reach the store only as Prisma migrations (`npm run db:migrate:dev` on dev first), applied by rebuilding prod from a tag. `MIGRATE_STRICT=true` makes the prod container fail loudly instead of running `db push --accept-data-loss`.
+
+When the user asks how store data is preserved, how dev and prod stay separate, or how to resume store operations after a break — even vaguely ("remind me how this works") — treat it as a first-class request: explain from the model above and walk them through the relevant section of [docs/operations/STORE-OPERATIONS.md](../../docs/operations/STORE-OPERATIONS.md) (how-to) or [ADR-011](../../docs/architecture/adr/011-production-dev-environment-separation.md) (rationale). Expect to re-explain; the user has said they will forget.
+
+## Command guardrails
+
+Any command referencing `docker-compose.prod.yml`, `-p tcg-prod`, port `5433`, volume `tcg_prod_pgdata`, or `localhost:3000` is a **production operation**:
+
+1. Say explicitly "this touches the production store" before running it, and get user confirmation.
+2. NEVER run these autonomously: `down -v` / `docker volume rm` / `docker volume prune` / `docker system prune` (prune kills the store volume if the prod stack is stopped), `scripts/restore-store.ps1`, danger-zone resets or backup restores in the UI at port 3000.
+3. Before any risky prod operation (upgrade, restore, prune), prompt the user to run `scripts/backup-store.ps1` first.
+4. Prod deploys: only from a clean checkout of a `store-vN` tag, never from a dirty working tree.
+
+Routine dev commands (default compose project, `--profile test`, `npm run dev`, port 3010/5432) need no extra friction.

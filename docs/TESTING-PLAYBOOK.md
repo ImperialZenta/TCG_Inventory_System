@@ -25,8 +25,10 @@ Three contexts — don’t confuse them:
 | Context | Database | Who sets up data |
 |---------|----------|------------------|
 | **Vitest** (`tcg_inventory_test`) | Fresh every test | Tests via `resetTestDb()` + fixtures |
-| **Dev app** (`tcg_inventory`, localhost:3000) | Persists in Docker volume | You (seed, staging CSV, clicking) |
+| **Dev app** (`tcg_inventory`, localhost:3010) | Persists in Docker volume | You (seed, staging CSV, clicking) |
 | **“Fresh dev DB”** | Wiped or never had smoke inventory | You redo staging setup once |
+
+> **Never smoke test at localhost:3000** — that is the production store with real inventory (ADR-011). All testing happens on the dev stack (3010) or the test database.
 
 ### By goal — what to run
 
@@ -350,7 +352,7 @@ Stories exercised: **S-001**, **S-004**, **O-002**, **SAS-001**, **P-015**
 **Step 5 — Windows PowerShell 5.1 (single line):**
 
 ```powershell
-curl.exe -s -o NUL -w "HTTP %{http_code}\n" -X POST "http://localhost:3000/api/webhooks/manapool" -H "Content-Type: application/json" -d "{\"manapoolOrderId\":\"smoke-test-unauth\",\"lines\":[{\"name\":\"Bolt\",\"quantity\":1,\"condition\":\"NM\",\"finish\":\"NONFOIL\",\"language\":\"en\"}]}"
+curl.exe -s -o NUL -w "HTTP %{http_code}\n" -X POST "http://localhost:3010/api/webhooks/manapool" -H "Content-Type: application/json" -d "{\"manapoolOrderId\":\"smoke-test-unauth\",\"lines\":[{\"name\":\"Bolt\",\"quantity\":1,\"condition\":\"NM\",\"finish\":\"NONFOIL\",\"language\":\"en\"}]}"
 ```
 
 Expect `HTTP 503`. Confirm `/orders` has no `smoke-test-unauth` row.

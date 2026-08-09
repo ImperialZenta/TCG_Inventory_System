@@ -1,5 +1,5 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
-import { normalizeOrdersFromFixture } from "@/lib/manapool/normalize-order";
+import { normalizeOrdersFromFixture, normalizeOrderFromApi } from "@/lib/manapool/normalize-order";
 import { importExternalOrder } from "@/lib/orders/import-order";
 import { TEST_CONTEXT } from "@/lib/context/domain-context";
 import { INVENTORY_EVENT_TYPES } from "@/lib/events";
@@ -51,5 +51,15 @@ describe("order import", () => {
     });
     expect(event).not.toBeNull();
     expect(event?.summary).toContain("MANAPOOL");
+  });
+});
+
+describe("Mana Pool order condition normalization", () => {
+  it("maps NEAR_MINT order text to NM", () => {
+    const dto = normalizeOrderFromApi({
+      id: "test-1",
+      lines: [{ name: "Bolt", quantity: 1, condition: "NEAR_MINT", finish: "NONFOIL", language: "en" }],
+    });
+    expect(dto.lines[0]?.condition).toBe("NM");
   });
 });

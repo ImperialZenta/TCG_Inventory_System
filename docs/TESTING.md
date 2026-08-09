@@ -85,8 +85,9 @@ From [CONVENTIONS.md](backlog/CONVENTIONS.md):
 | `pick-sort.test.ts` | Pick route ordering |
 | `tcgplayer-pullsheet.test.ts` | Pullsheet CSV parser |
 | `manapool-webhook.test.ts` | Webhook route (mocked import) |
+| `pl009-prod-separation.test.ts` | PL-009 prod/dev compose contracts, MIGRATE_STRICT entrypoint, backup/restore guard |
 
-**Known gaps** (tracked in PL-008, not blocking current Done claims): Scryfall client, ManaBox CSV parse, backup restore, Mana Pool export format, analytics UI.
+**Known gaps** (tracked in PL-008, not blocking current Done claims): Scryfall client, ManaBox CSV parse, JSON backup restore UI roundtrip, Mana Pool export format, analytics UI. **PL-009 drill:** full `pg_restore` roundtrip logged before first `store-vN` upgrade ([SMOKE-LOG](../operations/SMOKE-LOG.md)).
 
 ---
 

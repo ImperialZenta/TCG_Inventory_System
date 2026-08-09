@@ -20,7 +20,8 @@ services:
     build: .
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      # Dev app lives on 3010; the production store owns 3000 (ADR-011).
+      - "3010:3000"
     environment:
       DATABASE_URL: postgresql://tcg:tcg@db:5432/tcg_inventory
       STALE_BLOCK_DAYS: "90"

@@ -31,7 +31,7 @@ docker compose up --build
 docker compose exec app npm run db:seed
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open [http://localhost:3010](http://localhost:3010) (the dev app; port 3000 is reserved for the production store — see [docs/operations/STORE-OPERATIONS.md](docs/operations/STORE-OPERATIONS.md)).
 
 **First visit:** open `/setup` and create the owner account (or set `SEED_OWNER_EMAIL` / `SEED_OWNER_PASSWORD` in `.env` before seeding for a dev login).
 
@@ -51,7 +51,9 @@ Open [http://localhost:3000](http://localhost:3000).
 | Backup JSON | Settings → Download backup (requires sign-in), or `/api/backup/export` |
 | Restore backup | Settings → Backup section → upload JSON, type `RESTORE` |
 
-**Data persistence:** Inventory lives in the `pgdata` Docker volume. `docker compose down` keeps data. `docker compose down -v` wipes it.
+**Data persistence:** Dev inventory lives in the `pgdata` Docker volume. `docker compose down` keeps data. `docker compose down -v` wipes it.
+
+**Production store:** the real store runs as a separate stack (`docker-compose.prod.yml`, app at `localhost:3000`, external volume that `down -v` cannot delete). Operations, backups, and upgrade procedure: [docs/operations/STORE-OPERATIONS.md](docs/operations/STORE-OPERATIONS.md) · rationale: [ADR-011](docs/architecture/adr/011-production-dev-environment-separation.md).
 
 **Dependencies:** Installs use the committed `package-lock.json` with `npm ci --ignore-scripts` (blocks malicious `preinstall` hooks). Prisma client generation runs explicitly after install. Pin overrides in `package.json` block known ChainDrop cache package versions.
 
