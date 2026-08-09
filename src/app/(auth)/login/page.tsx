@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { redirectToSetupIfNoUsers } from "@/lib/auth/login-guard";
 import { LoginForm } from "./login-form";
 
+export const dynamic = "force-dynamic";
+
 export default async function LoginPage({
   searchParams,
 }: {
