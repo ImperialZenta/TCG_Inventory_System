@@ -2,9 +2,11 @@ import { db } from "@/lib/db";
 import type { PickItemWithRelations } from "@/lib/pick/sort-items";
 
 const pickListInclude = {
+  waves: { orderBy: { waveNumber: "asc" as const } },
   items: {
     include: {
       cardLine: true,
+      pickWave: true,
       block: {
         include: {
           bin: { include: { shelf: true } },

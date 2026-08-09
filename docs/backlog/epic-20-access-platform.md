@@ -32,6 +32,14 @@ Back to [index](../BACKLOG.md) · [conventions](CONVENTIONS.md) · [parity matri
 
 **Scope discipline.** This is a shop tool on a shop network, not a public SaaS. One organisation, a handful of staff accounts, no self-registration, no tenancy. Building for multi-tenancy here would be the single easiest way to turn a two-week story into a two-month one.
 
+**Tenancy seam notes (per [ADR-010](../architecture/adr/010-saas-evolution-strategy.md), amended 2026-08-08).** The scope above stands — build no tenancy features. But auth is the one subsystem too expensive to build twice, so the *design* must be tenant-shaped:
+
+- Session resolution happens in **one seam** (middleware plus one helper) that produces the signed-in user and constructs `DomainContext` (ADR-002). No page, action or route resolves identity on its own.
+- An `Organization` row exists from day one, even though there is exactly one and no UI manages it. Users belong to it via a membership record.
+- Roles (**ACC-002**) attach to that **membership**, not to the user record globally.
+
+None of this changes the acceptance scenarios below; it constrains where the code lives so that Stage 3 of ADR-010 extends one interface instead of rebuilding auth.
+
 ```gherkin
 @pending
 Feature: ACC-001 User accounts and authentication
@@ -79,7 +87,7 @@ Feature: ACC-001 User accounts and authentication
     And its historical events keep a null actor rather than being falsely attributed
 ```
 
-**Schema notes (negotiable):** a `User` table with email, hashed password, display name, role and an enabled flag. Prefer a maintained library for session handling over hand-rolled cookies. The last scenario matters — do not backfill `actor` with a guess. Protected surface per [ADR-009](../../architecture/adr/009-protected-api-surface.md); actor threading per [ADR-002](../../architecture/adr/002-actor-context-propagation.md).
+**Schema notes (negotiable):** a `User` table with email, hashed password, display name and an enabled flag; an `Organization` table with a single seeded row; a membership record joining the two and carrying the role (see tenancy seam notes above — role on membership, not on `User`). Prefer a maintained library for session handling over hand-rolled cookies. The last scenario matters — do not backfill `actor` with a guess. Protected surface per [ADR-009](../architecture/adr/009-protected-api-surface.md); actor threading per [ADR-002](../architecture/adr/002-actor-context-propagation.md); staged tenancy per [ADR-010](../architecture/adr/010-saas-evolution-strategy.md).
 
 ---
 

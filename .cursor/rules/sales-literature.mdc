@@ -1,0 +1,46 @@
+---
+description: Customer-facing sales docs in docs/sales — Forxia Industries Corp. branding and update workflow
+globs: docs/sales/**
+alwaysApply: false
+---
+
+# Sales literature (Forxia Industries Corp.)
+
+## Index
+
+[docs/sales/README.md](../../docs/sales/README.md) — full catalog. Always-on pointer: [sales-literature-index.mdc](./sales-literature-index.mdc).
+
+**Company:** Forxia Industries Corp.  
+**Product:** TCG Chaos Inventory
+
+## Documents
+
+| Asset | MD | HTML | PDF |
+|-------|----|------|-----|
+| One-pager | PRODUCT-OVERVIEW.md | PRODUCT-OVERVIEW.html | PRODUCT-OVERVIEW.pdf |
+| Features + roadmap (2 pp) | ROADMAP-AND-FEATURES.md | ROADMAP-AND-FEATURES.html | ROADMAP-AND-FEATURES.pdf |
+| Strategy memo (6-pager) | AMAZON-6-PAGER.md | AMAZON-6-PAGER.html | AMAZON-6-PAGER.pdf |
+| Roadmap (md only) | ROADMAP.md | — | — |
+
+## When to update
+
+| Trigger | Update |
+|---------|--------|
+| Backlog phase ships | PRODUCT-OVERVIEW, ROADMAP-AND-FEATURES, ROADMAP; 6-pager §4–§6 |
+| User asks to refresh sales docs | All of the above from BACKLOG.md |
+| New sales asset | Add under docs/sales/; register in README + sales-literature-index |
+
+## Writing rules
+
+- **Audience:** shop owners and prospects — not engineers.
+- **No story IDs** in customer prose unless user wants a technical appendix.
+- **Status words:** Available today · In progress · Planned · Future — not Partial/Schema/Stub.
+- **Branding:** Forxia Industries Corp. on every customer document.
+
+## PDF workflow
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/regenerate-sales-pdf.ps1
+```
+
+Edit HTML for print layout; keep MD, HTML, and PDF in sync.

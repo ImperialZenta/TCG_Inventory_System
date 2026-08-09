@@ -20,9 +20,30 @@ describe("manapool webhook", () => {
   beforeEach(() => {
     importMock.mockClear();
     delete process.env.MANAPOOL_WEBHOOK_SECRET;
+    delete process.env.ALLOW_INSECURE_INBOUND;
   });
 
-  it("imports order from webhook payload", async () => {
+  it("returns 503 when secret is not configured", async () => {
+    const { POST } = await import("@/app/api/webhooks/manapool/route");
+    const body = JSON.stringify({
+      manapoolOrderId: "mp-1",
+      lines: [{ name: "Bolt", quantity: 1, condition: "NM", finish: "NONFOIL", language: "en" }],
+    });
+
+    const res = await POST(
+      new Request("http://localhost/api/webhooks/manapool", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body,
+      }),
+    );
+
+    expect(res.status).toBe(503);
+    expect(importMock).not.toHaveBeenCalled();
+  });
+
+  it("imports order when ALLOW_INSECURE_INBOUND is set without secret", async () => {
+    process.env.ALLOW_INSECURE_INBOUND = "true";
     const { POST } = await import("@/app/api/webhooks/manapool/route");
     const body = JSON.stringify({
       manapoolOrderId: "mp-1",

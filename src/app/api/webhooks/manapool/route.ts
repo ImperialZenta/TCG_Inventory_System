@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createHmac, timingSafeEqual } from "crypto";
+import { requireConfiguredSecret } from "@/lib/inbound-auth";
 import { normalizeOrderFromApi } from "@/lib/manapool/normalize-order";
 import { importExternalOrder } from "@/lib/orders/import-order";
 import type { DomainContext } from "@/lib/context/domain-context";
@@ -20,14 +21,21 @@ function verifySignature(body: string, signature: string | null, secret: string)
 }
 
 export async function POST(request: Request) {
-  const secret = process.env.MANAPOOL_WEBHOOK_SECRET?.trim();
+  const auth = requireConfiguredSecret(
+    process.env.MANAPOOL_WEBHOOK_SECRET,
+    "Mana Pool webhook",
+  );
+  if (!auth.ok) {
+    return auth.response;
+  }
+
   const body = await request.text();
 
-  if (secret) {
+  if (auth.secret) {
     const signature =
       request.headers.get("x-manapool-signature") ??
       request.headers.get("x-webhook-signature");
-    if (!verifySignature(body, signature, secret)) {
+    if (!verifySignature(body, signature, auth.secret)) {
       return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
     }
   }

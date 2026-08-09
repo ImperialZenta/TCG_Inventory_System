@@ -68,6 +68,7 @@ The web app remains the primary UI. A **second Node process** drains scheduled j
 | [ADR-007](adr/007-transactional-outbox-channel-sync.md) | Transactional outbox for channel sync | **CHN-002** |
 | [ADR-008](adr/008-provider-adapter-registry.md) | Provider/adapter registry (catalog, price, channel) | **GAM-002** |
 | [ADR-009](adr/009-protected-api-surface.md) | Protected API surface (session, webhooks, portals) | **ACC-001** |
+| [ADR-010](adr/010-saas-evolution-strategy.md) | Staged SaaS evolution: tenancy seams now, deploy-per-tenant first, shared schema on fleet pain | **SAS-001** |
 
 Read an ADR before implementing the story named as its first implementer.
 
@@ -85,7 +86,7 @@ Read an ADR before implementing the story named as its first implementer.
 | **9** | CHN-* | **ADR-007** (outbox), **ADR-008** (channel adapters) |
 | **10–11** | POS-*, BUY-*, FUL-* | Compose the above — no new runways |
 
-Phases 10–11 are the **proof** that the runways were sufficient. If a POS or fulfilment story needs a new foundation, that indicates an ADR gap — add ADR-010 rather than bolting on ad hoc code.
+Phases 10–11 are the **proof** that the runways were sufficient. If a POS or fulfilment story needs a new foundation, that indicates an ADR gap — add a new ADR rather than bolting on ad hoc code.
 
 ---
 

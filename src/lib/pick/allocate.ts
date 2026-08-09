@@ -1,15 +1,12 @@
-import type { BlockChannel, CardLine, Condition, Finish, Prisma } from "@prisma/client";
+import type { BlockChannel, CardLine, Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { AllocationError } from "@/lib/pick/errors";
+import {
+  cardLineMatchesIdentity,
+  type OrderLineIdentity,
+} from "@/lib/inventory/card-identity";
 
-export interface OrderLineIdentity {
-  scryfallId?: string | null;
-  name: string;
-  setCode?: string | null;
-  condition: Condition;
-  finish: Finish;
-  language: string;
-}
+export type { OrderLineIdentity } from "@/lib/inventory/card-identity";
 
 export interface AllocationResult {
   cardLine: CardLine;
@@ -35,30 +32,6 @@ export async function getReservedCardLineIds(
   });
 
   return new Set(items.map((i) => i.cardLineId!).filter(Boolean));
-}
-
-function matchesIdentity(line: CardLine, identity: OrderLineIdentity): boolean {
-  if (identity.scryfallId && line.scryfallId === identity.scryfallId) {
-    return (
-      line.condition === identity.condition &&
-      line.finish === identity.finish &&
-      line.language === identity.language &&
-      line.quantity > 0
-    );
-  }
-
-  const setMatch =
-    !identity.setCode ||
-    line.setCode.toLowerCase() === identity.setCode.toLowerCase();
-
-  return (
-    setMatch &&
-    line.name.toLowerCase() === identity.name.toLowerCase() &&
-    line.condition === identity.condition &&
-    line.finish === identity.finish &&
-    line.language === identity.language &&
-    line.quantity > 0
-  );
 }
 
 export async function allocateCardLineForOrderLine(
@@ -108,7 +81,7 @@ export async function allocateCardLineForOrderLine(
     const totalInBlock = block.cards.reduce((sum, c) => sum + c.quantity, 0);
     for (const line of block.cards) {
       if (reserved.has(line.id)) continue;
-      if (!matchesIdentity(line, identity)) continue;
+      if (!cardLineMatchesIdentity(line, identity, { requireQuantity: true })) continue;
       candidates.push({ block, line, totalInBlock });
     }
   }

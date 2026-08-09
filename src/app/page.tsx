@@ -3,7 +3,8 @@ import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
 import { getDashboardStats, getAgingBucketCounts, getStaleBlocks } from "@/lib/blocks";
 import { STALE_BLOCK_DAYS } from "@/lib/constants";
-import { formatCurrency, daysSince } from "@/lib/utils";
+import { formatMoney } from "@/lib/money";
+import { daysSince } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +12,7 @@ export default async function DashboardPage() {
   let stats = {
     blockCount: 0,
     totalCards: 0,
-    totalValue: 0,
+    totalValueCents: 0,
     shelfCount: 0,
     binCount: 0,
     staleBlockCount: 0,
@@ -64,7 +65,7 @@ export default async function DashboardPage() {
         />
         <StatCard
           label="Est. Value / Stale"
-          value={`${formatCurrency(stats.totalValue)} / ${stats.staleBlockCount}`}
+          value={`${formatMoney(stats.totalValueCents)} / ${stats.staleBlockCount}`}
           hint={`Stale = no pick in ${STALE_BLOCK_DAYS}+ days`}
           variant={stats.staleBlockCount > 0 ? "warning" : "default"}
         />

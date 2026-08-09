@@ -5,6 +5,7 @@ import { INVENTORY_EVENT_TYPES, recordInventoryEvent } from "@/lib/events";
 import { allocateCardLineForOrderLine, getReservedCardLineIds } from "@/lib/pick/allocate";
 import { PickError } from "@/lib/pick/errors";
 import { allocateNextPickListId } from "@/lib/pick/ids";
+import { assignWavesForPickList } from "@/lib/pick/waves";
 
 type TransactionClient = Prisma.TransactionClient;
 
@@ -134,6 +135,8 @@ export async function createPickListForOrder(
       externalOrderId: order.id,
       actor: actorLabel(ctx),
     });
+
+    await assignWavesForPickList(pickList.id, tx);
 
     return {
       pickListId: pickList.id,

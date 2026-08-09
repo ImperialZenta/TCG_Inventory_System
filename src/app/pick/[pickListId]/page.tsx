@@ -2,7 +2,7 @@ import Link from "next/link";
 import { PageHeader, Badge } from "@/components/page-header";
 import { PICK_LIST_STATUS_LABELS } from "@/lib/constants";
 import { getPickListDetail } from "@/lib/pick/queries";
-import { groupPickItemsByBlock } from "@/lib/pick/sort-items";
+import { groupPickItemsByWave } from "@/lib/pick/sort-items";
 import { PickBlockGroup } from "../pick-block-group";
 import { PickListToolbar } from "../pick-list-toolbar";
 import { db } from "@/lib/db";
@@ -63,21 +63,26 @@ export default async function PickDetailPage({ params }: PickDetailPageProps) {
     );
   }
 
-  const groups = groupPickItemsByBlock(pickList.items);
+  const waveGroups = groupPickItemsByWave(pickList.items, pickList.waves);
   const pendingCount = pickList.items.filter((i) => i.status === "PENDING").length;
 
-  const groupsWithAlternates = await Promise.all(
-    groups.map(async (group) => {
-      const firstPending = group.items.find((i) => i.status === "PENDING");
-      let alternates: { cardLineId: string; position: number; label: string }[] = [];
-      if (firstPending?.blockId && firstPending.externalOrderLine) {
-        alternates = await getAlternatePositions(
-          firstPending.blockId,
-          firstPending.cardLineId,
-          firstPending.externalOrderLine,
-        );
-      }
-      return { group, alternates };
+  const waveGroupsWithAlternates = await Promise.all(
+    waveGroups.map(async (wave) => {
+      const groupsWithAlternates = await Promise.all(
+        wave.blockGroups.map(async (group) => {
+          const firstPending = group.items.find((i) => i.status === "PENDING");
+          let alternates: { cardLineId: string; position: number; label: string }[] = [];
+          if (firstPending?.blockId && firstPending.externalOrderLine) {
+            alternates = await getAlternatePositions(
+              firstPending.blockId,
+              firstPending.cardLineId,
+              firstPending.externalOrderLine,
+            );
+          }
+          return { group, alternates };
+        }),
+      );
+      return { wave, groupsWithAlternates };
     }),
   );
 
@@ -124,43 +129,57 @@ export default async function PickDetailPage({ params }: PickDetailPageProps) {
         </Link>
       </div>
 
-      <div className="space-y-6">
-        {groupsWithAlternates.map(({ group, alternates }) => (
-          <PickBlockGroup
-            key={group.blockId}
-            blockId={group.blockId}
-            mtgBlockId={group.mtgBlockId}
-            locationLabel={group.locationLabel}
-            items={group.items.map((item) => ({
-              id: item.id,
-              status: item.status,
-              shortReason: item.shortReason,
-              blockedReason: item.blockedReason,
-              cardLine: item.cardLine
-                ? {
-                    position: item.cardLine.position,
-                    name: item.cardLine.name,
-                    condition: item.cardLine.condition,
-                    finish: item.cardLine.finish,
-                  }
-                : null,
-              externalOrderLine: item.externalOrderLine
-                ? {
-                    name: item.externalOrderLine.name,
-                    condition: item.externalOrderLine.condition,
-                    finish: item.externalOrderLine.finish,
-                  }
-                : null,
-              block: item.block
-                ? {
-                    pickHoldAt: item.block.pickHoldAt,
-                    pickHoldReason: item.block.pickHoldReason,
-                  }
-                : null,
-            }))}
-            pickListId={pickList.id}
-            alternatePositions={alternates}
-          />
+      <div className="space-y-10">
+        {waveGroupsWithAlternates.map(({ wave, groupsWithAlternates }) => (
+          <section key={wave.waveId ?? "unassigned"}>
+            <div className="mb-4 flex flex-wrap items-baseline gap-3 border-b border-zinc-800 pb-2">
+              <h2 className="text-lg font-medium text-zinc-100">
+                Wave {wave.waveNumber}: {wave.label}
+              </h2>
+              <span className="text-sm text-zinc-500">
+                {wave.pendingCount} pending / {wave.totalCount} items
+              </span>
+            </div>
+            <div className="space-y-6">
+              {groupsWithAlternates.map(({ group, alternates }) => (
+                <PickBlockGroup
+                  key={group.blockId}
+                  blockId={group.blockId}
+                  mtgBlockId={group.mtgBlockId}
+                  locationLabel={group.locationLabel}
+                  items={group.items.map((item) => ({
+                    id: item.id,
+                    status: item.status,
+                    shortReason: item.shortReason,
+                    blockedReason: item.blockedReason,
+                    cardLine: item.cardLine
+                      ? {
+                          position: item.cardLine.position,
+                          name: item.cardLine.name,
+                          condition: item.cardLine.condition,
+                          finish: item.cardLine.finish,
+                        }
+                      : null,
+                    externalOrderLine: item.externalOrderLine
+                      ? {
+                          name: item.externalOrderLine.name,
+                          condition: item.externalOrderLine.condition,
+                          finish: item.externalOrderLine.finish,
+                        }
+                      : null,
+                    block: item.block
+                      ? {
+                          pickHoldAt: item.block.pickHoldAt,
+                          pickHoldReason: item.block.pickHoldReason,
+                        }
+                      : null,
+                  }))}
+                  pickListId={pickList.id}
+                  alternatePositions={alternates}
+                />
+              ))}
+            </div>
+          </section>
         ))}
       </div>
     </>

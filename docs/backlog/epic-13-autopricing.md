@@ -4,7 +4,7 @@ Prefix `PRC-`. Turning a market price into the price we actually charge, per cha
 
 Back to [index](../BACKLOG.md) · [conventions](CONVENTIONS.md) · [parity matrix](PARITY-SORTSWIFT.md)
 
-**Phase 8.** **V-005 must ship first.** Today no price survives intake, so there is literally nothing to price against.
+**Phase 8.** Card lines now carry persisted market prices (**V-005**). Epic 13 adds scheduled refresh, rules, and per-channel pricing on top.
 
 **Design stance.** SortSwift advertises 20+ rule steps. Step count is not the goal; a deterministic, explainable pipeline is. Every rule run must be able to answer "why is this card priced at 4.25" with the chain that produced it — that is **PRC-008**, and it is a Must, not polish.
 

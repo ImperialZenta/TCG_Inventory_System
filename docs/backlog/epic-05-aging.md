@@ -4,7 +4,7 @@ Prefix `A-`. Which bricks are dead weight, and how much capital they hold.
 
 Back to [index](../BACKLOG.md) · [conventions](CONVENTIONS.md)
 
-**Caveat on every value figure in this epic:** card prices are discarded at formalize (**V-005**), so all currency amounts currently render as $0 for real inventory. The counts and date arithmetic are correct; the money is not. Fix **V-005** before trusting or extending anything here.
+Market value figures use persisted `priceCents` on card lines (**V-005**). Cost basis still requires **SKU-006**.
 
 | ID | Story | Priority | Status |
 |----|-------|----------|--------|
@@ -12,7 +12,7 @@ Back to [index](../BACKLOG.md) · [conventions](CONVENTIONS.md)
 | A-002 | Aging buckets 0–30, 31–60, 61–90, 90+ | Must | Done |
 | A-003 | Stale block list | Must | Done |
 | A-004 | Block velocity | Must | — |
-| A-005 | Capital tied up per block | Should | — — corrected, see [audit](AUDIT-2026-08.md) |
+| A-005 | Capital tied up per block | Should | Partial |
 | A-006 | Location heat map of stale inventory | Should | — |
 | A-007 | Aging alerts | Should | — |
 | A-008 | Recommended actions on stale blocks | Should | Partial |
@@ -154,7 +154,7 @@ Feature: A-004 Block velocity
 | **I want** | the money value sitting in each block and in each aging bucket |
 | **So that** | I prioritise the expensive stagnant bricks, not merely the old ones |
 
-**Priority:** Should · **Status:** — · **Blocked by:** V-005
+**Priority:** Should · **Status:** Partial — market value sums work; cost basis scenario needs **SKU-006**
 
 ```gherkin
 @pending
@@ -175,7 +175,7 @@ Feature: A-005 Capital tied up per block
     Then both cost basis and market value are shown, with the difference
 ```
 
-**Note:** the current UI already renders these figures. They read $0 because no price is persisted. Fixing **V-005** turns this from broken to Partial; **SKU-006** adds cost basis.
+**Note:** market value figures now use persisted prices (**V-005**). Cost basis is **SKU-006**.
 
 ---
 

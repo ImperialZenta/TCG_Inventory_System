@@ -1,0 +1,40 @@
+---
+description: Tenancy seam conventions (ADR-010) that keep the future multi-tenant SaaS migration a bounded change instead of a rewrite
+alwaysApply: true
+---
+
+# Tenancy seams (ADR-010)
+
+This app is single-tenant today and must stay cheap to make multi-tenant later. Do not build SaaS features; do honor these seams in all new and touched code. Full rationale: [docs/architecture/adr/010-saas-evolution-strategy.md](../../docs/architecture/adr/010-saas-evolution-strategy.md).
+
+## 1. Prisma access only in `src/lib` domain modules
+
+No new `@/lib/db` imports in `src/app` pages, server actions, or route handlers (ESLint enforces this; nine legacy files are grandfathered in `eslint.config.mjs`). When touching a grandfathered file for feature work, move its queries into the relevant `src/lib` module and remove it from the grandfather list.
+
+```typescript
+// ❌ BAD — in src/app/blocks/[blockId]/page.tsx
+const block = await db.block.findUnique({ where: { blockId } });
+
+// ✅ GOOD — page calls src/lib/blocks/queries.ts
+const block = await getBlockDetail(blockId);
+```
+
+## 2. Every domain mutation takes `DomainContext`
+
+Per ADR-002 (`src/lib/context/domain-context.ts`). `tenantId` will later be added to this one interface, so nothing may bypass it.
+
+## 3. One credentials seam
+
+No new direct `process.env` reads for channel/marketplace credentials at call sites. Route new channel work through a single `getChannelConfig(ctx, channel)` accessor (replaces `getManaPoolConfigFromEnv()` when channel code is next touched; CHN-001 at the latest). Credentials move from env to per-tenant storage behind this seam later.
+
+## 4. No new global singletons or durable local state
+
+ID sequences and settings stay as DB rows (they become per-tenant rows later). No in-process counters, no filesystem writes the app depends on, no module-level mutable caches of business data.
+
+## 5. Destructive operations take an explicit scope argument
+
+Anything that bulk-deletes or restores (`src/lib/data-reset.ts`, backup restore) must state its scope in its signature, even while the only scope is the whole database. "Wipe everything" must never be implicit.
+
+## 6. Inbound mutation surfaces fail closed
+
+Webhook and cron routes must refuse requests when their verification secret is unconfigured (SAS-001). Never add an inbound route that mutates data without signature or secret verification.

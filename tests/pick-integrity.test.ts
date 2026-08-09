@@ -7,6 +7,7 @@ import { markPickItemPicked } from "@/lib/pick/mark-item";
 import { reallocatePendingPickItems } from "@/lib/pick/reallocate";
 import { PickError } from "@/lib/pick/errors";
 import { TEST_CONTEXT } from "@/lib/context/domain-context";
+import { completePickListIfReady } from "@/lib/pick/complete-pick";
 import { disconnectTestDb, resetTestDb } from "./helpers/db";
 import {
   createFormalizedImport,
@@ -69,5 +70,38 @@ describe("pick integrity", () => {
     items = await db.pickItem.findMany({ where: { pickListId } });
     expect(items[0]?.status).toBe("PENDING");
     expect(items[0]?.cardLineId).not.toBeNull();
+  });
+
+  it("leaves line SHORT with NO_STOCK when reallocate finds no alternate", async () => {
+    const { externalOrderId } = await createTestExternalOrder({
+      lines: [
+        {
+          name: "Missing Card",
+          setCode: "zzz",
+          condition: "NM",
+          finish: "NONFOIL",
+          language: "en",
+          quantity: 1,
+        },
+      ],
+    });
+    const { pickListId } = await createPickListForOrder(externalOrderId, TEST_CONTEXT);
+
+    let items = await db.pickItem.findMany({ where: { pickListId } });
+    expect(items).toHaveLength(1);
+    expect(items[0]?.status).toBe("SHORT");
+
+    const result = await reallocatePendingPickItems(pickListId, TEST_CONTEXT);
+    expect(result.reallocated).toBe(0);
+    expect(result.stillShort).toBe(1);
+
+    items = await db.pickItem.findMany({ where: { pickListId } });
+    expect(items[0]?.status).toBe("SHORT");
+    expect(items[0]?.shortReason).toBe("NO_STOCK");
+    expect(items[0]?.cardLineId).toBeNull();
+
+    await completePickListIfReady(pickListId, TEST_CONTEXT);
+    const pickList = await db.pickList.findUnique({ where: { id: pickListId } });
+    expect(pickList?.status).toBe("COMPLETED");
   });
 });

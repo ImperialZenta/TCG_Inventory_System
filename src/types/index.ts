@@ -18,7 +18,7 @@ export interface BlockSummary {
   binCode: string | null;
   shelfCode: string | null;
   cardCount: number;
-  estimatedValue: number;
+  estimatedValueCents: number;
   packedAt: string;
   lastPickAt: string | null;
   daysSinceLastPick: number | null;

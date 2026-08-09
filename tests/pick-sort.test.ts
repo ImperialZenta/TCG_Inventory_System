@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { sortPickItems } from "@/lib/pick/sort-items";
+import { groupPickItemsByBlock, sortPickItems } from "@/lib/pick/sort-items";
 import type { PickItemWithRelations } from "@/lib/pick/sort-items";
 
 function makeItem(
@@ -35,7 +35,7 @@ function makeItem(
       position,
       isBulkLine: false,
       bulkDescription: null,
-      priceUsd: null,
+      priceCents: null,
       imageUri: null,
       addedAt: new Date(),
     },
@@ -90,5 +90,22 @@ describe("sortPickItems", () => {
 
     const sorted = sortPickItems(items);
     expect(sorted.map((i) => i.id)).toEqual(["i2", "i1", "i3"]);
+  });
+});
+
+describe("groupPickItemsByBlock", () => {
+  it("groups under block ID with positions ascending within a group", () => {
+    const items = [
+      makeItem("i3", "B", "B-01", "b2", 5),
+      makeItem("i1", "A", "A-01", "b1", 14),
+      makeItem("i2", "A", "A-01", "b1", 3),
+    ];
+
+    const groups = groupPickItemsByBlock(items);
+    expect(groups).toHaveLength(2);
+    expect(groups[0]?.mtgBlockId).toBe("MTG-b1");
+    expect(groups[0]?.items.map((i) => i.id)).toEqual(["i2", "i1"]);
+    expect(groups[1]?.mtgBlockId).toBe("MTG-b2");
+    expect(groups[1]?.items.map((i) => i.id)).toEqual(["i3"]);
   });
 });

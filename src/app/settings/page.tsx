@@ -11,6 +11,7 @@ import { AddBinForm } from "./add-bin-form";
 import { DangerZone } from "./danger-zone";
 import { RestoreBackupForm } from "@/components/restore-backup-form";
 import { restoreBackupAction } from "./restore-actions";
+import { BackfillPricesForm } from "./backfill-prices-form";
 
 export const dynamic = "force-dynamic";
 
@@ -113,11 +114,16 @@ export default async function SettingsPage() {
               </p>
               <p>
                 <code className="text-zinc-300">MANAPOOL_WEBHOOK_SECRET</code> — verify inbound order
-                webhooks (optional)
+                webhooks (required in production; 503 if unset)
               </p>
               <p>
                 <code className="text-zinc-300">CRON_SECRET</code> — protect{" "}
-                <code className="text-zinc-300">POST /api/cron/sync-manapool-orders</code>
+                <code className="text-zinc-300">POST /api/cron/sync-manapool-orders</code> (required in
+                production)
+              </p>
+              <p>
+                <code className="text-zinc-300">ALLOW_INSECURE_INBOUND</code> — local dev only; allows
+                webhook/cron without secrets
               </p>
               <p className="pt-2 text-zinc-500">
                 Webhook URL:{" "}
@@ -138,6 +144,8 @@ export default async function SettingsPage() {
             </Link>
 
             <RestoreBackupForm action={restoreBackupAction} />
+
+            <BackfillPricesForm />
           </section>
         </div>
       </div>

@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>TCG Chaos Inventory — Roadmap &amp; Features — Forxia Industries Corp.</title>
+  <style>
+    @page { size: letter; margin: 0.5in 0.55in; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Segoe UI", system-ui, sans-serif;
+      font-size: 8.5pt;
+      line-height: 1.28;
+      color: #1a1a1a;
+      margin: 0;
+      padding: 0.45in 0.5in;
+    }
+    h1 { font-size: 16pt; margin: 0 0 0.1em; }
+    .company { font-size: 8.5pt; color: #555; font-weight: 600; margin-bottom: 0.15em; }
+    .subtitle { font-size: 9.5pt; color: #444; margin: 0 0 0.5em; }
+    h2 {
+      font-size: 9pt;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #2563eb;
+      margin: 0.55em 0 0.2em;
+      padding-bottom: 0.1em;
+      border-bottom: 1px solid #ccc;
+    }
+    h2:first-of-type { margin-top: 0.25em; }
+    .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0.55em; }
+    ul { margin: 0.15em 0; padding-left: 1em; }
+    li { margin: 0.08em 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 7.8pt; margin: 0.2em 0; }
+    th, td { border: 1px solid #bbb; padding: 0.22em 0.35em; vertical-align: top; }
+    th { background: #eef2ff; text-align: left; }
+    .status { font-weight: 600; font-size: 7pt; text-transform: uppercase; }
+    .today { color: #166534; }
+    .progress { color: #b45309; }
+    .planned { color: #1e40af; }
+    .page-break { page-break-before: always; padding-top: 0.1in; }
+    .footer {
+      margin-top: 0.4em;
+      font-size: 7pt;
+      color: #666;
+      text-align: center;
+      border-top: 1px solid #ddd;
+      padding-top: 0.25em;
+    }
+    .note { font-size: 7.5pt; color: #555; font-style: italic; }
+    @media print {
+      h2 { break-after: avoid; }
+      .cols { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+
+  <h1>TCG Chaos Inventory</h1>
+  <p class="company">Forxia Industries Corp.</p>
+  <p class="subtitle">Product features &amp; roadmap · August 2026</p>
+
+  <div class="cols">
+    <div>
+      <h2><span class="status today">Available today</span> — Intake &amp; staging</h2>
+      <ul>
+        <li>ManaBox (and compatible) CSV upload after counter scanning</li>
+        <li>Staging review before inventory goes live</li>
+        <li>Automatic block breakdown by target card count</li>
+        <li>Position-indexed intake — every card keeps pile order</li>
+        <li>Formalize into numbered blocks with shelf/bin assignment</li>
+        <li>Undo an entire import in one action</li>
+        <li>Large imports validated at 5,000+ cards</li>
+        <li>Pending queue, upload logs, status badges</li>
+      </ul>
+
+      <h2><span class="status today">Available today</span> — Bulk inventory</h2>
+      <ul>
+        <li>Block IDs (MTG-0001, …) with shelf → bin → block hierarchy</li>
+        <li>Lifecycle: open, sealed, picked, liquidated</li>
+        <li>Move blocks; seal individually or in bulk</li>
+        <li>Capacity hints; block notes</li>
+        <li>Full activity / audit log</li>
+      </ul>
+
+      <h2><span class="status today">Available today</span> — Catalog &amp; picking</h2>
+      <ul>
+        <li>Scryfall enrichment; condition, foil, language</li>
+        <li>Mana Pool order import</li>
+        <li>Location-sorted pick lists; picked / short / substitute</li>
+        <li>Position renumber after picks; counter pick from one block</li>
+        <li>Hold pick lists; quarantine blocks for repair</li>
+        <li>TCGplayer pullsheet upload; pick history &amp; metrics</li>
+        <li>Correction workflow for bad scans</li>
+      </ul>
+    </div>
+    <div>
+      <h2><span class="status today">Available today</span> — Analytics &amp; platform</h2>
+      <ul>
+        <li>Block age dashboard, aging buckets, stale block list</li>
+        <li>Search by block ID</li>
+        <li>Mana Pool listing CSV export per block</li>
+        <li>JSON backup and full restore</li>
+        <li>Self-hosted Docker + PostgreSQL — your data, no commission</li>
+      </ul>
+      <p class="note">Dollar-based valuation reports await pricing persistence (in progress).</p>
+
+      <h2><span class="status progress">In progress</span></h2>
+      <ul>
+        <li>Market prices saved on inventory (valuation currently $0)</li>
+        <li>Search by card name across all blocks</li>
+        <li>Global quantity by card</li>
+        <li>Bulk block transfer between locations</li>
+        <li>Secure webhooks and scheduled job authentication</li>
+      </ul>
+
+      <h2>Two inventory modes</h2>
+      <table>
+        <tr><th></th><th>Bulk / chaos</th><th>Sorted stock (planned)</th></tr>
+        <tr><td>Best for</td><td>Trade-ins, bulk lots</td><td>Listed singles</td></tr>
+        <tr><td>Address</td><td>Block + position</td><td>Shelf / SKU</td></tr>
+        <tr><td>Online singles</td><td>No — pick from brick</td><td>Yes — live qty sync</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="page-break">
+    <h2>Completed phases</h2>
+    <table>
+      <tr><th>Phase</th><th>Delivered</th></tr>
+      <tr><td>1 — Platform</td><td>Docker stack, settings, backup/restore, Mana Pool CSV export</td></tr>
+      <tr><td>2 — Staging</td><td>CSV → staging → review → formalize (5,000+ cards/import)</td></tr>
+      <tr><td>3 — Lifecycle</td><td>Seal, guarded removal, undo formalize, activity log</td></tr>
+      <tr><td>4 — Picking</td><td>Mana Pool orders, pick lists, counter pick, hold/quarantine</td></tr>
+    </table>
+
+    <h2><span class="status planned">Planned roadmap</span></h2>
+    <table>
+      <tr><th>Phase</th><th>Delivers</th><th>Shop outcome</th></tr>
+      <tr><td>5 — Polish</td><td>Card search, global qty, pricing fix, bulk moves</td><td>Complete chaos-mode product</td></tr>
+      <tr><td>6 — Foundation</td><td>Staff login, SKU ledger, sort-to-stock, promote, reservations</td><td>Sellable singles + audit trail</td></tr>
+      <tr><td>7 — Games &amp; scan</td><td>Pokémon + TCGs, printing picker, price overlay, camera</td><td>Multi-game; faster review</td></tr>
+      <tr><td>8 — Autopricing</td><td>Rule engine, refresh, per-channel prices, bulk reprice</td><td>Hands-off pricing</td></tr>
+      <tr><td>9 — Channels</td><td>Marketplace sync, CSV templates, oversell guard</td><td>Multi-channel without double-selling</td></tr>
+      <tr><td>10 — Counter</td><td>POS, store credit, buylist offers &amp; payout</td><td>In-store retail + trade-in</td></tr>
+      <tr><td>11 — Shipping</td><td>Unified orders, labels, tracking, returns</td><td>One fulfilment workflow</td></tr>
+    </table>
+    <p><strong>Minimum viable full shop:</strong> Phases 6–10 (login, sellable stock, pricing, channels, counter POS).</p>
+
+    <div class="cols">
+      <div>
+        <h2>Who it's for</h2>
+        <table>
+          <tr><th>Shop type</th><th>Fit</th></tr>
+          <tr><td>Trade-in / bulk heavy</td><td>Strong fit today</td></tr>
+          <tr><td>Online singles seller</td><td>After Phases 6–9</td></tr>
+          <tr><td>Full retail + counter</td><td>After Phases 10–11</td></tr>
+          <tr><td>Multi-location chain</td><td>Single store first; SaaS later</td></tr>
+        </table>
+      </div>
+      <div>
+        <h2>Future (not scheduled)</h2>
+        <ul>
+          <li>Consignment &amp; consignor portal</li>
+          <li>Advanced sales, margin &amp; channel reporting</li>
+          <li>Customer kiosk; events/tournaments</li>
+          <li>Native mobile app; public API</li>
+          <li>Multi-store SaaS hosting</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">Forxia Industries Corp. · TCG Chaos Inventory · Roadmap &amp; features · August 2026 · Page 1–2</div>
+
+</body>
+</html>

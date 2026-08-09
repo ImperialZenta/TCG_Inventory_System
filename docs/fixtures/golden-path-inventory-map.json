@@ -1,0 +1,46 @@
+{
+  "description": "Phase 5 golden path — maps to YOUR current Chaos Inventory blocks (not Test Cards). Regenerate wave order if you change inventory.",
+  "blocks": {
+    "MTG-0001": { "bin": "BOX_001", "shelf": "SHELF_01", "status": "ACTIVE", "cards": 50 },
+    "MTG-0002": { "bin": "BOX_001", "shelf": "SHELF_01", "status": "ACTIVE", "cards": 50 },
+    "MTG-0006": { "bin": "BOX_001", "shelf": "SHELF_01", "status": "SEALED", "cards": 50 },
+    "MTG-0010": { "bin": "BOX_003", "shelf": "SHELF_01", "status": "SEALED", "cards": 4, "note": "Test Card block — ignore for this path" }
+  },
+  "searchExamples": [
+    {
+      "step": "1",
+      "query": "Leaping Lizard",
+      "expectBlock": "MTG-0001",
+      "expectPosition": 1,
+      "expectLocation": "SHELF_01 / BOX_001"
+    },
+    {
+      "step": "1b",
+      "query": "Snow Devil",
+      "expectOnHand": 3,
+      "expectConditionChip": "LP: 3",
+      "note": "Same printing, three copies on MTG-0001"
+    },
+    {
+      "step": "2b-after-pick",
+      "query": "Leaping Lizard",
+      "expectOnPickLists": 1
+    }
+  ],
+  "wavePrep": {
+    "moveBlockToShelfB": "MTG-0006",
+    "destinationBin": "B-B01",
+    "leaveOnShelfA": "MTG-0001",
+    "orderFixture": "manapool-order-dev-wave.json",
+    "orderReference": "DEV-WAVE-001",
+    "wave1Card": { "name": "Leaping Lizard", "block": "MTG-0001" },
+    "wave2Card": { "name": "Homarid Spawning Bed", "block": "MTG-0006" }
+  },
+  "bulkMove": {
+    "step3SelectBlocks": ["MTG-0001", "MTG-0002"],
+    "step3DestinationBin": "B-B01",
+    "step4EntireBinSource": "BOX_001",
+    "step4EntireBinDestination": "A-B02",
+    "note": "After step 3, move MTG-0001 back to BOX_001 before step 6 if needed"
+  }
+}

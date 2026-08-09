@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TCG Chaos Inventory — Forxia Industries Corp.</title>
+  <style>
+    @page {
+      size: letter;
+      margin: 0.55in 0.6in;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      font-size: 9.5pt;
+      line-height: 1.35;
+      color: #1a1a1a;
+      max-width: 7.5in;
+      margin: 0 auto;
+      padding: 0.4in 0.5in;
+    }
+
+    h1 {
+      font-size: 20pt;
+      font-weight: 700;
+      margin: 0 0 0.15em;
+      letter-spacing: -0.02em;
+    }
+
+    .company {
+      font-size: 9pt;
+      color: #555;
+      margin: 0 0 0.2em;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+
+    .tagline {
+      font-size: 11pt;
+      color: #444;
+      margin: 0 0 0.35em;
+      font-weight: 500;
+    }
+
+    .pitch {
+      background: #f4f6f8;
+      border-left: 3px solid #2563eb;
+      padding: 0.45em 0.65em;
+      margin: 0.5em 0 0.75em;
+      font-size: 9pt;
+    }
+
+    h2 {
+      font-size: 10pt;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #2563eb;
+      margin: 0.85em 0 0.35em;
+      padding-bottom: 0.15em;
+      border-bottom: 1px solid #ddd;
+    }
+
+    h2:first-of-type {
+      margin-top: 0.5em;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 8.5pt;
+      margin: 0.25em 0 0.5em;
+    }
+
+    th, td {
+      border: 1px solid #ccc;
+      padding: 0.3em 0.45em;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: #eef2ff;
+      font-weight: 600;
+    }
+
+    .cols {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.65em;
+    }
+
+    ul {
+      margin: 0.2em 0 0.4em;
+      padding-left: 1.1em;
+    }
+
+    li {
+      margin: 0.12em 0;
+    }
+
+    .feature-group {
+      margin-bottom: 0.35em;
+    }
+
+    .feature-group strong {
+      color: #111;
+    }
+
+    .badge {
+      display: inline-block;
+      font-size: 7pt;
+      font-weight: 600;
+      padding: 0.1em 0.35em;
+      border-radius: 3px;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .badge-today {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .badge-roadmap {
+      background: #dbeafe;
+      color: #1e40af;
+    }
+
+    .badge-future {
+      background: #f3f4f6;
+      color: #4b5563;
+    }
+
+    .roadmap-table td:first-child {
+      font-weight: 600;
+      white-space: nowrap;
+      width: 28%;
+    }
+
+    .footer {
+      margin-top: 0.75em;
+      padding-top: 0.4em;
+      border-top: 1px solid #ddd;
+      font-size: 7.5pt;
+      color: #666;
+      text-align: center;
+    }
+
+    @media print {
+      body {
+        padding: 0;
+      }
+
+      h2 {
+        break-after: avoid;
+      }
+
+      table, .cols {
+        break-inside: avoid;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <h1>TCG Chaos Inventory</h1>
+  <p class="company">Forxia Industries Corp.</p>
+  <p class="tagline">Self-hosted inventory &amp; shop operations for trading card stores</p>
+
+  <p class="pitch">
+    Built for high-volume trade-in and bulk inventory, expanding into sellable singles,
+    marketplace sync, autopricing, counter sales, and buylist.
+    <strong>Your data, your server, no platform commission.</strong>
+  </p>
+
+  <h2>Two inventory modes</h2>
+  <table>
+    <thead>
+      <tr>
+        <th></th>
+        <th><span class="badge badge-today">Available</span> Bulk / chaos</th>
+        <th><span class="badge badge-roadmap">Roadmap</span> Sorted sellable stock</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Best for</strong></td>
+        <td>Trade-ins, bulk lots, unsorted piles</td>
+        <td>Singles listed and sold individually</td>
+      </tr>
+      <tr>
+        <td><strong>Find a card</strong></td>
+        <td>Block ID + position (MTG-0007 #14)</td>
+        <td>Shelf / bin / SKU</td>
+      </tr>
+      <tr>
+        <td><strong>Sell online as singles</strong></td>
+        <td>No — pick from sealed bricks</td>
+        <td>Yes — live qty syncs to channels</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="cols">
+    <div>
+      <h2>Available today</h2>
+      <div class="feature-group">
+        <strong>Intake &amp; staging</strong>
+        <ul>
+          <li>ManaBox CSV upload &amp; staging review</li>
+          <li>Block breakdown &amp; position-indexed intake</li>
+          <li>Formalize to shelves/bins; undo whole import</li>
+          <li>Large imports (5,000+ cards validated)</li>
+        </ul>
+      </div>
+      <div class="feature-group">
+        <strong>Bulk inventory</strong>
+        <ul>
+          <li>Numbered blocks, shelf → bin → block</li>
+          <li>Lifecycle: open / sealed / picked / liquidated</li>
+          <li>Move blocks; full activity audit log</li>
+        </ul>
+      </div>
+      <div class="feature-group">
+        <strong>MTG catalog</strong>
+        <ul>
+          <li>Scryfall enrichment</li>
+          <li>Condition, foil, language tracking</li>
+        </ul>
+      </div>
+      <div class="feature-group">
+        <strong>Order picking</strong>
+        <ul>
+          <li>Mana Pool orders; location-sorted pick lists</li>
+          <li>Picked / short / substitute; hold &amp; quarantine</li>
+          <li>Counter pick, TCGplayer pullsheet, pick history</li>
+        </ul>
+      </div>
+    </div>
+    <div>
+      <div class="feature-group">
+        <strong>Analytics</strong>
+        <ul>
+          <li>Block age dashboard &amp; aging buckets</li>
+          <li>Stale block list; search by block ID</li>
+          <li><em>Dollar values pending pricing fix</em></li>
+        </ul>
+      </div>
+      <div class="feature-group">
+        <strong>Data &amp; export</strong>
+        <ul>
+          <li>Mana Pool listing CSV per block</li>
+          <li>JSON backup &amp; restore</li>
+          <li>Self-hosted Docker + PostgreSQL</li>
+        </ul>
+      </div>
+
+      <h2>On the roadmap</h2>
+      <table class="roadmap-table">
+        <tr><td>Phase 5</td><td>Card search, global qty, velocity reports, secure webhooks</td></tr>
+        <tr><td>Phase 6</td><td>Staff login, SKU ledger, sort-to-stock, promote from bulk, reservations</td></tr>
+        <tr><td>Phase 7</td><td>Pokémon + more TCGs, printing picker, price overlay, camera scan</td></tr>
+        <tr><td>Phase 8</td><td>Autopricing rules, refresh, per-channel prices, bulk reprice</td></tr>
+        <tr><td>Phase 9</td><td>Marketplace sync, CSV templates, oversell guard, order import</td></tr>
+        <tr><td>Phase 10</td><td>POS checkout, store credit, buylist offers &amp; payout</td></tr>
+        <tr><td>Phase 11</td><td>Unified orders, shipping labels, tracking, returns</td></tr>
+      </table>
+      <p style="font-size: 8pt; margin: 0.3em 0 0;"><strong>MVP full shop:</strong> Phases 6–10</p>
+    </div>
+  </div>
+
+  <h2>Who it's for</h2>
+  <table>
+    <tr>
+      <th>Shop type</th>
+      <th>Fit</th>
+    </tr>
+    <tr>
+      <td>Trade-in / bulk heavy</td>
+      <td><span class="badge badge-today">Strong fit today</span></td>
+    </tr>
+    <tr>
+      <td>Online singles seller</td>
+      <td><span class="badge badge-roadmap">After Phases 6–9</span></td>
+    </tr>
+    <tr>
+      <td>Full retail + counter</td>
+      <td><span class="badge badge-roadmap">After Phases 10–11</span></td>
+    </tr>
+    <tr>
+      <td>Multi-location chain</td>
+      <td><span class="badge badge-future">Single shop first</span></td>
+    </tr>
+  </table>
+
+  <p style="font-size: 8pt; color: #555; margin-top: 0.5em;">
+    <strong>Future (not near-term):</strong> consignment · advanced reporting · customer kiosk ·
+    events/tournaments · native mobile · public API · multi-store SaaS
+  </p>
+
+  <div class="footer">
+    Forxia Industries Corp. · TCG Chaos Inventory · Product overview · August 2026
+  </div>
+
+</body>
+</html>

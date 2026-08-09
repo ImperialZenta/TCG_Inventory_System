@@ -1,0 +1,25 @@
+---
+description: Where to find Forxia sales PDFs and literature — read when user mentions prospects, product overview, roadmap, or 6-pager
+alwaysApply: true
+---
+
+# Sales literature index (Forxia Industries Corp.)
+
+**Folder:** [docs/sales/README.md](../../docs/sales/README.md)
+
+**Company:** Forxia Industries Corp. · **Product:** TCG Chaos Inventory
+
+## PDFs to share
+
+| File | Use when |
+|------|----------|
+| [docs/sales/PRODUCT-OVERVIEW.pdf](../../docs/sales/PRODUCT-OVERVIEW.pdf) | One-page feature summary |
+| [docs/sales/ROADMAP-AND-FEATURES.pdf](../../docs/sales/ROADMAP-AND-FEATURES.pdf) | Two-page features + roadmap |
+| [docs/sales/AMAZON-6-PAGER.pdf](../../docs/sales/AMAZON-6-PAGER.pdf) | ~6-page strategy narrative (Amazon memo format) |
+
+## Agent workflow
+
+1. Read [docs/sales/README.md](../../docs/sales/README.md) before creating or updating sales materials.
+2. Derive product status from [docs/BACKLOG.md](../../docs/BACKLOG.md) — not from memory.
+3. After edits, run `powershell -ExecutionPolicy Bypass -File scripts/regenerate-sales-pdf.ps1`.
+4. Detailed editing rules: [sales-literature.mdc](./sales-literature.mdc) (applies when working in `docs/sales/`).

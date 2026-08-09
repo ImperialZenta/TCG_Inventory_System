@@ -111,7 +111,7 @@ async function main() {
               language: "en",
               quantity: 1,
               position: 1,
-              priceUsd: 1.25,
+              priceCents: 125,
             },
             {
               name: "Lightning Bolt",
@@ -123,7 +123,7 @@ async function main() {
               language: "en",
               quantity: 1,
               position: 2,
-              priceUsd: 1.25,
+              priceCents: 125,
             },
             {
               name: "Counterspell",
@@ -135,7 +135,7 @@ async function main() {
               language: "en",
               quantity: 1,
               position: 3,
-              priceUsd: 0.35,
+              priceCents: 35,
             },
             {
               name: "Counterspell",
@@ -147,7 +147,7 @@ async function main() {
               language: "en",
               quantity: 1,
               position: 4,
-              priceUsd: 0.35,
+              priceCents: 35,
             },
             {
               name: "Counterspell",
@@ -159,7 +159,7 @@ async function main() {
               language: "en",
               quantity: 1,
               position: 5,
-              priceUsd: 0.35,
+              priceCents: 35,
             },
             {
               name: "Counterspell",
@@ -171,7 +171,7 @@ async function main() {
               language: "en",
               quantity: 1,
               position: 6,
-              priceUsd: 0.35,
+              priceCents: 35,
             },
           ],
         },
@@ -202,7 +202,42 @@ async function main() {
               setCode: "mixed",
               quantity: 500,
               position: 1,
-              priceUsd: 0.005,
+              priceCents: 1,
+            },
+          ],
+        },
+      },
+    });
+  }
+
+  /** Shelf B singles for Phase 5 wave smoke (pairs with MTG-0001 on shelf A). */
+  const existing0003 = await prisma.block.findUnique({ where: { blockId: "MTG-0003" } });
+  if (!existing0003) {
+    await prisma.block.create({
+      data: {
+        blockId: "MTG-0003",
+        label: "Sideboard strip — shelf B",
+        status: BlockStatus.ACTIVE,
+        tier: BlockTier.GENERAL,
+        channel: BlockChannel.MANAPOOL,
+        binId: binB1.id,
+        packedAt: new Date("2026-06-01"),
+        sealedAt: new Date("2026-06-01"),
+        activatedAt: new Date("2026-06-02"),
+        targetCount: 50,
+        cards: {
+          create: [
+            {
+              name: "Path to Exile",
+              setCode: "mh3",
+              collectorNumber: "208",
+              scryfallId: "placeholder-pte",
+              condition: "NM",
+              finish: "NONFOIL",
+              language: "en",
+              quantity: 1,
+              position: 1,
+              priceCents: 45,
             },
           ],
         },
@@ -212,7 +247,7 @@ async function main() {
 
   await prisma.blockSequence.update({
     where: { id: "mtg" },
-    data: { nextNum: 3 },
+    data: { nextNum: 4 },
   });
 
   await prisma.binSequence.update({

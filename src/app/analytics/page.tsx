@@ -3,7 +3,8 @@ import { PageHeader, EmptyState } from "@/components/page-header";
 import { getBlocksWithStats, getAgingBucketCounts, getStaleBlocks, getLocationLabel } from "@/lib/blocks";
 import { getPickMetrics } from "@/lib/pick/metrics";
 import { STALE_BLOCK_DAYS } from "@/lib/constants";
-import { formatCurrency, daysSince } from "@/lib/utils";
+import { formatMoney } from "@/lib/money";
+import { daysSince } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -25,8 +26,8 @@ export default async function AnalyticsPage() {
     dbError = true;
   }
 
-  const totalValue = blocks.reduce((sum, b) => sum + b.estimatedValue, 0);
-  const staleValue = staleBlocks.reduce((sum, b) => sum + b.estimatedValue, 0);
+  const totalValueCents = blocks.reduce((sum, b) => sum + b.estimatedValueCents, 0);
+  const staleValueCents = staleBlocks.reduce((sum, b) => sum + b.estimatedValueCents, 0);
 
   return (
     <>
@@ -45,9 +46,9 @@ export default async function AnalyticsPage() {
           <div className="mb-8 grid gap-4 sm:grid-cols-3">
             <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-5">
               <p className="text-sm text-zinc-400">Capital in Stale Blocks</p>
-              <p className="mt-1 text-2xl font-semibold text-amber-400">{formatCurrency(staleValue)}</p>
+              <p className="mt-1 text-2xl font-semibold text-amber-400">{formatMoney(staleValueCents)}</p>
               <p className="mt-1 text-xs text-zinc-500">
-                {((staleValue / (totalValue || 1)) * 100).toFixed(0)}% of total inventory value
+                {((staleValueCents / (totalValueCents || 1)) * 100).toFixed(0)}% of total inventory value
               </p>
             </div>
             <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-5">
@@ -57,7 +58,7 @@ export default async function AnalyticsPage() {
             </div>
             <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-5">
               <p className="text-sm text-zinc-400">Total Block Value</p>
-              <p className="mt-1 text-2xl font-semibold text-zinc-100">{formatCurrency(totalValue)}</p>
+              <p className="mt-1 text-2xl font-semibold text-zinc-100">{formatMoney(totalValueCents)}</p>
             </div>
           </div>
 
@@ -131,7 +132,7 @@ export default async function AnalyticsPage() {
                         <p className="font-mono text-zinc-100">{block.blockId}</p>
                         <p className="text-sm text-zinc-400">
                           {getLocationLabel(block)} · {block.cardCount} cards ·{" "}
-                          {formatCurrency(block.estimatedValue)}
+                          {formatMoney(block.estimatedValueCents)}
                         </p>
                       </div>
                       <div className="text-right">

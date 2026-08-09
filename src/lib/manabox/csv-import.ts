@@ -4,7 +4,13 @@ import {
   MANAPOOL_TO_FINISH,
   mapManaboxCondition,
 } from "@/lib/languages";
-import { getCardImageUri, getCardPriceUsd, getScryfallCardBySetAndNumber } from "@/lib/scryfall";
+import {
+  getCardImageUri,
+  getCardPriceCents,
+  getScryfallCardById,
+  getScryfallCardBySetAndNumber,
+  type ScryfallCard,
+} from "@/lib/scryfall";
 
 export interface ParsedManaboxRow {
   scryfallId: string | null;
@@ -15,7 +21,7 @@ export interface ParsedManaboxRow {
   condition: Condition;
   language: string;
   quantity: number;
-  priceUsd: number | null;
+  priceCents: number | null;
   imageUri: string | null;
   sourceRow: number;
 }
@@ -30,7 +36,7 @@ export interface ExpandedManaboxUnit {
   condition: Condition;
   language: string;
   quantity: 1;
-  priceUsd: number | null;
+  priceCents: number | null;
   imageUri: string | null;
   sourceRow: number;
   expansionIndex: number;
@@ -163,23 +169,37 @@ function rowToRecord(headers: string[], cells: string[]): Record<string, string>
   return record;
 }
 
+function applyScryfallEnrichment(
+  row: ParsedManaboxRow,
+  card: ScryfallCard,
+): ParsedManaboxRow {
+  return {
+    ...row,
+    scryfallId: card.id,
+    name: row.name || card.name,
+    setCode: card.set.toLowerCase(),
+    imageUri: getCardImageUri(card) ?? null,
+    priceCents: getCardPriceCents(card, row.finish),
+  };
+}
+
 async function enrichRow(row: ParsedManaboxRow): Promise<ParsedManaboxRow> {
-  if (row.scryfallId || !row.setCode || !row.collectorNumber) {
+  if (row.priceCents != null && row.imageUri != null) {
     return row;
   }
 
   try {
-    const card = await getScryfallCardBySetAndNumber(row.setCode, row.collectorNumber);
+    let card: ScryfallCard | null = null;
+
+    if (row.scryfallId) {
+      card = await getScryfallCardById(row.scryfallId);
+    } else if (row.setCode && row.collectorNumber) {
+      card = await getScryfallCardBySetAndNumber(row.setCode, row.collectorNumber);
+    }
+
     if (!card) return row;
 
-    return {
-      ...row,
-      scryfallId: card.id,
-      name: row.name || card.name,
-      setCode: card.set.toLowerCase(),
-      imageUri: getCardImageUri(card) ?? null,
-      priceUsd: getCardPriceUsd(card, row.finish),
-    };
+    return applyScryfallEnrichment(row, card);
   } catch {
     return row;
   }
@@ -200,7 +220,7 @@ export function expandManaboxRowsToUnits(rows: ParsedManaboxRow[]): ExpandedMana
         condition: row.condition,
         language: row.language,
         quantity: 1,
-        priceUsd: row.priceUsd,
+        priceCents: row.priceCents,
         imageUri: row.imageUri,
         sourceRow: row.sourceRow,
         expansionIndex,
@@ -262,7 +282,7 @@ export async function parseManaboxCsv(
       condition,
       language: mapLanguage(record.language ?? ""),
       quantity,
-      priceUsd: null,
+      priceCents: null,
       imageUri: null,
       sourceRow,
     });

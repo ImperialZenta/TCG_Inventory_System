@@ -11,6 +11,7 @@ Index. Story detail, INVEST framing and Gherkin acceptance criteria live in the 
 | [SortSwift parity matrix](backlog/PARITY-SORTSWIFT.md) | Gap analysis across all ten SortSwift categories, dual-model rationale, parity phasing |
 | [Intake strategy](backlog/INTAKE-STRATEGY.md) | Design context for intake: scan → CSV → staging, the sort decision, recovery paths |
 | [Status audit, Aug 2026](backlog/AUDIT-2026-08.md) | Status corrections found by reading the code, with evidence |
+| [Sales literature](sales/README.md) | **Forxia Industries Corp.** — PDFs: [overview](sales/PRODUCT-OVERVIEW.pdf), [roadmap & features](sales/ROADMAP-AND-FEATURES.pdf), [6-pager](sales/AMAZON-6-PAGER.pdf) |
 
 ---
 
@@ -140,10 +141,11 @@ Read [intake strategy](backlog/INTAKE-STRATEGY.md) before implementing I-001, I-
 | P-012 | Hold pick list | Must | Done |
 | P-013 | Correction re-scan intake | Should | Done |
 | P-014 | Re-allocate held pick lines | Must | Done |
+| P-015 | Pick waves by shelf zone | Should | Done |
 
 ## Epic 5 — [Block Aging & Analytics](backlog/epic-05-aging.md) · `A-`
 
-Every currency figure in this epic reads zero until **V-005** ships.
+Every currency figure in this epic uses persisted `priceCents` on card lines (**V-005**). Cost basis still requires **SKU-006**.
 
 | ID | Story | Priority | Status |
 |----|-------|----------|--------|
@@ -151,7 +153,7 @@ Every currency figure in this epic reads zero until **V-005** ships.
 | A-002 | Aging buckets | Must | Done |
 | A-003 | Stale block list | Must | Done |
 | A-004 | Block velocity | Must | — |
-| A-005 | Capital tied up per block | Should | — |
+| A-005 | Capital tied up per block | Should | Partial |
 | A-006 | Location heat map | Should | — |
 | A-007 | Aging alerts | Should | — |
 | A-008 | Recommended actions | Should | Partial |
@@ -163,17 +165,17 @@ Every currency figure in this epic reads zero until **V-005** ships.
 
 | ID | Story | Priority | Status |
 |----|-------|----------|--------|
-| S-001 | Search by card, show blocks | Must | Stub |
+| S-001 | Search by card, show blocks | Must | Done |
 | S-002 | Search by block ID | Must | Done |
 | S-003 | Filter by set, rarity, condition, foil, age | Should | — |
-| S-004 | Global quantity by card | Must | — |
+| S-004 | Global quantity by card | Must | Done |
 | S-005 | Location map or grid | Could | — |
 
 ## Epic 7 — [Pricing & Valuation](backlog/epic-07-pricing.md) · `V-`
 
 | ID | Story | Priority | Status |
 |----|-------|----------|--------|
-| **V-005** | **Persist market price through formalize** | **Must** | **— defect** |
+| V-005 | Persist market price through formalize | Must | Done |
 | V-001 | Market prices from Scryfall | Should | Partial |
 | V-002 | Block total value on seal and refresh | Should | — |
 | V-003 | Cost basis per block or batch | Could | — |
@@ -184,7 +186,7 @@ Every currency figure in this epic reads zero until **V-005** ships.
 | ID | Story | Priority | Status |
 |----|-------|----------|--------|
 | O-001 | Cycle count workflow | Should | — |
-| O-002 | Block transfer to a new location | Must | Partial |
+| O-002 | Block transfer to a new location | Must | Done |
 | O-003 | Split block | Should | — |
 | O-004 | Merge blocks | Could | — |
 | O-005 | Full change history | — | Retired → B-013 |
@@ -334,6 +336,22 @@ Six stories at header level. Unparks when the shop commits to consignment commer
 | ACC-006 | External inventory API | Could | Parked |
 | ACC-007 | Native mobile app | Could | Parked |
 
+## Epic 21 — [SaaS Platform & Tenancy](backlog/epic-21-saas-platform.md) · `SAS-` · Trigger-gated
+
+Read [ADR-010](architecture/adr/010-saas-evolution-strategy.md) before scheduling anything here. Everything except **SAS-001** is parked behind a named business trigger (T2 = first external store, T3 = fleet pain at 5–20 tenants).
+
+| ID | Story | Priority | Status |
+|----|-------|----------|--------|
+| SAS-001 | Mandatory webhook and cron authentication | Must | Done |
+| SAS-002 | Tenant provisioning: one command, one new store stack | Must at T2 | Parked |
+| SAS-003 | Central monitoring and backup across tenant stacks | Must at T2 | Parked |
+| SAS-004 | Manual billing for design partners | Should at T2 | Parked |
+| SAS-005 | Tenant model and scoped schema migration | Must at T3 | Parked |
+| SAS-006 | Per-tenant encrypted channel credentials | Must at T3 | Parked |
+| SAS-007 | Tenant-routed webhooks | Must at T3 | Parked |
+| SAS-008 | Tenant-scoped backup, restore and danger zone | Must at T3 | Parked |
+| SAS-009 | Tenant onboarding and automated billing | Should at T3 | Parked |
+
 ---
 
 # Phase roadmap
@@ -369,7 +387,7 @@ Deferred: **B-007** labels, **I-001** + **I-002** manual creation.
 
 ## Phase 4 — Orders & picking
 
-**Status:** Complete — Mana Pool import (API, fixture, webhook, cron), pick lists, location sort, pick/short/substitute/renumber, `PickHistory`, counter pick, TCGplayer pullsheet, pick metrics, quarantine/hold/re-allocate, correction intake.
+**Status:** Done — Mana Pool import, pick lists, location sort, pick/short/substitute/renumber, `PickHistory`, counter pick, TCGplayer pullsheet, pick metrics, quarantine/hold/re-allocate, correction intake. P-004 `@dual` (sorted stock) deferred to Epic 10 / StockItem.
 
 | ID | Story | Priority | Status |
 |----|-------|----------|--------|
@@ -388,9 +406,11 @@ Deferred: **B-007** labels, **I-001** + **I-002** manual creation.
 | P-013 | Correction re-scan intake | Should | Done |
 | P-014 | Re-allocate held pick lines | Must | Done |
 
-## Phase 5 — Polish
+## Phase 5 — Polish (Done)
 
-**S-001**, **S-004**, **O-002** bulk transfer, **A-004** onward, pick waves, reconciliation.
+**S-001**, **S-004**, **O-002** bulk transfer, **P-015** pick waves, **SAS-001** webhook/cron hardening. Analytics (**A-004** onward) deferred to a later pass.
+
+**QA closed 2026-08-09:** Agent B all Must stories justified; Vitest 100/100; smoke PASS (existing inventory golden path). Deferred polish (not blockers): **S-006** search autocomplete, **O-007** bulk-move tick clear.
 
 ---
 
@@ -401,9 +421,8 @@ Nothing later is auditable without an actor, and nothing is sellable or priceabl
 | Order | Stories | Why |
 |-------|---------|-----|
 | 1 | **ACC-001**, **ACC-002**, **ACC-003** | Every parity feature moves money; unattributed history cannot be retrofitted |
-| 2 | **V-005** | Prices are currently discarded at formalize — every value figure reads zero |
-| 3 | **SKU-001**, **SKU-003**, **SKU-009** | The stock ledger, reservations, and a way to inspect them |
-| 4 | **SKU-002**, **SKU-004**, **SKU-006** | The sort decision, the promote bridge, and cost basis |
+| 2 | **SKU-001**, **SKU-003**, **SKU-009** | The stock ledger, reservations, and a way to inspect them |
+| 3 | **SKU-002**, **SKU-004**, **SKU-006** | The sort decision, the promote bridge, and cost basis |
 
 ## Phase 7 — Multi-game and scan parity
 
@@ -429,7 +448,7 @@ Requires Phase 4 picking. **FUL-001** → **FUL-003** → **FUL-002** → **FUL-
 
 ## Parked
 
-Consignment (**CON-**), advanced reporting (**RPT-001**–**RPT-004**, **RPT-006**–**RPT-008**), kiosk (**POS-011**), events (**POS-012**), hardware sorters, external API (**ACC-006**), native mobile (**ACC-007**).
+Consignment (**CON-**), advanced reporting (**RPT-001**–**RPT-004**, **RPT-006**–**RPT-008**), kiosk (**POS-011**), events (**POS-012**), hardware sorters, external API (**ACC-006**), native mobile (**ACC-007**), SaaS platform (**SAS-002**–**SAS-009**, trigger-gated per [ADR-010](architecture/adr/010-saas-evolution-strategy.md)).
 
 ---
 

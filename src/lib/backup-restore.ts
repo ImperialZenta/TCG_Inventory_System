@@ -9,6 +9,7 @@ import type {
   BackupStagingImport,
   BackupSummary,
 } from "@/lib/backup-types";
+import { centsFromUsd } from "@/lib/money";
 import { parseBackupJson, summarizeBackup } from "@/lib/backup-parse";
 import { wipeAllForRestore } from "@/lib/data-reset";
 
@@ -73,7 +74,9 @@ function cardLineNestedData(card: BackupCardLine, fallbackPosition: number) {
     position: card.position ?? fallbackPosition,
     isBulkLine: card.isBulkLine,
     bulkDescription: card.bulkDescription,
-    priceUsd: card.priceUsd,
+    priceCents:
+      card.priceCents ??
+      (card.priceUsd != null ? centsFromUsd(card.priceUsd) : null),
     imageUri: card.imageUri,
     addedAt: card.addedAt,
   };
@@ -95,6 +98,8 @@ function stagingCardNestedData(card: BackupStagingCard) {
     suggestedBlock: card.suggestedBlock,
     assignedBlockId: card.assignedBlockId,
     sourceRow: card.sourceRow,
+    priceCents: card.priceCents ?? null,
+    imageUri: card.imageUri ?? null,
     createdAt: card.createdAt,
   };
 }

@@ -15,8 +15,8 @@ import {
   transitionBlockStatus,
   type LifecycleTransition,
 } from "@/lib/blocks/lifecycle";
-import { INVENTORY_EVENT_TYPES, recordInventoryEvent } from "@/lib/events";
 import { SYSTEM_CONTEXT } from "@/lib/context/domain-context";
+import { BlockMoveError, bulkMoveBlocksInBin, bulkMoveBlocksToBin, moveBlockToBin as moveBlockToBinLib } from "@/lib/blocks/move";
 import { recordCounterPick } from "@/lib/pick/counter-pick";
 import { clearBlockPickHold } from "@/lib/blocks/quarantine";
 import { PickError } from "@/lib/pick/errors";
@@ -24,11 +24,6 @@ import { PickError } from "@/lib/pick/errors";
 export type BlockActionResult =
   | { ok: true; message: string }
   | { ok: false; message: string };
-
-function formatBinLocation(shelfCode: string | null | undefined, binId: string): string {
-  if (!shelfCode) return binId;
-  return `${shelfCode} / ${binId}`;
-}
 
 export async function moveBlockToBin(
   _prev: BlockActionResult | null,
@@ -45,54 +40,61 @@ export async function moveBlockToBin(
     return { ok: false, message: "Select a bin" };
   }
 
-  const block = await db.block.findUnique({
-    where: { blockId },
-    include: { bin: { include: { shelf: true } } },
-  });
-
-  if (!block) {
-    return { ok: false, message: "Block not found" };
+  try {
+    const result = await moveBlockToBinLib(SYSTEM_CONTEXT, blockId, binId);
+    if (result.skipped) {
+      return { ok: true, message: "Already in this bin" };
+    }
+  } catch (error) {
+    const message = error instanceof BlockMoveError ? error.message : "Move failed";
+    return { ok: false, message };
   }
-
-  const targetBin = await db.bin.findUnique({
-    where: { id: binId },
-    include: { shelf: true },
-  });
-
-  if (!targetBin) {
-    return { ok: false, message: "Bin not found" };
-  }
-
-  if (block.binId === targetBin.id) {
-    return { ok: true, message: "Already in this bin" };
-  }
-
-  const fromLabel = block.bin
-    ? formatBinLocation(block.bin.shelf?.code, block.bin.binId)
-    : "Unassigned";
-  const toLabel = formatBinLocation(targetBin.shelf?.code, targetBin.binId);
-
-  await db.$transaction(async (tx) => {
-    await tx.block.update({
-      where: { id: block.id },
-      data: { binId: targetBin.id },
-    });
-    await recordInventoryEvent(tx, {
-      eventType: INVENTORY_EVENT_TYPES.BLOCK_MOVED,
-      payload: {
-        mtgBlockId: block.blockId,
-        fromBin: fromLabel,
-        toBin: toLabel,
-      },
-      blockId: block.id,
-    });
-  });
 
   revalidatePath("/blocks");
   revalidatePath(`/blocks/${blockId}`);
-  revalidatePath("/settings");
 
-  return { ok: true, message: `Moved to ${toLabel}` };
+  return { ok: true, message: "Block moved" };
+}
+
+export async function bulkMoveBlocksAction(
+  _prev: BlockActionResult | null,
+  formData: FormData,
+): Promise<BlockActionResult> {
+  const targetBinId = (formData.get("targetBinId") as string)?.trim();
+  const mode = (formData.get("mode") as string)?.trim();
+
+  if (!targetBinId) {
+    return { ok: false, message: "Select a destination bin" };
+  }
+
+  try {
+    if (mode === "bin") {
+      const sourceBinId = (formData.get("sourceBinId") as string)?.trim();
+      if (!sourceBinId) {
+        return { ok: false, message: "Select a source bin" };
+      }
+      const result = await bulkMoveBlocksInBin(SYSTEM_CONTEXT, sourceBinId, targetBinId);
+      revalidatePath("/blocks");
+      return {
+        ok: true,
+        message: `Moved ${result.moved} block${result.moved === 1 ? "" : "s"}${result.skipped ? ` (${result.skipped} already in destination)` : ""}`,
+      };
+    }
+
+    const blockIds = formData.getAll("blockIds").map((v) => String(v).trim()).filter(Boolean);
+    const result = await bulkMoveBlocksToBin(SYSTEM_CONTEXT, blockIds, targetBinId);
+    revalidatePath("/blocks");
+    for (const id of result.blockIds) {
+      revalidatePath(`/blocks/${id}`);
+    }
+    return {
+      ok: true,
+      message: `Moved ${result.moved} block${result.moved === 1 ? "" : "s"}${result.skipped ? ` (${result.skipped} skipped)` : ""}`,
+    };
+  } catch (error) {
+    const message = error instanceof BlockMoveError ? error.message : "Bulk move failed";
+    return { ok: false, message };
+  }
 }
 
 function revalidateBlockPaths(blockId?: string) {

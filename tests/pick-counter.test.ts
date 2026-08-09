@@ -1,6 +1,7 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { recordCounterPick } from "@/lib/pick/counter-pick";
 import { TEST_CONTEXT } from "@/lib/context/domain-context";
+import { INVENTORY_EVENT_TYPES } from "@/lib/events";
 import { disconnectTestDb, resetTestDb } from "./helpers/db";
 import { createFormalizedImport, makeBlocksPickable } from "./helpers/fixtures";
 import { db } from "@/lib/db";
@@ -38,5 +39,15 @@ describe("counter pick", () => {
       where: { mtgBlockId: fixture.blockIds[0]!, isCounterPick: true },
     });
     expect(history).not.toBeNull();
+
+    const counterEvent = await db.inventoryEvent.findFirst({
+      where: { eventType: INVENTORY_EVENT_TYPES.PICK_COUNTER },
+    });
+    expect(counterEvent).not.toBeNull();
+    expect(counterEvent?.payload).toMatchObject({
+      mtgBlockId: fixture.blockIds[0],
+      position: 1,
+      cardName: "Test Card B1-P1",
+    });
   });
 });

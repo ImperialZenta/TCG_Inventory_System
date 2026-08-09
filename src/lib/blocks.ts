@@ -1,5 +1,6 @@
 import type { Prisma, BlockStatus } from "@prisma/client";
 import { db } from "@/lib/db";
+import { sumLineValueCents } from "@/lib/money";
 import { formatDate } from "@/lib/utils";
 import type { Bin, Block, CardLine, Shelf } from "@prisma/client";
 
@@ -64,12 +65,9 @@ export async function getBlocksWithStats() {
 
   return blocks.map((block) => {
     const cardCount = block.cards.reduce((sum, c) => sum + c.quantity, 0);
-    const estimatedValue = block.cards.reduce(
-      (sum, c) => sum + (c.priceUsd ?? 0) * c.quantity,
-      0,
-    );
+    const estimatedValueCents = sumLineValueCents(block.cards);
 
-    return { ...block, cardCount, estimatedValue };
+    return { ...block, cardCount, estimatedValueCents };
   });
 }
 
@@ -161,22 +159,19 @@ export async function getAgingBucketCounts(thresholdDays: number) {
 export async function getDashboardStats() {
   const [blockCount, cardLines, shelfCount, binCount, staleBlocks] = await Promise.all([
     db.block.count({ where: { status: { notIn: ["ARCHIVED", "LIQUIDATED"] } } }),
-    db.cardLine.findMany({ select: { quantity: true, priceUsd: true } }),
+    db.cardLine.findMany({ select: { quantity: true, priceCents: true } }),
     db.shelf.count(),
     db.bin.count(),
     getStaleBlocks(Number(process.env.STALE_BLOCK_DAYS ?? 90)),
   ]);
 
   const totalCards = cardLines.reduce((sum, c) => sum + c.quantity, 0);
-  const totalValue = cardLines.reduce(
-    (sum, c) => sum + (c.priceUsd ?? 0) * c.quantity,
-    0,
-  );
+  const totalValueCents = sumLineValueCents(cardLines);
 
   return {
     blockCount,
     totalCards,
-    totalValue,
+    totalValueCents,
     shelfCount,
     binCount,
     staleBlockCount: staleBlocks.length,

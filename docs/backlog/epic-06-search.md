@@ -4,15 +4,16 @@ Prefix `S-`. Answering "where is this card" and "how many do we have".
 
 Back to [index](../BACKLOG.md) · [conventions](CONVENTIONS.md)
 
-`/inventory` is a stub page. **S-001** and **S-004** are prerequisites for pick allocation (**P-001**, **P-014**) and for anything in Epic 14 that needs to know a real quantity.
-
 | ID | Story | Priority | Status |
 |----|-------|----------|--------|
-| S-001 | Search by card, show blocks | Must | Stub |
+| S-001 | Search by card, show blocks | Must | Done |
 | S-002 | Search by block ID, show contents and age | Must | Done |
 | S-003 | Filter by set, rarity, condition, foil, age | Should | — |
-| S-004 | Global quantity by card across blocks | Must | — |
+| S-004 | Global quantity by card across blocks | Must | Done |
 | S-005 | Location map or grid | Could | — |
+| S-006 | Inventory search suggest in-stock only | Could | — |
+
+`/inventory` search and quantity (**S-001**, **S-004**) are shipped; filters (**S-003**) and location map (**S-005**) remain open.
 
 ---
 
@@ -24,10 +25,10 @@ Back to [index](../BACKLOG.md) · [conventions](CONVENTIONS.md)
 | **I want** | to search by card name and see exactly which blocks and positions hold it |
 | **So that** | I can answer in seconds instead of opening bags |
 
-**Priority:** Must · **Status:** Stub
+**Priority:** Must · **Status:** Done
 
 ```gherkin
-@pending
+@done
 Feature: S-001 Search by card
 
   Scenario: Find every copy of a card
@@ -132,10 +133,10 @@ Feature: S-003 Inventory filters
 | **I want** | one number for how many of a printing we hold in total |
 | **So that** | I do not oversell by counting one block and forgetting three others |
 
-**Priority:** Must · **Status:** — · **Prerequisite for:** CHN-005
+**Priority:** Must · **Status:** Done · **Prerequisite for:** CHN-005
 
 ```gherkin
-@pending
+@done
 Feature: S-004 Global quantity by card
 
   Scenario: Quantities sum across blocks
@@ -189,4 +190,31 @@ Feature: S-005 Location map
   Scenario: Drill through from the map
     When staff select a bin
     Then its blocks are listed
+```
+
+---
+
+### S-006 — Inventory search suggest in-stock only
+
+| | |
+|---|---|
+| **As a** | staff member searching for a card |
+| **I want** | name suggestions that match cards we actually hold, or a clear split between Scryfall catalog hits and in-stock hits |
+| **So that** | I do not pick a printing we do not carry and see a confusing "no copies" result |
+
+**Priority:** Could · **Status:** — · **Source:** Phase 5 smoke 2026-08-09 (deferred UX)
+
+```gherkin
+@pending
+Feature: S-006 Inventory search suggest in-stock only
+
+  Scenario: Partial name search prioritises in-stock printings
+    Given "Counterspell" is held in one printing only
+    When staff type "counter" on "/inventory"
+    Then in-stock matches are obvious before or instead of catalog-only Scryfall hits
+
+  Scenario: Selecting a catalog-only suggestion explains no stock
+    When staff select a Scryfall suggestion for a card not held
+    Then the page states no copies are in inventory
+    And it is clear the search used a catalog printing, not local stock
 ```

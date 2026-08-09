@@ -49,7 +49,9 @@ export interface BackupCardLine {
   position?: number;
   isBulkLine: boolean;
   bulkDescription: string | null;
-  priceUsd: number | null;
+  priceCents: number | null;
+  /** Legacy backups exported before V-005 */
+  priceUsd?: number | null;
   imageUri: string | null;
   addedAt: string;
 }
@@ -89,6 +91,8 @@ export interface BackupStagingCard {
   suggestedBlock: number | null;
   assignedBlockId: string | null;
   sourceRow: number | null;
+  priceCents?: number | null;
+  imageUri?: string | null;
   createdAt: string;
 }
 

@@ -107,7 +107,7 @@ Ship together only when a concrete **non-CSV** use case justifies the build:
 | Search + set/collector lookup ([`lib/scryfall.ts`](../../src/lib/scryfall.ts)) | Partial (**C-001**) | ManaBox CSV enrichment, `/api/cards/search` |
 | In-app card selection UI on block detail | — (**I-002**) | Not built; exception/repair only when built |
 | Local Scryfall cache | — (**C-004**) | Not built |
-| Price capture | **Broken** (**V-005**) | Fetched at parse, discarded at formalize — see [`AUDIT-2026-08.md`](AUDIT-2026-08.md) |
+| Price capture | **Done** (**V-005**) | Persisted at staging and formalize as `priceCents`; backfill in Settings |
 
 Scryfall is MTG-only. Epic 11 (**GAM-**) puts it behind a catalog provider interface so other games can be added without rewriting intake.
 

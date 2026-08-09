@@ -8,9 +8,9 @@
 
 ## Context
 
-`CardLine.priceUsd` is a `Float`. Floating-point arithmetic loses precision on rounding chains — exactly what **PRC-003** (multi-step rule engine), **SKU-006** (weighted-average cost), **POS-003** (split tender), and **BUY-002** (percentage offers) will perform thousands of times per day.
+`CardLine.priceUsd` was a `Float` (removed in **V-005**). Floating-point arithmetic loses precision on rounding chains — exactly what **PRC-003** (multi-step rule engine), **SKU-006** (weighted-average cost), **POS-003** (split tender), and **BUY-002** (percentage offers) will perform thousands of times per day.
 
-The backlog audit ([AUDIT-2026-08.md](../../backlog/AUDIT-2026-08.md)) also documents that prices are currently discarded at formalize; fixing persistence is the moment to fix representation.
+**V-005** shipped integer cents on `StagingCard` and `CardLine` alongside price persistence.
 
 ## Decision
 

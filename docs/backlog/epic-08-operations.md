@@ -7,10 +7,11 @@ Back to [index](../BACKLOG.md) · [conventions](CONVENTIONS.md)
 | ID | Story | Priority | Status |
 |----|-------|----------|--------|
 | O-001 | Cycle count workflow | Should | — |
-| O-002 | Block transfer to a new location | Must | Partial |
+| O-002 | Block transfer to a new location | Must | Done |
 | O-003 | Split block | Should | — |
 | O-004 | Merge blocks | Could | — |
 | O-005 | Full change history | — | Retired — superseded by B-013 |
+| O-007 | Clear bulk-move selection after success | Could | — |
 | O-006 | Role-based access | Could | Retired — superseded by ACC-002 |
 
 ---
@@ -70,7 +71,7 @@ Feature: O-001 Cycle count workflow
 | **I want** | to move blocks between bins, individually or in bulk, with an audit trail |
 | **So that** | a shelf reshuffle does not desynchronise the whole system |
 
-**Priority:** Must · **Status:** Partial — single-block move works from block detail; there is no bulk transfer
+**Priority:** Must · **Status:** Done
 
 ```gherkin
 @done
@@ -84,7 +85,7 @@ Feature: O-002 Single block transfer
 ```
 
 ```gherkin
-@pending
+@done
 Feature: O-002 Bulk block transfer
 
   Scenario: Move every block in a bin
@@ -196,3 +197,26 @@ Feature: O-004 Merge blocks
 **Retired.** Restated at proper scope in Epic 20, where it is a Phase 6 **Must** rather than a Could — every parity feature writes money-affecting events and needs an actor.
 
 **Superseded by:** **ACC-001**, **ACC-002**, **ACC-003**. See [`epic-20-access-platform.md`](epic-20-access-platform.md).
+
+---
+
+### O-007 — Clear bulk-move selection after success
+
+| | |
+|---|---|
+| **As a** | staff member who just moved blocks |
+| **I want** | row checkboxes to clear when a bulk transfer succeeds |
+| **So that** | updated locations are obvious and I do not accidentally move the same blocks again |
+
+**Priority:** Could · **Status:** — · **Source:** Phase 5 smoke 2026-08-09 (deferred UX)
+
+```gherkin
+@pending
+Feature: O-007 Clear bulk-move selection after success
+
+  Scenario: Selection clears on successful move
+    Given two blocks are ticked for bulk transfer
+    When the move succeeds
+    Then no block rows remain selected
+    And the success message is shown
+```

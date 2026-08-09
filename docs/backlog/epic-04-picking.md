@@ -1,6 +1,6 @@
 # Epic 4 — Picking & Fulfillment
 
-Prefix `P-`. Turning an order into cards in hand. **Phase 4 complete:** order import (API, fixture, webhook, cron), pick list generation, location-sorted picking, renumber on pick, pick history, counter pick, TCGplayer pullsheet, pick metrics, and pick integrity (quarantine, hold, re-allocate, correction intake). `/orders` and `/pick` are live.
+Prefix `P-`. Turning an order into cards in hand. **Phase 4 Done:** order import (API, fixture, webhook, cron), pick list generation, location-sorted picking, renumber on pick, pick history, counter pick, TCGplayer pullsheet, pick metrics, and pick integrity (quarantine, hold, re-allocate, correction intake). `/orders` and `/pick` are live.
 
 Back to [index](../BACKLOG.md) · [conventions](CONVENTIONS.md)
 
@@ -12,18 +12,19 @@ Epic 17 (**FUL-**) depends on this epic. Picking must work before a unified orde
 |----|-------|----------|--------|
 | P-001 | Pick list from order | Must | Done |
 | P-002 | Route optimization by location | Must | Done |
-| P-003 | Mark picked / short / substitute | Must | Done — substitute deferred |
+| P-003 | Mark picked / short / substitute | Must | Done |
 | P-004 | Decrement inventory and update last-pick date | Must | Done |
-| P-005 | Single-block pick for counter sales | Must | — |
+| P-005 | Single-block pick for counter sales | Must | Done |
 | P-006 | Group pick list by block | Must | Done |
-| P-007 | TCGplayer pullsheet upload | Could | — |
-| P-008 | Pick performance metrics | Could | — |
+| P-007 | TCGplayer pullsheet upload | Could | Done |
+| P-008 | Pick performance metrics | Could | Done |
 | P-009 | Position pick list with renumber | Must | Done |
 | P-010 | Move picked card to history | Should | Done |
 | P-011 | Quarantine block for repair | Must | Done |
 | P-012 | Hold pick list | Must | Done |
-| P-013 | Correction re-scan intake | Should | — |
+| P-013 | Correction re-scan intake | Should | Done |
 | P-014 | Re-allocate held pick lines | Must | Done |
+| P-015 | Pick waves by shelf zone | Should | Done |
 
 ---
 
@@ -73,10 +74,10 @@ Feature: P-001 Pick list from order
 | **I want** | pick items ordered by shelf, then bin, then block, then position |
 | **So that** | I walk the room once instead of criss-crossing it |
 
-**Priority:** Must · **Status:** Schema — `pickSortKey` and `findBlockForPick` exist in [`src/lib/blocks.ts`](../../src/lib/blocks.ts) with no caller
+**Priority:** Must · **Status:** Done
 
 ```gherkin
-@pending
+@done
 Feature: P-002 Route optimization by location
 
   Scenario: Items are ordered by physical route
@@ -104,28 +105,32 @@ Feature: P-002 Route optimization by location
 | **I want** | to mark each line picked, short or substituted as I go |
 | **So that** | the office knows what is actually in the box before it is packed |
 
-**Priority:** Must · **Status:** Schema
+**Priority:** Must · **Status:** Done
 
 ```gherkin
-@pending
+@done
 Feature: P-003 Mark picked, short or substitute
 
-  Scenario Outline: Set a line's outcome
+  Scenario: Mark a line PICKED
     Given a pick item with status PENDING
-    When the picker marks it "<status>"
-    Then the pick item status becomes <status>
-    And an inventory event records the outcome
+    When the picker marks it PICKED
+    Then the pick item status becomes PICKED
+    And an inventory event of type pick.item_picked records the outcome
 
-    Examples:
-      | status      |
-      | PICKED      |
-      | SHORT       |
-      | SUBSTITUTED |
+  Scenario: Mark a line SHORT with a reason
+    Given a pick item with status PENDING
+    When the picker marks it SHORT with reason "POSITION_MISMATCH"
+    Then the pick item status becomes SHORT
+    And shortReason is stored as "POSITION_MISMATCH"
+    And an inventory event of type pick.item_short records the outcome
 
-  Scenario: A short line requires a reason
-    When the picker marks a line SHORT
-    Then a reason is required from the defined set
-    And the reason is stored on the pick item
+  Scenario: Same-block substitute then completes as PICKED
+    Given a pick item allocated to "MTG-0007" position 14
+    And the same block holds an acceptable alternate at a different position
+    When the picker substitutes that alternate
+    Then an inventory event of type pick.item_substituted records from/to block and position
+    And the pick item status becomes PICKED
+    And the alternate card line is consumed
 
   Scenario: Progress is visible
     Given a list of 8 items with 5 resolved
@@ -142,10 +147,10 @@ Feature: P-003 Mark picked, short or substitute
 | **I want** | inventory to reduce when a card is actually picked |
 | **So that** | what the system says is on the shelf is what is on the shelf |
 
-**Priority:** Must · **Status:** — · **Depends on:** P-003
+**Priority:** Must · **Status:** Done · **Depends on:** P-003
 
 ```gherkin
-@pending
+@done
 Feature: P-004 Decrement inventory on pick
 
   Scenario: A picked card leaves the block
@@ -181,10 +186,10 @@ Feature: P-004 Decrement inventory on pick
 | **I want** | to pull one card from one block without creating a full order |
 | **So that** | a walk-in sale does not require inventing a fake order first |
 
-**Priority:** Must · **Status:** —
+**Priority:** Must · **Status:** Done
 
 ```gherkin
-@pending
+@done
 Feature: P-005 Single-block pick for counter sales
 
   Scenario: Pull one card directly
@@ -210,10 +215,10 @@ Feature: P-005 Single-block pick for counter sales
 | **I want** | all items from the same block grouped together |
 | **So that** | I open each bag once instead of returning to it |
 
-**Priority:** Must · **Status:** — · **Depends on:** P-002
+**Priority:** Must · **Status:** Done · **Depends on:** P-002
 
 ```gherkin
-@pending
+@done
 Feature: P-006 Group pick list by block
 
   Scenario: Items are grouped under their block
@@ -237,10 +242,10 @@ Feature: P-006 Group pick list by block
 | **I want** | to upload a TCGplayer pullsheet and get a pick list against my blocks |
 | **So that** | I can fulfil channel orders before a full API integration exists |
 
-**Priority:** Could · **Status:** — · **Related:** CHN-006
+**Priority:** Could · **Status:** Done · **Related:** CHN-006
 
 ```gherkin
-@pending
+@done
 Feature: P-007 TCGplayer pullsheet upload
 
   Scenario: A pullsheet becomes a pick list
@@ -264,10 +269,10 @@ Feature: P-007 TCGplayer pullsheet upload
 | **I want** | to see how long picks take and how often lines go short |
 | **So that** | I can tell whether chaos storage is costing me more than it saves |
 
-**Priority:** Could · **Status:** — · **Depends on:** P-003, P-010
+**Priority:** Could · **Status:** Done · **Depends on:** P-003, P-010
 
 ```gherkin
-@pending
+@done
 Feature: P-008 Pick performance metrics
 
   Scenario: Time per pick list is reported
@@ -337,10 +342,10 @@ Feature: P-009 Position pick list with renumber
 | **I want** | picked cards retained as history with how long they sat and where they were |
 | **So that** | I can measure dwell time instead of just watching rows disappear |
 
-**Priority:** Should · **Status:** — · **Depends on:** P-004
+**Priority:** Should · **Status:** Done · **Depends on:** P-004
 
 ```gherkin
-@pending
+@done
 Feature: P-010 Move picked card to history
 
   Scenario: A picked card becomes a history row
@@ -468,10 +473,10 @@ Feature: P-012 Hold pick list
 | **I want** | a correction intake path for them |
 | **So that** | mis-picked or extra cards re-enter inventory instead of being pretended back into position 1 |
 
-**Priority:** Should · **Status:** — · **Depends on:** P-011
+**Priority:** Should · **Status:** Done · **Depends on:** P-011
 
 ```gherkin
-@pending
+@done
 Feature: P-013 Correction re-scan intake
 
   Scenario: Cards in hand re-enter through a correction import
@@ -501,18 +506,18 @@ Feature: P-013 Correction re-scan intake
 | **I want** | to re-allocate held lines to other blocks |
 | **So that** | the order completes without waiting for the quarantined brick to be repaired |
 
-**Priority:** Must · **Status:** — · **Depends on:** P-011, P-012, S-001
+**Priority:** Must · **Status:** Done · **Depends on:** P-011, P-012
 
 ```gherkin
-@pending
+@done
 Feature: P-014 Re-allocate held pick lines
 
   Scenario: A blocked line is re-allocated elsewhere
     Given a held line for "Lightning Bolt NM" is blocked on quarantined "MTG-0007"
     And another eligible block holds the same printing in the same condition
     When the lead re-allocates the line
-    Then the line points at the new block and position
-    And the original allocation is recorded as SUBSTITUTED with an audit trail
+    Then the line stays PENDING and points at the new block and position
+    And an inventory event of type pick.item_substituted records from/to block and position
 
   Scenario: Position rules apply to the new allocation
     Then the lowest available position in the new block is chosen
@@ -520,12 +525,47 @@ Feature: P-014 Re-allocate held pick lines
   Scenario: No alternate leaves the line short
     Given no other block holds an acceptable copy
     When the lead attempts re-allocation
-    Then the line remains SHORT
+    Then the line remains SHORT with shortReason "NO_STOCK"
     And the list can be completed as a partial shipment
 
   Scenario: A list leaves hold when every line is resolved
     Given every held line is either re-allocated or explicitly shorted
     Then the list leaves ON_HOLD and can be completed
+```
+
+---
+
+### P-015 — Pick waves by shelf zone
+
+| | |
+|---|---|
+| **As a** | fulfillment lead with a large pick list |
+| **I want** | the list split into waves by shelf zone |
+| **So that** | one picker can finish a zone before the next, or two pickers can work in parallel |
+
+**Priority:** Should · **Status:** Done
+
+```gherkin
+@done
+Feature: P-015 Pick waves by shelf
+
+  Scenario: Waves are created at pick list generation
+    Given a pick list spans shelves "A" and "B"
+    When the list is generated
+    Then wave 1 contains all items on shelf "A"
+    And wave 2 contains all items on shelf "B"
+
+  Scenario: Pick detail groups by wave then block
+    When a picker opens the list
+    Then items are grouped under wave headers in route order
+
+  Scenario: A single-shelf list has one wave
+    Given all items are on shelf "A"
+    Then one wave is created
+
+  Scenario: Re-allocate preserves wave assignment
+    When a line is re-allocated to a different shelf
+    Then its wave membership updates to match the new shelf
 ```
 
 ---

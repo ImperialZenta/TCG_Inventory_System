@@ -7,6 +7,7 @@ import {
 } from "@/lib/pick/allocate";
 import { PickError } from "@/lib/pick/errors";
 import { tryAutoReleaseHold } from "@/lib/pick/hold-list";
+import { assignWavesForPickList } from "@/lib/pick/waves";
 
 function actorLabel(ctx: DomainContext): string | null {
   return ctx.actor?.email ?? ctx.actor?.id ?? null;
@@ -142,6 +143,8 @@ export async function reallocatePendingPickItems(
         stillShort++;
       }
     }
+
+    await assignWavesForPickList(pickListId, tx);
 
     return { reallocated, stillShort };
   });

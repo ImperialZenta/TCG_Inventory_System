@@ -25,7 +25,7 @@ Epic 11 (**GAM-**) generalises this epic beyond MTG. Nothing here is thrown away
 | **I want** | card name, set, collector number, image and price resolved from Scryfall |
 | **So that** | a CSV row of minimal data becomes a fully identified printing without manual lookup |
 
-**Priority:** Must · **Status:** Partial — enrichment and a search endpoint exist; there is no in-app picker UI (**I-002**), no cache (**C-004**), and the fetched price is discarded (**V-005**)
+**Priority:** Must · **Status:** Partial — enrichment and a search endpoint exist; there is no in-app picker UI (**I-002**), no cache (**C-004**)
 
 ```gherkin
 @done
@@ -52,14 +52,14 @@ Feature: C-001 Scryfall integration
 ```
 
 ```gherkin
-@pending
+@done
 Scenario: The fetched price is persisted
   Given a row is enriched with a market price
   When the import is formalized
   Then the resulting card line carries that price
 ```
 
-**Note:** the pending scenario is the **V-005** defect. It is listed here because the fetch already happens in this integration; the loss happens downstream at formalize.
+**Note:** price persistence is **V-005** (Done). Remaining C-001 gaps are picker UI (**I-002**) and cache (**C-004**).
 
 ---
 

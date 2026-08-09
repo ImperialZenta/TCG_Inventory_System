@@ -1,15 +1,16 @@
 import Link from "next/link";
-import { PageHeader, Badge, EmptyState } from "@/components/page-header";
-import { getBlocksWithStats, getLocationLabel, formatSealedAt, isSealedAtPending, getStatusBadgeVariant } from "@/lib/blocks";
+import { PageHeader, EmptyState } from "@/components/page-header";
+import {
+  getBlocksWithStats,
+  getLocationLabel,
+  formatSealedAt,
+  isSealedAtPending,
+  getStatusBadgeVariant,
+} from "@/lib/blocks";
 import { getBinSealSummary } from "@/lib/blocks/seal";
 import { getBinUtilization } from "@/lib/location";
 import { getDefaultFormalizeBinId } from "@/lib/staging/defaults";
-import { BulkSealByBinForm } from "./bulk-seal-by-bin-form";
-import {
-  BLOCK_CHANNEL_LABELS,
-  BLOCK_STATUS_LABELS,
-} from "@/lib/constants";
-import { formatCurrency, formatDate, daysSince } from "@/lib/utils";
+import { BlocksPageContent } from "./blocks-page-content";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,7 @@ interface BlocksPageProps {
   searchParams: Promise<{ removedBlock?: string; cardsRemoved?: string }>;
 }
 
-async function loadBinSealOptions() {
+async function loadBinOptions() {
   const bins = await getBinUtilization();
   return Promise.all(
     bins.map(async (bin) => ({
@@ -36,19 +37,37 @@ export default async function BlocksPage({ searchParams }: BlocksPageProps) {
   const cardsRemoved = query.cardsRemoved ? Number.parseInt(query.cardsRemoved, 10) : 0;
 
   let blocks: Awaited<ReturnType<typeof getBlocksWithStats>> = [];
-  let binSealOptions: Awaited<ReturnType<typeof loadBinSealOptions>> = [];
+  let binOptions: Awaited<ReturnType<typeof loadBinOptions>> = [];
   let defaultFormalizeBinId: string | null = null;
   let dbError = false;
 
   try {
-    [blocks, binSealOptions, defaultFormalizeBinId] = await Promise.all([
+    [blocks, binOptions, defaultFormalizeBinId] = await Promise.all([
       getBlocksWithStats(),
-      loadBinSealOptions(),
+      loadBinOptions(),
       getDefaultFormalizeBinId(),
     ]);
   } catch {
     dbError = true;
   }
+
+  const blockRows = blocks.map((block) => ({
+    id: block.id,
+    blockId: block.blockId,
+    label: block.label,
+    status: block.status,
+    channel: block.channel,
+    cardCount: block.cardCount,
+    estimatedValueCents: block.estimatedValueCents,
+    lastPickAt: block.lastPickAt,
+    sealedAt: block.sealedAt,
+    packedAt: block.packedAt,
+    pickHoldAt: block.pickHoldAt,
+    locationLabel: getLocationLabel(block),
+    sealedAtLabel: formatSealedAt(block),
+    sealedAtPending: isSealedAtPending(block),
+    statusVariant: getStatusBadgeVariant(block.status),
+  }));
 
   return (
     <>
@@ -84,104 +103,12 @@ export default async function BlocksPage({ searchParams }: BlocksPageProps) {
           title="Database not ready"
           description="Run docker compose up --build, then seed: docker compose exec app npm run db:seed"
         />
-      ) : blocks.length === 0 ? (
-        <EmptyState
-          title="No blocks yet"
-          description="Configure shelves in Settings, then import staging cards to create blocks."
-          action={
-            <Link
-              href="/settings"
-              className="inline-flex rounded-lg bg-amber-500 px-4 py-2 text-sm font-medium text-zinc-950"
-            >
-              Open Settings
-            </Link>
-          }
-        />
       ) : (
-        <>
-          <BulkSealByBinForm bins={binSealOptions} defaultBinId={defaultFormalizeBinId} />
-          <div className="overflow-hidden rounded-xl border border-zinc-800">
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-zinc-800 bg-zinc-900/80 text-zinc-400">
-              <tr>
-                <th className="px-4 py-3 font-medium">Block ID</th>
-                <th className="px-4 py-3 font-medium">Location</th>
-                <th className="px-4 py-3 font-medium">Status</th>
-                <th className="px-4 py-3 font-medium">Sealed</th>
-                <th className="px-4 py-3 font-medium">Channel</th>
-                <th className="px-4 py-3 font-medium text-right">Cards</th>
-                <th className="px-4 py-3 font-medium text-right">Value</th>
-                <th className="px-4 py-3 font-medium">Last Pick</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-800">
-              {blocks.map((block) => {
-                const idleDays = daysSince(block.lastPickAt ?? block.sealedAt ?? block.packedAt);
-                const isStale = idleDays !== null && idleDays >= 90;
-
-                return (
-                  <tr key={block.id} className="bg-zinc-950/30 transition hover:bg-zinc-900/50">
-                    <td className="px-4 py-3">
-                      <Link
-                        href={`/blocks/${block.blockId}`}
-                        className="font-mono text-amber-400 hover:text-amber-300"
-                      >
-                        {block.blockId}
-                      </Link>
-                      {block.label && <p className="text-xs text-zinc-500">{block.label}</p>}
-                    </td>
-                    <td className="px-4 py-3 font-mono text-zinc-300">
-                      {getLocationLabel(block)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Badge variant={getStatusBadgeVariant(block.status)}>
-                          {BLOCK_STATUS_LABELS[block.status]}
-                        </Badge>
-                        {block.pickHoldAt && (
-                          <Badge variant="warning">Quarantined</Badge>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={
-                          isSealedAtPending(block)
-                            ? "text-amber-400/90"
-                            : "text-zinc-400"
-                        }
-                      >
-                        {formatSealedAt(block)}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-zinc-400">
-                      {BLOCK_CHANNEL_LABELS[block.channel]}
-                    </td>
-                    <td className="px-4 py-3 text-right font-mono text-zinc-200">
-                      {block.cardCount.toLocaleString()}
-                    </td>
-                    <td className="px-4 py-3 text-right font-mono text-zinc-200">
-                      {formatCurrency(block.estimatedValue)}
-                    </td>
-                    <td className="px-4 py-3">
-                      {block.lastPickAt ? (
-                        <span className={isStale ? "text-amber-400" : "text-zinc-400"}>
-                          {formatDate(block.lastPickAt)}
-                          {idleDays !== null && (
-                            <span className="ml-1 text-xs">({idleDays}d)</span>
-                          )}
-                        </span>
-                      ) : (
-                        <span className="text-amber-400">Never</span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-        </>
+        <BlocksPageContent
+          blocks={blockRows}
+          binOptions={binOptions}
+          defaultFormalizeBinId={defaultFormalizeBinId}
+        />
       )}
     </>
   );

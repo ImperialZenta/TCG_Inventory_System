@@ -181,6 +181,7 @@ Three letters, so `P-011` and `PRC-011` never read alike.
 | `CON-` | Epic 18 — Consignment |
 | `RPT-` | Epic 19 — Reporting & analytics |
 | `ACC-` | Epic 20 — Access control & platform parity |
+| `SAS-` | Epic 21 — SaaS platform & tenancy (trigger-gated; see ADR-010) |
 
 ---
 

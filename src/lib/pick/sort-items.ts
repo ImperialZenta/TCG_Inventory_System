@@ -1,11 +1,21 @@
-import type { Block, Bin, CardLine, ExternalOrderLine, PickItem, Shelf } from "@prisma/client";
+import type { Block, Bin, CardLine, ExternalOrderLine, PickItem, PickWave, Shelf } from "@prisma/client";
 import { getPickSortKey, type BlockWithRelations } from "@/lib/blocks";
 
 export type PickItemWithRelations = PickItem & {
   cardLine: CardLine | null;
   externalOrderLine: ExternalOrderLine | null;
+  pickWave: PickWave | null;
   block: (Block & { bin: (Bin & { shelf: Shelf | null }) | null; cards: CardLine[] }) | null;
 };
+
+export interface PickWaveGroup {
+  waveId: string | null;
+  waveNumber: number;
+  label: string;
+  pendingCount: number;
+  totalCount: number;
+  blockGroups: PickBlockGroup[];
+}
 
 export interface PickBlockGroup {
   blockId: string;
@@ -72,4 +82,39 @@ export function groupPickItemsByBlock(items: PickItemWithRelations[]): PickBlock
   }
 
   return [...groups.values()].sort((a, b) => a.sortKey.localeCompare(b.sortKey));
+}
+
+export function groupPickItemsByWave(
+  items: PickItemWithRelations[],
+  waves: PickWave[],
+): PickWaveGroup[] {
+  const sortedWaves = [...waves].sort((a, b) => a.waveNumber - b.waveNumber);
+  const waveIds = new Set(sortedWaves.map((w) => w.id));
+
+  const result: PickWaveGroup[] = sortedWaves.map((wave) => {
+    const waveItems = items.filter((item) => item.pickWaveId === wave.id);
+    const blockGroups = groupPickItemsByBlock(waveItems);
+    return {
+      waveId: wave.id,
+      waveNumber: wave.waveNumber,
+      label: wave.label ?? `Wave ${wave.waveNumber}`,
+      pendingCount: waveItems.filter((i) => i.status === "PENDING").length,
+      totalCount: waveItems.length,
+      blockGroups,
+    };
+  });
+
+  const unassigned = items.filter((item) => !item.pickWaveId || !waveIds.has(item.pickWaveId));
+  if (unassigned.length > 0) {
+    result.push({
+      waveId: null,
+      waveNumber: sortedWaves.length + 1,
+      label: "Unassigned",
+      pendingCount: unassigned.filter((i) => i.status === "PENDING").length,
+      totalCount: unassigned.length,
+      blockGroups: groupPickItemsByBlock(unassigned),
+    });
+  }
+
+  return result;
 }

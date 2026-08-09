@@ -54,7 +54,7 @@ Status uses the keys in [`CONVENTIONS.md`](CONVENTIONS.md). "Target" names the e
 | Phone / web camera scanning | **—** | No camera path; **I-006**, **I-014** deferred | **SCN-** |
 | Auto-identify set, printing, foil, language, condition | **Partial** | Set, printing, foil, language come from the CSV; condition is human-set; nothing is identified from an image | **SCN-** |
 | Alternate printing picker | **—** | No candidate UI; a wrong match must be fixed in the source CSV | **SCN-** |
-| Front/back image association | **—** | `CardLine.imageUri` exists but formalize writes null | **SCN-**, **V-005** |
+| Front/back image association | **Partial** | `imageUri` persists through formalize (**V-005**); scan UI not built | **SCN-** |
 | Live price overlay during scan | **—** | No price shown at intake | **SCN-**, **PRC-** |
 | Mobile app | **—** | Responsive web only | **ACC-** (parked) |
 | Hardware sifters / sorters | **—** | None | Parked |
@@ -70,7 +70,7 @@ Status uses the keys in [`CONVENTIONS.md`](CONVENTIONS.md). "Target" names the e
 | Per-SKU sellable quantity | **—** | Cards are only addressable by block position | **SKU-** |
 | Real-time quantity sync / oversell prevention | **—** | Nothing syncs | **SKU-**, **CHN-** |
 | Sealed product & accessories / custom SKUs | **—** | Singles only | **SKU-008** |
-| Cost basis, margin, valuation | **—** | No cost column anywhere; market price is discarded at formalize | **V-005**, **SKU-006** |
+| Cost basis, margin, valuation | **Partial** | Market price persists (**V-005**); no cost column | **SKU-006** |
 | Inventory aging | **Done** (blocks) | `/analytics` aging buckets — for blocks, not SKUs | **RPT-** for SKU aging |
 | Barcode / SKU generation | **—** | Block IDs are human-readable but not encoded; **B-007** deferred | **B-007**, **SKU-007** |
 | Picklist generation | **—** | `/pick` is a stub | **P-001** (Phase 4) |
@@ -82,7 +82,7 @@ Status uses the keys in [`CONVENTIONS.md`](CONVENTIONS.md). "Target" names the e
 
 | SortSwift capability | Status | Evidence / gap | Target |
 |---|---|---|---|
-| Any persisted price | **Broken** | Fetched at CSV parse, dropped at formalize — see audit finding 1 | **V-005** |
+| Any persisted price | **Done** | `priceCents` on staging and card lines (**V-005**) | — |
 | Scheduled market refresh | **—** | Prices are never refreshed | **PRC-002** |
 | Multi-step rule engine | **—** | None | **PRC-003** |
 | Floors, margins, condition & rarity multipliers, rounding | **—** | None | **PRC-003**, **PRC-004** |
@@ -131,7 +131,7 @@ Nothing exists. Parked — **CON-**.
 | SortSwift capability | Status | Evidence / gap | Target |
 |---|---|---|---|
 | Block aging dashboard | **Done** | `/analytics`, aging buckets, stale list | — |
-| Inventory valuation | **Broken** | Renders, but always $0 — see audit finding 1 | **V-005** |
+| Inventory valuation | **Partial** | Dashboard, blocks, analytics sum `priceCents`; no sealed snapshot (**V-002**) | **V-002** |
 | Sales / margin / channel reports | **—** | No sales data exists to report on | **RPT-** |
 | CSV report export | **—** | Only the per-block listing CSV and JSON backup | **RPT-005** |
 | Deck tools, store map, public API | **—** | None | Parked |
@@ -157,12 +157,12 @@ Nothing exists. Parked — **CON-**.
 Ordered so each phase is usable on its own and unblocks the next. Rationale matters more than the list — the ordering is driven by three hard dependencies:
 
 - **Nothing is auditable without an actor.** Every parity feature writes money-affecting events. `ACC-` comes first.
-- **Nothing can be priced or sold without a persisted price and a sellable quantity.** `V-005` then `SKU-` come second.
+- **Nothing can be priced or sold without a persisted price and a sellable quantity.** **V-005** shipped; **SKU-** is next.
 - **Nothing can sync without a price rule and a quantity to sync.** `PRC-` then `CHN-`.
 
 | Phase | Epics | Delivers |
 |-------|-------|----------|
-| **6** | `ACC-001` – `ACC-003`, `V-005`, `SKU-001` – `SKU-006` | Login, roles, event actor; the price-persistence defect fixed; a real per-SKU stock ledger with cost basis and promote-from-block |
+| **6** | `ACC-001` – `ACC-003`, `SKU-001` – `SKU-006` | Login, roles, event actor; a real per-SKU stock ledger with cost basis and promote-from-block |
 | **7** | `GAM-`, `SCN-` | Multi-game catalog behind a provider interface; scan review parity with alternate-printing picker and price overlay |
 | **8** | `PRC-` | Rule-based autopricing with history, refresh, bulk reprice and a rule tester |
 | **9** | `CHN-` | Channel registry, CSV templates for 20+ marketplaces, one live API channel, oversell guard |

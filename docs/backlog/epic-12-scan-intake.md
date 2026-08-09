@@ -292,4 +292,4 @@ Feature: SCN-006 Card images on intake
     Then images load lazily and do not delay the card list
 ```
 
-**Note:** the first scenario is part of the **V-005** fix — `imageUri` is hardcoded to null at formalize alongside `priceUsd`. Ship them together.
+**Note:** `imageUri` persists through formalize (**V-005**, Done). Remaining work is scan/review UI.

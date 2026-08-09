@@ -21,7 +21,8 @@ import { SealBlockForm } from "../seal-block-form";
 import { BlockLifecycleSection } from "../block-lifecycle-section";
 import { CounterPickForm } from "../counter-pick-form";
 import { ClearQuarantineButton } from "../clear-quarantine-button";
-import { formatCurrency, formatDate, daysSince } from "@/lib/utils";
+import { sumLineValueCents, formatMoney } from "@/lib/money";
+import { formatDate, daysSince } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -54,10 +55,7 @@ export default async function BlockDetailPage({ params }: BlockDetailPageProps) 
   }));
 
   const cardCount = block.cards.reduce((sum, c) => sum + c.quantity, 0);
-  const estimatedValue = block.cards.reduce(
-    (sum, c) => sum + (c.priceUsd ?? 0) * c.quantity,
-    0,
-  );
+  const estimatedValueCents = sumLineValueCents(block.cards);
   const idleDays = daysSince(block.lastPickAt ?? block.sealedAt ?? block.packedAt);
   const listingRows = aggregateCardLinesForListing(block.cards);
   const csvPreview = listingRows.length > 0 ? toManaPoolCsv(listingRows) : null;
@@ -95,7 +93,7 @@ export default async function BlockDetailPage({ params }: BlockDetailPageProps) 
         <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-4">
           <p className="text-xs text-zinc-500">Cards / Value</p>
           <p className="mt-1 text-zinc-100">
-            {cardCount.toLocaleString()} · {formatCurrency(estimatedValue)}
+            {cardCount.toLocaleString()} · {formatMoney(estimatedValueCents)}
           </p>
         </div>
         <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-4">

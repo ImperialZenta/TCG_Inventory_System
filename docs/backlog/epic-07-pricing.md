@@ -4,11 +4,11 @@ Prefix `V-`. What a card is worth, and what we paid for it.
 
 Back to [index](../BACKLOG.md) · [conventions](CONVENTIONS.md)
 
-This epic is the foundation Epic 13 (**PRC-**) builds on. **V-005 must ship first** — an autopricing engine has nothing to price against while prices are discarded at formalize.
+This epic is the foundation Epic 13 (**PRC-**) builds on. **V-005** shipped — market prices persist from intake through formalize as integer cents.
 
 | ID | Story | Priority | Status |
 |----|-------|----------|--------|
-| V-005 | Persist market price through formalize | Must | — — **defect**, blocks Epic 13 |
+| V-005 | Persist market price through formalize | Must | Done |
 | V-001 | Market prices from Scryfall | Should | Partial |
 | V-002 | Block total value on seal and refresh | Should | — — corrected, see [audit](AUDIT-2026-08.md) |
 | V-003 | Cost basis per block or batch | Could | — |
@@ -24,14 +24,12 @@ This epic is the foundation Epic 13 (**PRC-**) builds on. **V-005 must ship firs
 | **I want** | the market price fetched during intake to survive into the card line |
 | **So that** | every value figure in the app stops reading zero |
 
-**Priority:** Must · **Status:** — · **Type:** Defect
+**Priority:** Must · **Status:** Done · **Type:** Defect (resolved Aug 2026)
 
-**The defect.** Prices are fetched during CSV parse in [`src/lib/manabox/csv-import.ts`](../../src/lib/manabox/csv-import.ts) and then lost twice: `StagingCard` has no `priceUsd` column, so the value is dropped at persist, and [`src/lib/staging/formalize.ts`](../../src/lib/staging/formalize.ts) hardcodes `priceUsd: null` and `imageUri: null` on every card line it creates.
-
-**Consequence.** Every block created through the primary intake path has no price. The dashboard estimated value, the analytics capital-in-stale-blocks figure and the block detail total all sum to $0 against real inventory. Only backup-restored data carries prices. This makes **A-005**, **A-009**, **I-008**, **SKU-006** and all of Epic 13 unbuildable.
+**Resolution.** Prices and image URIs fetched during CSV parse now persist on `StagingCard` and carry through [`formalize.ts`](../../src/lib/staging/formalize.ts) onto `CardLine` as `priceCents` and `imageUri` (integer cents per [ADR-003](../../architecture/adr/003-money-as-integer-cents.md)). Legacy unpriced lines can be backfilled from Settings.
 
 ```gherkin
-@pending
+@done
 Feature: V-005 Persist market price through formalize
 
   Scenario: A fetched price survives into the card line
@@ -73,7 +71,7 @@ Feature: V-005 Persist market price through formalize
     And lines that cannot be resolved are reported rather than silently skipped
 ```
 
-**Schema notes (negotiable):** add `priceUsd` and `imageUri` to `StagingCard` so the parse-time fetch has somewhere to land, then carry both through formalize. An alternative is to re-fetch at formalize, but that repeats thousands of lookups per import and makes the price reflect formalize time rather than intake time. The first option is preferred, and **C-004**'s catalog cache would make either cheap. Store prices as integer cents per [ADR-003](../../architecture/adr/003-money-as-integer-cents.md).
+**Schema notes (shipped):** `StagingCard.priceCents`, `StagingCard.imageUri`, `CardLine.priceCents` (migrated from `priceUsd` float). Parse-time fetch preferred over re-fetch at formalize. **C-004**'s catalog cache would make refresh cheaper later.
 
 **Related:** **C-001** (where the fetch happens), **A-005**, **A-009**, **I-008**, **SKU-006**, all of **PRC-**.
 
@@ -87,7 +85,7 @@ Feature: V-005 Persist market price through formalize
 | **I want** | current market prices attached to the cards I hold |
 | **So that** | valuation and listing prices start from a real number |
 
-**Priority:** Should · **Status:** Partial — fetched at intake only, then discarded (**V-005**), and never refreshed
+**Priority:** Should · **Status:** Partial — persists at formalize; not refreshed on demand or on schedule
 
 ```gherkin
 @done
@@ -128,7 +126,7 @@ Feature: V-001 Price freshness
 | **I want** | a block's total value recorded when it is sealed and refreshable afterwards |
 | **So that** | I know what a brick was worth when it was packed and what it is worth now |
 
-**Priority:** Should · **Status:** — · **Blocked by:** V-005
+**Priority:** Should · **Status:** —
 
 ```gherkin
 @pending
@@ -152,7 +150,7 @@ Feature: V-002 Block total value
     And the sealed-value snapshot is unchanged
 ```
 
-**Schema notes (negotiable):** `Block.sealedValueCents` plus `Block.valueRefreshedAt`. See [ADR-003](../../architecture/adr/003-money-as-integer-cents.md) — migrate `CardLine.priceUsd` float as part of **V-005**.
+**Schema notes (negotiable):** `Block.sealedValueCents` plus `Block.valueRefreshedAt`. See [ADR-003](../../architecture/adr/003-money-as-integer-cents.md).
 
 ---
 

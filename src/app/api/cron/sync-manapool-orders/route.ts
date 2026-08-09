@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireConfiguredSecret } from "@/lib/inbound-auth";
 import { importOrdersFromManaPool } from "@/lib/orders/import-orders-batch";
 import type { DomainContext } from "@/lib/context/domain-context";
 
@@ -8,10 +9,14 @@ const CRON_CONTEXT: DomainContext = {
 };
 
 export async function POST(request: Request) {
-  const cronSecret = process.env.CRON_SECRET?.trim();
-  if (cronSecret) {
-    const auth = request.headers.get("authorization");
-    if (auth !== `Bearer ${cronSecret}`) {
+  const auth = requireConfiguredSecret(process.env.CRON_SECRET, "Cron sync");
+  if (!auth.ok) {
+    return auth.response;
+  }
+
+  if (auth.secret) {
+    const authorization = request.headers.get("authorization");
+    if (authorization !== `Bearer ${auth.secret}`) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
   }

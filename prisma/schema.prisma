@@ -137,7 +137,7 @@ model CardLine {
   position        Int
   isBulkLine      Boolean    @default(false)
   bulkDescription String?
-  priceUsd        Float?
+  priceCents      Int?
   imageUri        String?
   addedAt         DateTime   @default(now())
   pickItems       PickItem[]
@@ -196,6 +196,8 @@ model StagingCard {
   suggestedBlock  Int?
   assignedBlockId String?
   sourceRow       Int?
+  priceCents      Int?
+  imageUri        String?
   createdAt       DateTime      @default(now())
 
   @@index([stagingImportId])

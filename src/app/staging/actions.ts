@@ -124,6 +124,8 @@ export async function uploadStagingCsv(
           quantity: 1,
           expansionIndex: unit.expansionIndex,
           sourceRow: unit.sourceRow,
+          priceCents: unit.priceCents,
+          imageUri: unit.imageUri,
         })),
       });
       if (units.length > INSERT_CHUNK) {

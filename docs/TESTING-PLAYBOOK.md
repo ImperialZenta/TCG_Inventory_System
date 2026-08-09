@@ -272,6 +272,154 @@ Run monthly or after staging/block changes.
 
 ---
 
+### Phase 5 golden path — search, move, secure inbound (~15 min)
+
+Stories exercised: **S-001**, **S-004**, **O-002**, **SAS-001**, **P-015**
+
+| # | Route | You do | Pass if |
+|---|-------|--------|---------|
+| 1 | `/inventory` | Search a card name from seeded data (e.g. a card in your blocks) | Locations table lists block ID, position, status |
+| 2 | `/inventory` | Confirm quantity panel | Available excludes OPEN-block copies; allocated shows pick reservations |
+| 3 | `/blocks` | Select 2 blocks; bulk transfer to another bin | Success message; locations update |
+| 4 | `/blocks` | Use "Entire bin" mode to move all blocks from one bin | All blocks in destination bin |
+| 5 | API | `POST /api/webhooks/manapool` with no secret configured | **503**, no order created |
+| 6 | `/orders` | Generate pick list spanning 2 shelves (move a block first if needed) | Pick detail shows **Wave 1**, **Wave 2** headers |
+
+**Prefer your existing imported blocks?** Use [Phase 5 golden path — existing inventory](#phase-5-golden-path--existing-inventory-ready-to-run) (no Test Cards, no seed).
+
+---
+
+### Phase 5 golden path — existing inventory (ready to run)
+
+Uses **your ManaBox blocks** (`MTG-0001`, etc.) and fixtures in [`docs/fixtures/golden-path-inventory-map.json`](fixtures/golden-path-inventory-map.json). No Test Cards. Step 5 webhook: use the `curl.exe` one-liner in the seed section below (Windows PowerShell 5.1).
+
+**Prerequisites:** App running at http://localhost:3000. You already have ACTIVE/SEALED blocks (you do).
+
+| # | Route | You do | Pass if |
+|---|-------|--------|---------|
+| 1 | `/inventory` | Search **Leaping Lizard** | **MTG-0001**, position 1, location **BOX_001**, status ACTIVE |
+| 1b | `/inventory` | Search **Snow Devil** | Global qty **On hand 3**; condition chip **LP: 3** |
+| 2 | `/inventory` | **Leaping Lizard** quantity panel | On hand ≥ 1, Available ≥ 1 (skip OPEN/packing sub-check unless you have an OPEN block) |
+| 3 | `/blocks` | Tick **MTG-0001** + **MTG-0002** → bulk move to **B-B01** | Success; both show **B / B-B01** |
+| 4 | `/blocks` | **Entire bin** — source **BOX_001** → dest **A-B02** | Remaining blocks from BOX_001 now on **A-B02** |
+| 5 | API | Webhook (no secret) — `curl.exe` one-liner below | **HTTP 503**; no new order on `/orders` |
+| 6-prep | `/blocks` | Move **MTG-0006** to **B-B01**. Move **MTG-0001** back to **BOX_001** (shelf A) if needed | MTG-0001 on A bin; MTG-0006 on **B-B01** |
+| 6a | `/orders` | Import [`manapool-order-dev-wave.json`](fixtures/manapool-order-dev-wave.json) | Order **DEV-WAVE-001** |
+| 6b | Order detail | **Generate pick list** | Pick detail opens |
+| 6c | `/pick/{id}` | Scroll list | **Wave 1** = Leaping Lizard (MTG-0001); **Wave 2** = Homarid Spawning Bed (MTG-0006) |
+| 2b | `/inventory` | Search **Leaping Lizard** again | **On pick lists = 1**; Available −1 |
+
+**Step 5 — Windows PowerShell 5.1:**
+
+```powershell
+curl.exe -s -o NUL -w "HTTP %{http_code}\n" -X POST "http://localhost:3000/api/webhooks/manapool" -H "Content-Type: application/json" -d "{\"manapoolOrderId\":\"smoke-test-unauth\",\"lines\":[{\"name\":\"Bolt\",\"quantity\":1,\"condition\":\"NM\",\"finish\":\"NONFOIL\",\"language\":\"en\"}]}"
+```
+
+**Optional:** Import [`manapool-order-from-db.json`](fixtures/manapool-order-from-db.json) for a 16-line order sampled from your ACTIVE blocks (regenerate after big inventory changes — command in [`fixtures/README.md`](fixtures/README.md)).
+
+---
+
+### Phase 5 golden path — seed inventory (no Test Cards) (~20 min)
+
+Uses **`db:seed`** blocks only — real card names (`Lightning Bolt`, `Counterspell`, `Path to Exile`). Same stories: **S-001**, **S-004**, **O-002**, **SAS-001**, **P-015**.
+
+#### Prerequisites
+
+**Option A — rebuild + seed (adds MTG-0003 automatically)**
+
+The app container bakes in `prisma/seed.ts` at **image build** time. If you added MTG-0003 locally but have not rebuilt, `db:seed` completes with “Seed complete” yet **does not create MTG-0003**.
+
+```powershell
+docker compose up --build -d
+docker compose exec app npm run db:seed
+```
+
+Confirm in the container: `docker compose exec app grep MTG-0003 prisma/seed.ts` should print a line (not “NOT FOUND”).
+
+**Important:** `db:seed` is **non-destructive**. It only creates `MTG-0001`–`MTG-0003` when those IDs are **missing**. If you already imported ManaBox CSVs into `MTG-0001` / `MTG-0002` / `MTG-0003` (50-card blocks), seed will **not** replace them with Lightning Bolt / Path to Exile. The blocks page showing **50 cards** is your real imported inventory, not a seed bug.
+
+**Option C — existing imported inventory (your current DB)**
+
+Skip seed demo blocks. Use real card names already in your blocks:
+
+| Step | Route | Action |
+|------|-------|--------|
+| C1 | `/blocks` | **Bulk move** block **MTG-0006** to bin **B-B01** (shelf B). Leave **MTG-0001** on **BOX_001** or **A-B01** (shelf A). |
+| C2 | `/orders` | Import [`manapool-order-dev-wave.json`](fixtures/manapool-order-dev-wave.json) → **DEV-WAVE-001** |
+| C3 | Order detail | **Generate pick list** |
+| C4 | `/pick/{id}` | **Wave 1** = **Leaping Lizard** (MTG-0001); **Wave 2** = **Homarid Spawning Bed** (MTG-0006 on B) |
+
+Search smoke on `/inventory`: try **Leaping Lizard** or **Swords to Plowshares** (cards you actually hold).
+
+Regenerate a larger order from live stock anytime:
+
+```powershell
+$env:DATABASE_URL = "postgresql://tcg:tcg@localhost:5432/tcg_inventory"
+npm run fixtures:from-db
+```
+
+Then import `manapool-order-from-db.json` at `/orders`.
+
+**Option B — no rebuild (staging CSV for shelf B)**
+
+If you cannot rebuild right now, create shelf-B stock manually:
+
+| Step | Route | Action |
+|------|-------|--------|
+| B1 | `/staging` | Upload [`smoke-seed-shelf-b-manabox.csv`](fixtures/smoke-seed-shelf-b-manabox.csv) |
+| B2 | Review | Formalize **1 block** to **B-B01**; **Seal** (or Seal + activate via lifecycle) |
+
+Use the new block ID (e.g. `MTG-0004`) instead of **MTG-0003** in the table below — same shelf **B / B-B01**, same card **Path to Exile**.
+
+**Seed blocks (after Option A or B):**
+
+| Block | Shelf / bin | Cards |
+|-------|-------------|--------|
+| **MTG-0001** | A / A-B01 | 2× Lightning Bolt (NM), 4× Counterspell (LP) — SEALED |
+| **MTG-0002** | B / B-B01 | Bulk commons line (not used for pick wave) |
+| **MTG-0003** | B / B-B01 | 1× Path to Exile (NM) — ACTIVE *(Option A only; or any sealed block on B-B01 from Option B)* |
+
+If **MTG-0003** is missing and you have not done Option B, re-run Option A (rebuild + seed).
+
+#### Optional — OPEN-block quantity check (Step 2a)
+
+Only needed if you have not already passed Step 2a another way:
+
+| Step | Route | Action |
+|------|-------|--------|
+| O1 | `/staging` | Upload [`smoke-seed-open-manabox.csv`](fixtures/smoke-seed-open-manabox.csv) |
+| O2 | Review | Formalize **1 block** to **A-B02**; do **not** seal |
+| O3 | `/inventory` | Search **Lightning Bolt** — **In packing (OPEN)** ≥ 1 while **MTG-0001** bolts remain sellable |
+
+Skip O1–O3 if you already verified OPEN exclusion during smoke.
+
+| # | Route | You do | Pass if |
+|---|-------|--------|---------|
+| 1 | `/inventory` | Search **Lightning Bolt** | **MTG-0001** listed with positions 1–2, status SEALED, location A / A-B01 |
+| 1b | `/inventory` | Search **Counterspell** | Global qty shows **LP: 4** (condition chips) |
+| 2 | `/inventory` | **Lightning Bolt** quantity panel | On hand ≥ 2, Available ≥ 2, In packing per OPEN block (if any) |
+| 3 | `/blocks` | Select **MTG-0001** and **MTG-0003** → move to **B-B01** | Both show B / B-B01 |
+| 4 | `/blocks` | **Entire bin** — move all from **A-B01** → **A-B02** | Any remaining A-B01 blocks now on A / A-B02 |
+| 5 | API | Webhook with no secret (Windows PowerShell 5.1): see below | **503**, no new order |
+| 6 | `/orders` | Import [`manapool-order-seed-wave.json`](fixtures/manapool-order-seed-wave.json) → **SEED-WAVE-001** | Order appears |
+| 6b | Order detail | **Generate pick list** | Pick detail opens |
+| 6c | `/pick/{id}` | Scroll list | **Wave 1** (shelf A — Lightning Bolt from **MTG-0001**) and **Wave 2** (shelf B — Path to Exile from **MTG-0003**) |
+| 2b | `/inventory` | Search **Lightning Bolt** again | **On pick lists = 1**, Available reduced by 1 |
+
+**Step 5 — Windows PowerShell 5.1 (single line):**
+
+```powershell
+curl.exe -s -o NUL -w "HTTP %{http_code}\n" -X POST "http://localhost:3000/api/webhooks/manapool" -H "Content-Type: application/json" -d "{\"manapoolOrderId\":\"smoke-test-unauth\",\"lines\":[{\"name\":\"Bolt\",\"quantity\":1,\"condition\":\"NM\",\"finish\":\"NONFOIL\",\"language\":\"en\"}]}"
+```
+
+Expect `HTTP 503`. Confirm `/orders` has no `smoke-test-unauth` row.
+
+**Step 6 prep:** Before import, ensure **MTG-0001** is on shelf **A** (e.g. A-B01 or A-B02) and **MTG-0003** on shelf **B** (B-B01). After Steps 3–4 you may need to move **MTG-0001** back to an **A** bin.
+
+**Fixture:** [`manapool-order-seed-wave.json`](fixtures/manapool-order-seed-wave.json) — line 1 **Lightning Bolt** (A only), line 2 **Path to Exile** (B only). Do not use `manapool-order-sample.json` (Test Cards).
+
+---
+
 ## When something feels wrong
 
 Paste into **Agent B** (fresh chat):

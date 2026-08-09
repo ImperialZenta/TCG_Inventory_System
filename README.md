@@ -1,5 +1,7 @@
 # TCG Chaos Inventory System
 
+**Forxia Industries Corp.**
+
 Block-based chaos inventory for **Magic: The Gathering**. Stage cards via ManaBox CSV, formalize into blocks on shelves and bins, export Mana Pool listings, import orders, and pick by location.
 
 ## Stack
@@ -39,6 +41,7 @@ Open [http://localhost:3000](http://localhost:3000).
 | Start (background) | `docker compose up -d` |
 | Stop | `docker compose down` |
 | Rebuild after code changes | `docker compose up --build` |
+| Apply schema after pull/rebuild | `docker compose exec app npm run db:migrate` (uses deploy, falls back to push) |
 | View logs | `docker compose logs -f app` |
 | Seed / re-seed | `docker compose exec app npm run db:seed` |
 | Run tests | `docker compose --profile test run --rm test` (or `npm run test:docker` if npm is on PATH) |
@@ -86,8 +89,9 @@ git add package.json package-lock.json
 | `STALE_BLOCK_DAYS` | Days without pick before block is stale (default 90) |
 | `MANAPOOL_EMAIL` | Mana Pool seller email (optional, for API) |
 | `MANAPOOL_API_TOKEN` | Mana Pool API token (optional) |
-| `MANAPOOL_WEBHOOK_SECRET` | HMAC secret for inbound order webhooks (optional) |
-| `CRON_SECRET` | Bearer token for `POST /api/cron/sync-manapool-orders` (optional) |
+| `MANAPOOL_WEBHOOK_SECRET` | HMAC secret for inbound order webhooks (**required in production**; routes return 503 if unset) |
+| `CRON_SECRET` | Bearer token for `POST /api/cron/sync-manapool-orders` (**required in production**) |
+| `ALLOW_INSECURE_INBOUND` | Set `true` for local dev only to allow webhook/cron without secrets |
 | `RUN_SEED` | Set `true` on container start to auto-seed |
 
 ## Supply-chain hygiene
@@ -138,10 +142,11 @@ Dockerfile
 | [SortSwift parity matrix](docs/backlog/PARITY-SORTSWIFT.md) | Gap analysis, dual inventory rationale, parity phasing |
 | [Intake strategy](docs/backlog/INTAKE-STRATEGY.md) | Scan → CSV → staging, the sort decision, recovery paths |
 | [Status audit, Aug 2026](docs/backlog/AUDIT-2026-08.md) | Status corrections found by reading the code |
+| [Sales literature](docs/sales/README.md) | **Forxia Industries Corp.** — [1-pager](docs/sales/PRODUCT-OVERVIEW.pdf), [2-pager roadmap](docs/sales/ROADMAP-AND-FEATURES.pdf), [6-pager strategy](docs/sales/AMAZON-6-PAGER.pdf) |
 
-**Implemented:** Docker stack, Shelf/Bin/Block model, settings, backup export/restore, Mana Pool CSV export, ManaBox position-indexed staging and formalize, block lifecycle and seal, guarded block removal and undo formalize, inventory event log with Activity feed, aging analytics, **Phase 4 orders and picking** (Mana Pool import, pick lists, counter pick, TCGplayer pullsheet, pick metrics, pick integrity).
+**Implemented:** Docker stack, Shelf/Bin/Block model, settings, backup export/restore, Mana Pool CSV export, ManaBox position-indexed staging and formalize, block lifecycle and seal, guarded block removal and undo formalize, inventory event log with Activity feed, aging analytics, **Phase 4 orders and picking**, **Phase 5 polish** (card search, global quantity, bulk block transfer, pick waves, webhook/cron auth), **V-005 price persistence**.
 
-**Next (Phase 5):** Card search (**S-001**), global quantity (**S-004**), bulk block transfer (**O-002**), fix **V-005** price persistence defect.
+**Next (Phase 6):** Staff login (**ACC-***), sellable stock ledger (**SKU-***).
 
 ### Dual inventory direction
 
@@ -154,5 +159,3 @@ Phases 6+ pursue feature parity with SortSwift by adding a **second inventory mo
 | Sellable individually | No — sealed brick, picked by position | Yes — quantity syncs to channels |
 
 A physical card lives in exactly one mode; moving between them is an explicit, audited promote action. Chaos blocks are not being replaced — they remain the right answer for bulk that is not worth sorting.
-
-**Known defect blocking that work:** market prices fetched during CSV import are discarded at formalize, so every value figure in the app currently reads $0. Tracked as **V-005**; see the [audit](docs/backlog/AUDIT-2026-08.md).

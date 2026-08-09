@@ -8,6 +8,7 @@ import { markPickItemPicked } from "@/lib/pick/mark-item";
 import { reallocatePendingPickItems } from "@/lib/pick/reallocate";
 import { PickError } from "@/lib/pick/errors";
 import { TEST_CONTEXT } from "@/lib/context/domain-context";
+import { INVENTORY_EVENT_TYPES } from "@/lib/events";
 import { disconnectTestDb, resetTestDb } from "./helpers/db";
 import {
   createFormalizedImport,
@@ -154,10 +155,30 @@ describe("pick hold guard", () => {
 
     const itemAfter = await db.pickItem.findFirst({
       where: { pickListId },
-      include: { block: true },
+      include: { block: true, cardLine: true },
     });
     expect(itemAfter?.status).toBe("PENDING");
     expect(itemAfter?.blockedReason).toBeNull();
     expect(itemAfter?.block?.blockId).toBe(fixture.blockIds[1]);
+
+    const lowestOnTarget = await db.cardLine.findFirst({
+      where: { blockId: fixture.internalIds[1]! },
+      orderBy: { position: "asc" },
+    });
+    expect(itemAfter?.cardLineId).toBe(lowestOnTarget?.id);
+    expect(itemAfter?.cardLine?.position).toBe(lowestOnTarget?.position);
+
+    const subEvent = await db.inventoryEvent.findFirst({
+      where: { eventType: INVENTORY_EVENT_TYPES.PICK_ITEM_SUBSTITUTED },
+    });
+    expect(subEvent).not.toBeNull();
+    expect(subEvent?.payload).toMatchObject({
+      pickItemId: itemBefore!.id,
+      fromMtgBlockId: fixture.blockIds[0],
+      fromPosition: expect.any(Number),
+      toMtgBlockId: fixture.blockIds[1],
+      toPosition: lowestOnTarget?.position,
+      cardName: "Lightning Bolt",
+    });
   });
 });

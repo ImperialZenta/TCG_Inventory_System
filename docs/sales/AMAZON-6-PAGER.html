@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>TCG Chaos Inventory — Strategy Memo (Amazon 6-Pager) — Forxia Industries Corp.</title>
+  <style>
+    @page { size: letter; margin: 0.75in 0.85in; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Segoe UI", Georgia, "Times New Roman", serif;
+      font-size: 10.5pt;
+      line-height: 1.45;
+      color: #111;
+      margin: 0;
+      padding: 0.65in 0.75in;
+      max-width: 7in;
+    }
+    .cover { margin-bottom: 1.2em; border-bottom: 2px solid #111; padding-bottom: 0.6em; }
+    h1 { font-size: 14pt; font-weight: 700; margin: 0 0 0.2em; font-family: "Segoe UI", sans-serif; }
+    .meta { font-size: 9.5pt; color: #444; margin: 0; }
+    h2 {
+      font-size: 11pt;
+      font-weight: 700;
+      margin: 1.1em 0 0.35em;
+      font-family: "Segoe UI", sans-serif;
+      page-break-after: avoid;
+    }
+    h2:first-of-type { margin-top: 0.5em; }
+    p { margin: 0 0 0.65em; text-align: justify; }
+    ul { margin: 0 0 0.65em; padding-left: 1.25em; }
+    li { margin: 0.2em 0; }
+    .tenets li { font-weight: 500; }
+    .appendix {
+      page-break-before: always;
+      font-family: "Segoe UI", sans-serif;
+      font-size: 9pt;
+    }
+    .appendix h2 { font-size: 12pt; }
+    table { width: 100%; border-collapse: collapse; font-size: 8.5pt; margin: 0.4em 0 0.8em; }
+    th, td { border: 1px solid #999; padding: 0.3em 0.45em; vertical-align: top; text-align: left; }
+    th { background: #f0f0f0; }
+    .footer {
+      margin-top: 1.5em;
+      font-size: 8pt;
+      color: #666;
+      text-align: center;
+      font-family: "Segoe UI", sans-serif;
+    }
+    .format-note {
+      font-size: 8.5pt;
+      color: #555;
+      background: #f8f8f8;
+      border: 1px solid #ddd;
+      padding: 0.5em 0.65em;
+      margin-bottom: 1em;
+      font-family: "Segoe UI", sans-serif;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="cover">
+    <h1>TCG Chaos Inventory — Product Strategy Memo</h1>
+    <p class="meta"><strong>Forxia Industries Corp.</strong> · Narrative memo (Amazon 6-pager format) · August 2026 · Confidential</p>
+  </div>
+
+  <p class="format-note"><strong>About this format.</strong> Amazon’s “6-pager” is a narrative memo (~6 pages, single-spaced prose) used in place of slide decks: Introduction, Goals, Tenets, State of the Business, Lessons Learned, Strategic Priorities, plus an unlimited Appendix for tables and data. Readers consume it silently before discussion. This document follows that structure for TCG Chaos Inventory.</p>
+
+  <h2>1. Introduction</h2>
+  <p>Trading card game shops lose margin and staff time at the boundary between <em>bulk</em> and <em>sellable</em> inventory. A trade-in arrives as an unsorted pile; staff must decide what to brick for position-picking, what to sort for individual listing, and how to keep channels from overselling stock that does not exist. Most shop software assumes everything is already sorted into SKUs. That assumption breaks the moment a shop accepts a 3,000-card collection on a Saturday afternoon.</p>
+  <p><strong>TCG Chaos Inventory</strong>, developed by Forxia Industries Corp., is a self-hosted shop operating system built for that reality. Its differentiator is deliberate support for <strong>chaos blocks</strong>—sealed, position-indexed bulk inventory—alongside a planned <strong>sorted stock</strong> mode for individually sellable singles. A physical card lives in exactly one mode; moving between them is explicit and audited. The product runs on the shop’s own server (Docker + PostgreSQL). There is no platform commission and no vendor lock-in on inventory data.</p>
+  <p>Phases 1–4 of the product are largely complete: staging intake from ManaBox CSV, formalized blocks on shelves and bins, Mana Pool order import, and location-aware pick lists including hold, quarantine, and correction workflows. The strategic question for the next 12–18 months is whether to complete the path to full-shop parity—staff identity, sellable stock, autopricing, marketplace sync, counter POS, and buylist—without abandoning the bulk model that trade-in-heavy shops depend on.</p>
+
+  <h2>2. Goals</h2>
+  <p><strong>Output metrics</strong> (what success looks like for a pilot shop):</p>
+  <ul>
+    <li>Reduce time from trade-in scan to pickable inventory by 50% versus manual spreadsheet workflows.</li>
+    <li>Zero oversells on sorted stock once channel sync (Phase 9) is live.</li>
+    <li>Staff can answer “where is this card?” for bulk (block + position) or singles (SKU) in under 30 seconds.</li>
+    <li>Shop owner can export backup, restore, and operate without Forxia cloud dependency.</li>
+  </ul>
+  <p><strong>Input metrics</strong> (levers we control through engineering):</p>
+  <ul>
+    <li>Ship Phases 5–6 (pricing persistence, search, staff login, SKU ledger) within the next development cycle.</li>
+    <li>Complete minimum viable full-shop parity (Phases 6–10) before pursuing parked items (consignment, kiosk, SaaS multi-tenant).</li>
+    <li>Maintain dockerized regression tests for every money- or inventory-affecting workflow.</li>
+  </ul>
+
+  <h2>3. Tenets</h2>
+  <p>These principles resolve trade-offs without escalating every decision:</p>
+  <ul class="tenets">
+    <li><strong>Bulk honesty over fake SKUs.</strong> Do not force every common into a singles row. Chaos blocks exist because unsorted inventory is real; the system must model it natively.</li>
+    <li><strong>Self-hosted first.</strong> The shop owns the database and backup. SaaS hosting is a later option, not the default architecture.</li>
+    <li><strong>Audit before scale.</strong> No POS, buylist, or channel sync without staff identity on every event. Unattributed money movement cannot be retrofitted.</li>
+    <li><strong>CSV before API.</strong> Marketplace CSV templates ship before live integrations—they cover every channel at low risk and survive API outages.</li>
+    <li><strong>One promote bridge.</strong> Cards move from bulk to sorted stock only through an explicit, logged promote action—never implicitly.</li>
+    <li><strong>Speed over completeness on intake.</strong> Scan externally, review in staging, commit once. Perfect in-app camera scan is valuable but not blocking for MVP parity.</li>
+  </ul>
+
+  <h2>4. State of the Business</h2>
+  <p>As of August 2026, TCG Chaos Inventory is a working single-tenant deployment aimed at Magic: The Gathering shops with heavy trade-in volume. The application stack is Next.js 15, React 19, Prisma, and PostgreSQL 16, packaged in Docker. Domain logic lives in tested library modules; mutations write to an append-only inventory event log.</p>
+  <p><strong>What works end-to-end today:</strong> ManaBox CSV upload into staging; review and formalize into numbered blocks with position index; block lifecycle and sealed bricks; Mana Pool listing CSV export per block; Mana Pool order import; pick lists sorted by warehouse location with pick/short/substitute, renumber, counter pick, hold, quarantine, and correction intake; block aging analytics; JSON backup and restore; activity feed.</p>
+  <p><strong>What is incomplete or broken:</strong> Market prices fetched during import are not persisted at formalize, so dollar-based valuation reads zero—a defect blocking analytics value, autopricing, and buylist. Card search by name is stubbed. There is no authentication; the activity log cannot name an actor. Sorted stock, channel sync, POS, and buylist are specified but unbuilt. The parity target is SortSwift-class capability (multi-channel, rule-based pricing, basic POS) while retaining chaos blocks as a first-class mode.</p>
+  <p><strong>Market position:</strong> SortSwift and similar tools optimize for sorted singles and live quantity sync. We compete by serving shops whose workflow starts with unsorted bulk, then optionally promotes high-value cards to singles—without maintaining two disconnected systems.</p>
+
+  <h2>5. Lessons Learned</h2>
+  <p>Building Phases 1–4 validated several assumptions and overturned others. Staging as a commit point—review before formalize—was essential; shops distrust whole scans far more often than single-card errors, so undo-at-import-level mattered more than partial block surgery. Position-indexed intake proved necessary at scale: without pile order, pick lists become unrecoverable when a brick is wrong.</p>
+  <p>We learned that treating “partial” features as done is costly. Pick routing helpers existed before the pick UI shipped; price fetch existed before persistence—creating dashboards that imply value while showing $0. A August 2026 audit corrected backlog statuses against code; sales literature now derives from the same source of truth.</p>
+  <p>Dependency order for parity is non-negotiable: identity (ACC) before money features; price persistence (V-005) before autopricing; SKU ledger before channel sync and POS. Skipping this sequence produces rework. Deferred items—manual in-app intake, camera scan first, consignment, kiosk—were correctly parked; they do not unblock revenue for pilot shops.</p>
+
+  <h2>6. Strategic Priorities</h2>
+  <p><strong>Priority 1 — Finish the chaos-mode product (Phase 5).</strong> Ship pricing persistence so valuation and capital-in-inventory reports mean something. Deliver card search and global quantity. Harden inbound webhooks and cron authentication. Outcome: a shop can run bulk MTG operations credibly while we build sorted stock.</p>
+  <p><strong>Priority 2 — Foundation for sellable inventory (Phase 6).</strong> Staff accounts, roles, and actor on every event. Stock item ledger with reservations and a browser. Sort-to-stock at intake and promote-from-block bridge with cost basis. Outcome: the dual inventory model is real in software, not only on architecture diagrams.</p>
+  <p><strong>Priority 3 — Multi-game and intake review (Phase 7).</strong> Game registry and catalog providers; Pokémon as second game. Alternate printing picker and price overlay during staging review—most scan-parity value without camera ML first. Outcome: shops beyond MTG-only can pilot; review friction drops.</p>
+  <p><strong>Priority 4 — Autopricing (Phase 8).</strong> Scheduled refresh, ordered rule engine, per-channel configuration, bulk reprice, and rule explanation (“why this price?”). Outcome: staff stop hand-editing thousands of rows.</p>
+  <p><strong>Priority 5 — Channel sync (Phase 9).</strong> Channel registry, marketplace CSV templates, one live API channel, oversell guard, bidirectional quantity reconciliation, order ingestion, sync health. Outcome: sorted stock quantities stay truthful across channels.</p>
+  <p><strong>Priority 6 — Counter and buylist (Phase 10).</strong> POS cart against live stock, store credit, tax and receipts, returns; internal buylist engine before customer-facing submission portal. Outcome: in-store trade-in and sales loop inside the same system as online channels.</p>
+  <p><strong>Priority 7 — Unified fulfilment (Phase 11).</strong> Single order queue, fulfilment deduction, shipping labels and tracking, returns—after POS and channels produce orders. Outcome: one pick/ship workflow regardless of order source.</p>
+  <p>Parked until a pilot shop needs them commercially: consignment, advanced owner reporting, kiosk, events, native mobile, public API, multi-tenant SaaS (ADR-010 trigger-gated).</p>
+
+  <div class="appendix">
+    <h2>Appendix A — Feature summary (available today)</h2>
+    <table>
+      <tr><th>Area</th><th>Capabilities</th></tr>
+      <tr><td>Intake</td><td>ManaBox CSV, staging, block breakdown, position index, formalize, undo import, 5k+ cards/import</td></tr>
+      <tr><td>Inventory</td><td>Blocks, shelf/bin/location, lifecycle, move, seal, audit log</td></tr>
+      <tr><td>Picking</td><td>Mana Pool orders, location sort, pick/short/sub, hold, quarantine, counter pick, TCGplayer pullsheet</td></tr>
+      <tr><td>Analytics</td><td>Aging buckets, stale list (currency pending pricing fix)</td></tr>
+      <tr><td>Platform</td><td>Self-hosted Docker, backup/restore, Mana Pool CSV export</td></tr>
+    </table>
+
+    <h2>Appendix B — Roadmap phases</h2>
+    <table>
+      <tr><th>Phase</th><th>Theme</th><th>Key deliverables</th></tr>
+      <tr><td>5</td><td>Polish</td><td>Search, pricing persistence, bulk transfer, webhook auth</td></tr>
+      <tr><td>6</td><td>Foundation</td><td>Login, SKU ledger, sort/promote, reservations</td></tr>
+      <tr><td>7</td><td>Games &amp; scan</td><td>Pokémon, printing picker, price overlay</td></tr>
+      <tr><td>8</td><td>Autopricing</td><td>Rules, refresh, per-channel, bulk reprice</td></tr>
+      <tr><td>9</td><td>Channels</td><td>Sync, templates, oversell guard</td></tr>
+      <tr><td>10</td><td>Counter</td><td>POS, store credit, buylist</td></tr>
+      <tr><td>11</td><td>Shipping</td><td>Unified orders, labels, tracking</td></tr>
+    </table>
+
+    <h2>Appendix C — Amazon 6-pager section guide</h2>
+    <table>
+      <tr><th>Section</th><th>Typical length</th><th>Purpose</th></tr>
+      <tr><td>Introduction</td><td>½–1 page</td><td>Context, complication, resolution; hook the reader</td></tr>
+      <tr><td>Goals</td><td>½ page</td><td>Output metrics (results) and input metrics (levers)</td></tr>
+      <tr><td>Tenets</td><td>½ page</td><td>Decision principles that resolve trade-offs</td></tr>
+      <tr><td>State of the Business</td><td>~1 page</td><td>Data-driven snapshot of current performance and gaps</td></tr>
+      <tr><td>Lessons Learned</td><td>½–1 page</td><td>What worked and failed; informs priorities</td></tr>
+      <tr><td>Strategic Priorities</td><td>2–3 pages</td><td>Execution plan tied to goals</td></tr>
+      <tr><td>Appendix</td><td>Unlimited</td><td>Tables, charts, supporting detail</td></tr>
+    </table>
+    <p>References: Amazon narrative memo practice as described in industry summaries (e.g. sixpagermemo.com, Maestra.ai). Main body target: six pages; appendix excluded from page count.</p>
+  </div>
+
+  <div class="footer">Forxia Industries Corp. · TCG Chaos Inventory · Strategy memo (6-pager) · August 2026</div>
+
+</body>
+</html>

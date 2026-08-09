@@ -4,6 +4,7 @@ import type { DomainContext } from "@/lib/context/domain-context";
 import { INVENTORY_EVENT_TYPES, recordInventoryEvent } from "@/lib/events";
 import { allocateCardLineForOrderLine, getReservedCardLineIds } from "@/lib/pick/allocate";
 import { PickError } from "@/lib/pick/errors";
+import { assignWavesForPickList } from "@/lib/pick/waves";
 
 type TransactionClient = Prisma.TransactionClient;
 
@@ -127,6 +128,8 @@ export async function createPickListFromLines(
       pickListId: pickList.id,
       actor: actorLabel(ctx),
     });
+
+    await assignWavesForPickList(pickList.id, tx);
 
     return {
       pickListId: pickList.id,
