@@ -14,7 +14,7 @@ Epic 11 (**GAM-**) generalises this epic beyond MTG. Nothing here is thrown away
 | C-004 | Cache Scryfall data locally | Should | — |
 | C-005 | Bulk line entry | Should | Done |
 | C-006 | Set-level shortcuts | Could | — |
-| C-007 | ManaBox condition grades map to TCGplayer-aligned internal scale | Must | Partial |
+| C-007 | ManaBox condition grades map to TCGplayer-aligned internal scale | Must | Done |
 
 ---
 
@@ -243,12 +243,12 @@ Feature: C-006 Set-level shortcuts
 | **I want** | `near_mint` and the other ManaBox grades to import as the TCGplayer-aligned internal codes |
 | **So that** | staging, block detail, and Mana Pool listing export show the grade I set at the counter |
 
-**Priority:** Must · **Status:** Partial — map + integration tests (upload, formalize, label); prod re-import pending before `@done`
+**Priority:** Must · **Status:** Done · **Deploy:** `store-v1` (`b4ef198`); prod re-import verified 2026-08-09
 
 **Architecture:** [ADR-012](../../architecture/adr/012-condition-vocabulary-import-mapping.md)
 
 ```gherkin
-@pending
+@done
 Feature: C-007 ManaBox condition import mapping
 
   Scenario: near_mint imports as Near Mint
@@ -272,4 +272,4 @@ Feature: C-007 ManaBox condition import mapping
     Then the block card line has condition NM
 ```
 
-**Cross-ref:** **C-003** (internal enum), **I-009** (ManaBox upload), **GAM-006** (future multi-game vocab). Recovery on prod: re-upload CSV after deploy — no schema migration.
+**Cross-ref:** **C-003** (internal enum), **I-009** (ManaBox upload), **GAM-006** (future multi-game vocab). Prod recovery: re-upload CSV after deploy (verified on store 2026-08-09).

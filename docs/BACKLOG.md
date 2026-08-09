@@ -92,7 +92,7 @@ The two inventory modes coexist. A physical card is in exactly one of them, and 
 | C-004 | Cache Scryfall data locally | Should | — |
 | C-005 | Bulk line entry | Should | Done |
 | C-006 | Set-level shortcuts | Could | — |
-| C-007 | ManaBox condition grades map to TCGplayer-aligned internal scale | Must | Partial |
+| C-007 | ManaBox condition grades map to TCGplayer-aligned internal scale | Must | Done |
 
 ## Epic 3 — [Intake (Chaos Packing)](backlog/epic-03-intake.md) · `I-`
 
