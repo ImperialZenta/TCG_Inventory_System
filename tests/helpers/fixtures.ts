@@ -75,7 +75,7 @@ export async function formalizeImport(
     binAssignments[i] = binId;
   }
 
-  const blockIds = await formalizeStagingImport(importId, binAssignments);
+  const blockIds = await formalizeStagingImport(TEST_CONTEXT, importId, binAssignments);
 
   const blocks = await db.block.findMany({
     where: { blockId: { in: blockIds } },
@@ -167,11 +167,11 @@ export async function createTestExternalOrder(
 
 /** Seal and activate blocks so they are pickable. */
 export async function makeBlocksPickable(internalIds: string[]): Promise<void> {
-  await sealOpenBlocksByInternalIds(internalIds);
+  await sealOpenBlocksByInternalIds(TEST_CONTEXT, internalIds);
   for (const id of internalIds) {
     const block = await db.block.findUnique({ where: { id } });
     if (block) {
-      await transitionBlockStatus(block.blockId, "ACTIVATE");
+      await transitionBlockStatus(TEST_CONTEXT, block.blockId, "ACTIVATE");
     }
   }
 }

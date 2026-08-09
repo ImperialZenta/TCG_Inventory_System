@@ -15,12 +15,14 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:restore-test": "tsx scripts/restore-test.ts",
     "fixtures:from-db": "tsx scripts/generate-fixtures-from-db.ts",
+    "fixtures:staging": "tsx scripts/generate-staging-fixtures.ts",
     "test": "vitest run",
     "test:docker": "docker compose --profile test run --rm test",
     "test:watch": "vitest",
     "postinstall": "prisma generate"
   },
   "dependencies": {
+    "@node-rs/argon2": "^2.0.2",
     "@prisma/client": "^6.5.0",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",

@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { SYSTEM_CONTEXT } from "@/lib/context/domain-context";
+import { ForbiddenError } from "@/lib/auth/errors";
+import { PERMISSIONS, requirePermissionContext } from "@/lib/auth/permissions";
 import { createPickListFromLines } from "@/lib/pick/create-pick-list-from-lines";
 import {
   parseTcgplayerPullsheetCsv,
@@ -34,18 +35,22 @@ export async function importTcgplayerPullsheetAction(
       };
     }
 
+    const ctx = await requirePermissionContext(PERMISSIONS.PICK_OPERATIONS);
     const result = await createPickListFromLines(
       pullsheetRowsToPickLines(parsed.lines),
       {
         sourceLabel: "tcgplayer-pullsheet",
         notes: file.name,
       },
-      SYSTEM_CONTEXT,
+      ctx,
     );
 
     revalidatePath("/pick");
     redirect(`/pick/${result.pickListId}`);
   } catch (error) {
+    if (error instanceof ForbiddenError) {
+      return { ok: false, message: error.message };
+    }
     if (error instanceof PickError) {
       return { ok: false, message: error.message };
     }
@@ -83,6 +88,7 @@ export async function createCorrectionImportAction(
   }
 
   try {
+    const ctx = await requirePermissionContext(PERMISSIONS.PICK_OPERATIONS);
     const { importId } = await createCorrectionImport(
       {
         filename: `correction-${Date.now()}.csv`,
@@ -91,13 +97,16 @@ export async function createCorrectionImportAction(
         sourceMtgBlockId,
         sourceNotes: notes,
       },
-      SYSTEM_CONTEXT,
+      ctx,
     );
 
     revalidatePath("/staging");
     revalidatePath("/activity");
     redirect(`/staging/${importId}`);
   } catch (error) {
+    if (error instanceof ForbiddenError) {
+      return { ok: false, message: error.message };
+    }
     if (error instanceof Error && error.message === "NEXT_REDIRECT") {
       throw error;
     }

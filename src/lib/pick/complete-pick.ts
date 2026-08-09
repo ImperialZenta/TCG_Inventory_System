@@ -8,10 +8,6 @@ import { deleteCardLineAndRenumber } from "@/lib/pick/renumber-block";
 
 type TransactionClient = Prisma.TransactionClient;
 
-function actorLabel(ctx: DomainContext): string | null {
-  return ctx.actor?.email ?? ctx.actor?.id ?? null;
-}
-
 export async function executePickItem(
   pickItemId: string,
   ctx: DomainContext,
@@ -104,7 +100,7 @@ export async function executePickItemInTx(
     });
   }
 
-  await recordInventoryEvent(tx, {
+  await recordInventoryEvent(tx, ctx, {
     eventType: INVENTORY_EVENT_TYPES.PICK_ITEM_PICKED,
     payload: {
       pickListId: humanPickListId,
@@ -116,21 +112,21 @@ export async function executePickItemInTx(
     pickListId: item.pickListId,
     blockId: block.id,
     externalOrderId: item.externalOrderId,
-    actor: actorLabel(ctx),
   });
 
-  await recordInventoryEvent(tx, {
+  await recordInventoryEvent(tx, ctx, {
     eventType: INVENTORY_EVENT_TYPES.INVENTORY_DECREMENTED,
     payload: {
       cardLineId: cardLine.id,
       mtgBlockId: block.blockId,
+      position: pickedPosition,
+      cardName: cardLine.name,
       quantity: 1,
       pickItemId: item.id,
     },
     pickListId: item.pickListId,
     blockId: block.id,
     externalOrderId: item.externalOrderId,
-    actor: actorLabel(ctx),
   });
 }
 

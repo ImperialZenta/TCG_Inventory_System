@@ -33,6 +33,8 @@ docker compose exec app npm run db:seed
 
 Open [http://localhost:3000](http://localhost:3000).
 
+**First visit:** open `/setup` and create the owner account (or set `SEED_OWNER_EMAIL` / `SEED_OWNER_PASSWORD` in `.env` before seeding for a dev login).
+
 ### Day-to-day commands
 
 | Task | Command |
@@ -46,7 +48,7 @@ Open [http://localhost:3000](http://localhost:3000).
 | Seed / re-seed | `docker compose exec app npm run db:seed` |
 | Run tests | `docker compose --profile test run --rm test` (or `npm run test:docker` if npm is on PATH) |
 | Prisma Studio | `docker compose exec app npx prisma studio` |
-| Backup JSON | Settings → Download backup, or `/api/backup/export` |
+| Backup JSON | Settings → Download backup (requires sign-in), or `/api/backup/export` |
 | Restore backup | Settings → Backup section → upload JSON, type `RESTORE` |
 
 **Data persistence:** Inventory lives in the `pgdata` Docker volume. `docker compose down` keeps data. `docker compose down -v` wipes it.

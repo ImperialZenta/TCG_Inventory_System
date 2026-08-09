@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { getCurrentSession } from "@/lib/auth";
+import { roleCanPerform, PERMISSIONS } from "@/lib/auth/permissions";
 import { PageHeader } from "@/components/page-header";
 import { getShelvesWithBins, getBinUtilization } from "@/lib/location";
 import { db } from "@/lib/db";
@@ -12,10 +14,17 @@ import { DangerZone } from "./danger-zone";
 import { RestoreBackupForm } from "@/components/restore-backup-form";
 import { restoreBackupAction } from "./restore-actions";
 import { BackfillPricesForm } from "./backfill-prices-form";
+import { StaffAccountsLink } from "./staff-accounts-link";
 
 export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
+  const session = await getCurrentSession();
+  const role = session?.role ?? null;
+  const canManageStructure = roleCanPerform(role, PERMISSIONS.SETTINGS_STRUCTURE);
+  const canDangerZone = roleCanPerform(role, PERMISSIONS.DANGER_ZONE);
+  const canBackfill = roleCanPerform(role, PERMISSIONS.PRICING_BACKFILL);
+
   let shelves: Awaited<ReturnType<typeof getShelvesWithBins>> = [];
   let bins: Awaited<ReturnType<typeof getBinUtilization>> = [];
   let targetCount = "50";
@@ -47,18 +56,20 @@ export default async function SettingsPage() {
       )}
 
       <div className="grid gap-8 lg:grid-cols-2">
-        <section className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">
-          <h2 className="text-lg font-medium text-zinc-100">Shelves & Bins</h2>
-          <p className="mt-1 text-sm text-zinc-400">
-            Shelf code → Bin ID → Block. Bins accept unlimited blocks; utilization shows how many
-            are assigned.
-          </p>
+        {canManageStructure && (
+          <section className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">
+            <h2 className="text-lg font-medium text-zinc-100">Shelves & Bins</h2>
+            <p className="mt-1 text-sm text-zinc-400">
+              Shelf code → Bin ID → Block. Bins accept unlimited blocks; utilization shows how many
+              are assigned.
+            </p>
 
-          <SuggestedIds shelves={shelves} />
+            <SuggestedIds shelves={shelves} />
 
-          <AddShelfForm />
-          <AddBinForm shelves={shelves} />
-        </section>
+            <AddShelfForm />
+            <AddBinForm shelves={shelves} />
+          </section>
+        )}
 
         <div className="space-y-8">
           <section className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">
@@ -85,19 +96,21 @@ export default async function SettingsPage() {
             </div>
           </section>
 
-          <section className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">
-            <h2 className="text-lg font-medium text-zinc-100">Staging defaults</h2>
-            <TargetCountForm targetCount={targetCount} />
-            <DefaultBinForm
-              bins={bins.map((bin) => ({
-                id: bin.id,
-                binId: bin.binId,
-                shelfCode: bin.shelf?.code ?? "Unassigned",
-                used: bin.used,
-              }))}
-              defaultFormalizeBinId={defaultFormalizeBinId}
-            />
-          </section>
+          {canManageStructure && (
+            <section className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">
+              <h2 className="text-lg font-medium text-zinc-100">Staging defaults</h2>
+              <TargetCountForm targetCount={targetCount} />
+              <DefaultBinForm
+                bins={bins.map((bin) => ({
+                  id: bin.id,
+                  binId: bin.binId,
+                  shelfCode: bin.shelf?.code ?? "Unassigned",
+                  used: bin.used,
+                }))}
+                defaultFormalizeBinId={defaultFormalizeBinId}
+              />
+            </section>
+          )}
 
           <section className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">
             <h2 className="text-lg font-medium text-zinc-100">Backup & credentials</h2>
@@ -129,13 +142,20 @@ export default async function SettingsPage() {
                 Webhook URL:{" "}
                 <code className="text-zinc-300">/api/webhooks/manapool</code>
               </p>
+              <p>
+                <code className="text-zinc-300">SESSION_SECRET</code> — sign staff session cookies
+                (required in production)
+              </p>
             </div>
-            <Link
-              href="/api/backup/export"
-              className="mt-4 inline-flex rounded-lg bg-zinc-100 px-4 py-2 text-sm font-medium text-zinc-900"
-            >
-              Download backup JSON
-            </Link>
+            <StaffAccountsLink />
+            {canDangerZone && (
+              <Link
+                href="/api/backup/export"
+                className="mt-4 inline-flex rounded-lg bg-zinc-100 px-4 py-2 text-sm font-medium text-zinc-900"
+              >
+                Download backup JSON
+              </Link>
+            )}
             <Link
               href="/activity"
               className="mt-3 inline-flex text-sm text-zinc-400 hover:text-zinc-200"
@@ -143,16 +163,18 @@ export default async function SettingsPage() {
               View activity log →
             </Link>
 
-            <RestoreBackupForm action={restoreBackupAction} />
+            {canDangerZone && <RestoreBackupForm action={restoreBackupAction} />}
 
-            <BackfillPricesForm />
+            {canBackfill && <BackfillPricesForm />}
           </section>
         </div>
       </div>
 
-      <div className="mt-8">
-        <DangerZone />
-      </div>
+      {canDangerZone && (
+        <div className="mt-8">
+          <DangerZone />
+        </div>
+      )}
     </>
   );
 }

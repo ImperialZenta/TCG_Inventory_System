@@ -2,6 +2,7 @@ import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { db } from "@/lib/db";
 import { expandManaboxRowsToUnits, parseManaboxCsv } from "@/lib/manabox/csv-import";
 import { applyBreakdownToImport } from "@/lib/staging/apply-breakdown";
+import { TEST_CONTEXT } from "@/lib/context/domain-context";
 import { formalizeStagingImport } from "@/lib/staging/formalize";
 import { getDashboardStats, getBlocksWithStats } from "@/lib/blocks";
 import { sumLineValueCents } from "@/lib/money";
@@ -85,7 +86,7 @@ describe("V-005 price persistence", () => {
       },
     });
 
-    const blockIds = await formalizeStagingImport(stagingImport.id, { 1: binId });
+    const blockIds = await formalizeStagingImport(TEST_CONTEXT,stagingImport.id, { 1: binId });
     expect(blockIds).toHaveLength(1);
 
     const block = await db.block.findUnique({
@@ -123,7 +124,7 @@ describe("V-005 price persistence", () => {
       },
     });
 
-    await formalizeStagingImport(stagingImport.id, { 1: binId });
+    await formalizeStagingImport(TEST_CONTEXT,stagingImport.id, { 1: binId });
 
     const line = await db.cardLine.findFirst({ where: { name: "Unpriced Card" } });
     expect(line?.priceCents).toBeNull();
@@ -165,7 +166,7 @@ describe("V-005 price persistence", () => {
       },
     });
 
-    const blockIds = await formalizeStagingImport(stagingImport.id, { 1: binId });
+    const blockIds = await formalizeStagingImport(TEST_CONTEXT,stagingImport.id, { 1: binId });
     const block = await db.block.findUnique({
       where: { blockId: blockIds[0]! },
       include: { cards: true },
@@ -199,7 +200,7 @@ describe("V-005 price persistence", () => {
       },
     });
 
-    await formalizeStagingImport(stagingImport.id, { 1: binId });
+    await formalizeStagingImport(TEST_CONTEXT,stagingImport.id, { 1: binId });
 
     const stats = await getDashboardStats();
     expect(stats.totalValueCents).toBeGreaterThan(0);
@@ -252,7 +253,7 @@ describe("V-005 price persistence", () => {
     });
     expect(stagingCard?.priceCents).toBe(1250);
 
-    const blockIds = await formalizeStagingImport(importId, { 1: binId });
+    const blockIds = await formalizeStagingImport(TEST_CONTEXT,importId, { 1: binId });
     const line = await db.cardLine.findFirst({ where: { name: "Lightning Bolt" } });
     expect(line?.priceCents).toBe(1250);
     expect(blockIds).toHaveLength(1);
@@ -277,7 +278,7 @@ describe("V-005 price persistence", () => {
     ].join("\n");
 
     const importId = await persistStagingImportFromCsv(csv);
-    await formalizeStagingImport(importId, { 1: binId });
+    await formalizeStagingImport(TEST_CONTEXT,importId, { 1: binId });
 
     const line = await db.cardLine.findFirst({ where: { name: "Foil Test" } });
     expect(line?.priceCents).toBe(2200);
@@ -309,7 +310,7 @@ describe("V-005 price persistence", () => {
     });
     expect(stagingCard?.imageUri).toBe("https://example.com/card.jpg");
 
-    await formalizeStagingImport(importId, { 1: binId });
+    await formalizeStagingImport(TEST_CONTEXT,importId, { 1: binId });
     const line = await db.cardLine.findFirst({ where: { name: "Image Test" } });
     expect(line?.imageUri).toBe("https://example.com/card.jpg");
 
@@ -340,7 +341,7 @@ describe("V-005 price persistence", () => {
     });
     expect(stagingCard?.priceCents).toBeNull();
 
-    await formalizeStagingImport(importId, { 1: binId });
+    await formalizeStagingImport(TEST_CONTEXT,importId, { 1: binId });
     const line = await db.cardLine.findFirst({ where: { name: "Unpriced Print" } });
     expect(line?.priceCents).toBeNull();
 
@@ -394,7 +395,7 @@ describe("V-005 price persistence", () => {
       },
     });
 
-    const blockIds = await formalizeStagingImport(stagingImport.id, { 1: binId });
+    const blockIds = await formalizeStagingImport(TEST_CONTEXT,stagingImport.id, { 1: binId });
     const block = await db.block.findUnique({
       where: { blockId: blockIds[0]! },
       include: { cards: true },

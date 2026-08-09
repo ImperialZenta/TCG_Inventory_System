@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import type { SettingsActionResult } from "./actions";
+import { ForbiddenError } from "@/lib/auth/errors";
+import { PERMISSIONS, requirePermissionContext } from "@/lib/auth/permissions";
 import { BackupValidationError, restoreInventoryBackup } from "@/lib/backup-restore";
 
 const REVALIDATE_PATHS = ["/", "/settings", "/blocks", "/staging", "/orders", "/pick", "/analytics"];
@@ -27,14 +29,18 @@ export async function restoreBackupAction(
   }
 
   try {
+    const ctx = await requirePermissionContext(PERMISSIONS.DANGER_ZONE);
     const raw = await file.text();
-    const summary = await restoreInventoryBackup(raw);
+    const summary = await restoreInventoryBackup(ctx, raw);
     revalidateInventoryPaths();
     return {
       ok: true,
       message: `Restored ${summary.blockCount} blocks, ${summary.binCount} bins`,
     };
   } catch (error) {
+    if (error instanceof ForbiddenError) {
+      return { ok: false, message: error.message };
+    }
     if (error instanceof BackupValidationError) {
       return { ok: false, message: error.message };
     }

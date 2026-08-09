@@ -50,8 +50,8 @@ export default async function OrdersPage() {
           <h2 className="text-lg font-medium text-zinc-100">Import test fixture</h2>
           <p className="mt-1 text-sm text-zinc-400">
             Upload JSON from{" "}
-            <code className="text-zinc-300">docs/fixtures/manapool-order-sample.json</code> — card
-            names must match formalized test blocks.
+            <code className="text-zinc-300">docs/fixtures/manapool-order-staging-01.json</code> —
+            card names must match formalized test blocks.
           </p>
           <div className="mt-4">
             <ImportFixtureForm />

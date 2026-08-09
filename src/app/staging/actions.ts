@@ -1,7 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
+import { ForbiddenError } from "@/lib/auth/errors";
+import { PERMISSIONS, requirePermissionContext } from "@/lib/auth/permissions";
 import { expandManaboxRowsToUnits, parseManaboxCsv } from "@/lib/manabox/csv-import";
 import { applyBreakdownToImport, getDefaultStagingTargetCount } from "@/lib/staging/apply-breakdown";
 import { getDefaultFormalizeBinId } from "@/lib/staging/defaults";
@@ -33,6 +36,19 @@ function revalidateStagingPaths() {
   }
 }
 
+/** Keeps the cause visible in the UI instead of collapsing every fault into one string. */
+function describeUnexpectedError(operation: string, error: unknown): string {
+  console.error(`[staging] ${operation} failed`, error);
+
+  if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    return `database error ${error.code}. Check the server log.`;
+  }
+  if (error instanceof Error && error.message) {
+    return `${error.message}. Check the server log.`;
+  }
+  return "unexpected error. Check the server log.";
+}
+
 function fail(log: ReturnType<typeof createUploadLogger>, message: string): StagingUploadResult {
   log.error(message);
   return { ok: false, log: log.entries, message };
@@ -43,6 +59,15 @@ export async function uploadStagingCsv(
   formData: FormData,
 ): Promise<StagingUploadResult> {
   const log = createUploadLogger();
+
+  try {
+    await requirePermissionContext(PERMISSIONS.STAGING_INTAKE);
+  } catch (e) {
+    if (e instanceof ForbiddenError) {
+      return fail(log, e.message);
+    }
+    throw e;
+  }
 
   const file = formData.get("csv");
   if (!(file instanceof File) || file.size === 0) {
@@ -184,11 +209,15 @@ export async function recalculateBreakdownAction(
   }
 
   try {
+    await requirePermissionContext(PERMISSIONS.STAGING_INTAKE);
     await applyBreakdownToImport(importId, targetCount);
     revalidatePath(`/staging/${importId}`);
     revalidatePath("/staging");
     return { ok: true, message: "Breakdown updated" };
-  } catch {
+  } catch (error) {
+    if (error instanceof ForbiddenError) {
+      return { ok: false, message: error.message };
+    }
     return { ok: false, message: "Recalculate failed" };
   }
 }
@@ -231,17 +260,21 @@ export async function formalizeStagingImportAction(
   }
 
   try {
-    const blockIds = await formalizeStagingImport(importId, binAssignments);
+    const ctx = await requirePermissionContext(PERMISSIONS.STAGING_INTAKE);
+    const blockIds = await formalizeStagingImport(ctx, importId, binAssignments);
     revalidateStagingPaths();
     return {
       ok: true,
       message: `Created ${blockIds.length} block(s): ${blockIds.join(", ")}`,
     };
   } catch (error) {
+    if (error instanceof ForbiddenError) {
+      return { ok: false, message: error.message };
+    }
     if (error instanceof FormalizeError) {
       return { ok: false, message: error.message };
     }
-    return { ok: false, message: "Formalize failed" };
+    return { ok: false, message: `Formalize failed — ${describeUnexpectedError("formalize", error)}` };
   }
 }
 
@@ -271,8 +304,18 @@ export async function deleteStagingImportAction(
     }
   }
 
+  let ctx;
+  try {
+    ctx = await requirePermissionContext(PERMISSIONS.STAGING_DELETE);
+  } catch (e) {
+    if (e instanceof ForbiddenError) {
+      return { ok: false, message: e.message };
+    }
+    throw e;
+  }
+
   await db.$transaction(async (tx) => {
-    await recordInventoryEvent(tx, {
+    await recordInventoryEvent(tx, ctx, {
       eventType: INVENTORY_EVENT_TYPES.STAGING_DELETED,
       payload: {
         importId,
@@ -306,7 +349,8 @@ export async function undoFormalizeImportAction(
   }
 
   try {
-    const result = await undoFormalizeImport(importId);
+    const ctx = await requirePermissionContext(PERMISSIONS.STAGING_UNDO);
+    const result = await undoFormalizeImport(ctx, importId);
     revalidateStagingPaths();
     revalidatePath("/settings");
     revalidatePath(`/staging/${importId}`);
@@ -316,9 +360,12 @@ export async function undoFormalizeImportAction(
       message: `Undid formalize for "${result.filename}" — removed ${result.blocksRemoved} block${result.blocksRemoved === 1 ? "" : "s"}. Re-upload your export file on Staging to start over. MTG IDs are not reused.`,
     };
   } catch (error) {
+    if (error instanceof ForbiddenError) {
+      return { ok: false, message: error.message };
+    }
     if (error instanceof UndoFormalizeError) {
       return { ok: false, message: error.message };
     }
-    return { ok: false, message: "Undo failed" };
+    return { ok: false, message: `Undo failed — ${describeUnexpectedError("undo formalize", error)}` };
   }
 }

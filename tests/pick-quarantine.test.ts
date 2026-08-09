@@ -129,10 +129,10 @@ describe("block quarantine (P-011 / P-012)", () => {
 
   it("refuses to quarantine a LIQUIDATED block", async () => {
     const fixture = await createFormalizedImport(binId, 1);
-    await sealOpenBlocksByInternalIds(fixture.internalIds);
-    await transitionBlockStatus(fixture.blockIds[0]!, "ACTIVATE");
-    await transitionBlockStatus(fixture.blockIds[0]!, "ARCHIVE");
-    await transitionBlockStatus(fixture.blockIds[0]!, "LIQUIDATE");
+    await sealOpenBlocksByInternalIds(TEST_CONTEXT,fixture.internalIds);
+    await transitionBlockStatus(TEST_CONTEXT, fixture.blockIds[0]!, "ACTIVATE");
+    await transitionBlockStatus(TEST_CONTEXT, fixture.blockIds[0]!, "ARCHIVE");
+    await transitionBlockStatus(TEST_CONTEXT, fixture.blockIds[0]!, "LIQUIDATE");
 
     await expect(
       quarantineBlockByMtgId(fixture.blockIds[0]!, "already gone", TEST_CONTEXT),

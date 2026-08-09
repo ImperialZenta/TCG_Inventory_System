@@ -69,7 +69,7 @@ async function moveOneBlockInTx(
     data: { binId: targetBin.id },
   });
 
-  await recordInventoryEvent(tx, {
+  await recordInventoryEvent(tx, ctx, {
     eventType: INVENTORY_EVENT_TYPES.BLOCK_MOVED,
     payload: {
       mtgBlockId: block.blockId,
@@ -77,7 +77,6 @@ async function moveOneBlockInTx(
       toBin: toLabel,
     },
     blockId: block.id,
-    actor: ctx.actor?.email ?? ctx.actor?.id ?? null,
   });
 
   return {

@@ -5,6 +5,8 @@ import type { DomainContext } from "@/lib/context/domain-context";
 
 const CRON_CONTEXT: DomainContext = {
   actor: { id: "cron:sync-orders" },
+  organizationId: null,
+  role: null,
   source: "api",
 };
 

@@ -1,0 +1,34 @@
+{
+  "orders": [
+    {
+      "id": "mp-staging-wave-001",
+      "reference": "STAGE-WAVE-001",
+      "lines": [
+        {
+          "id": "line-1",
+          "name": "Tusked Colossodon",
+          "setCode": "ktk",
+          "collectorNumber": "155",
+          "scryfallId": "2d511407-0c1e-4342-a578-ca557c6886fd",
+          "condition": "NM",
+          "finish": "NONFOIL",
+          "language": "en",
+          "quantity": 1,
+          "priceCents": 25
+        },
+        {
+          "id": "line-2",
+          "name": "Vesper Ghoul",
+          "setCode": "dis",
+          "collectorNumber": "57",
+          "scryfallId": "669efa40-be9a-4475-9bcb-3325518403b5",
+          "condition": "NM",
+          "finish": "NONFOIL",
+          "language": "en",
+          "quantity": 1,
+          "priceCents": 31
+        }
+      ]
+    }
+  ]
+}

@@ -33,7 +33,7 @@ Three contexts — don’t confuse them:
 | Goal | Fresh dev DB setup? | Layer 1 (Vitest) | Layer 2 (Agent B) | Layer 3 (smoke) |
 |------|---------------------|------------------|-------------------|-----------------|
 | Quick check after a small fix | No | **Yes** (~5 min) | Only if you touched a Must story’s behavior | Skip, or 2 min on the page you changed |
-| Same day, same area, tests green, dev DB still has Test Card blocks | No | **Yes** | If story status / Gherkin might change | **Focused** path only (see golden path steps for that story) |
+| Same day, same area, tests green, dev DB still has the staging fixture blocks | No | **Yes** | If story status / Gherkin might change | **Focused** path only (see golden path steps for that story) |
 | First time testing picking on this machine | **Yes** — staging CSV + seal (once) | **Yes** | Optional | Focused pick path |
 | After `docker compose down -v` or re-seed | **Yes** — smoke inventory setup | **Yes** | Optional | As much as you have time for |
 | Before `@done` or Done in BACKLOG | No | **Yes** | **Yes** — that story | Steps covering that story’s scenarios |
@@ -214,17 +214,19 @@ docker compose up -d
 docker compose exec app npm run db:seed
 ```
 
-Card names in [`fixtures/manapool-order-sample.json`](fixtures/manapool-order-sample.json) require **Test Card** inventory — seed alone gives Lightning Bolt on `MTG-0001`, which will not match the fixture.
+`db:seed` is non-destructive and safe to re-run on a populated database: it creates `MTG-0001`–`MTG-0003` only when those IDs are missing, and it raises the block and bin counters rather than resetting them. Seed alone does **not** give you inventory the pick fixtures can match — do the staging setup below.
 
-**One-time smoke inventory setup (~5 min):**
+**One-time smoke inventory setup (~8 min):**
 
 | Step | Where | Action | Pass if |
 |------|-------|--------|---------|
-| 1 | `/staging` | Upload [`fixtures/smoke-inventory-manabox.csv`](fixtures/smoke-inventory-manabox.csv) | Import appears in pending list |
-| 2 | Staging review | Open import; target count **2**; assign both suggested blocks to bin **A-B01** | Formalize succeeds |
-| 3 | Staging review or `/blocks` | **Seal** both new blocks (OPEN → SEALED) | Status SEALED; cards at positions 1–2 each |
+| 1 | `/staging` | Upload [`fixtures/staging-01-single-block.csv`](fixtures/staging-01-single-block.csv) | Import appears in pending list, 12 rows / 12 cards |
+| 2 | Staging review | Open import; assign the single block to bin **A-B01**; **Formalize** | Success message naming the new block ID — record it |
+| 3 | Staging review or `/blocks` | **Seal** the new block (OPEN → SEALED) | Status SEALED; 12 cards at positions 1–12 |
+| 4 | `/staging` | Upload [`fixtures/staging-04-shelf-b.csv`](fixtures/staging-04-shelf-b.csv) | Import appears, 6 rows / 6 cards |
+| 5 | Staging review | Assign the single block to a shelf **B** bin (**B-B01**); **Formalize**, then **Seal** | Block on shelf B, SEALED |
 
-See [fixtures/README.md](fixtures/README.md).
+Steps 4–5 are only needed for the wave path (Step 6 below). See [fixtures/README.md](fixtures/README.md) for what each slice contains.
 
 ---
 
@@ -234,8 +236,8 @@ Stories exercised: P-001, P-002, P-003, P-004, P-006, P-009, P-011, P-012, P-014
 
 | # | Route | You do | Pass if |
 |---|-------|--------|---------|
-| 1 | `/orders` | **Import test fixture** → choose `docs/fixtures/manapool-order-sample.json` | Success message; order **TEST-ORDER-001** in table |
-| 2 | `/orders/{id}` | Open order; review 2 lines (`Test Card B1-P1`, `B1-P2`) | Lines match fixture |
+| 1 | `/orders` | **Import test fixture** → choose `docs/fixtures/manapool-order-staging-01.json` | Success message; order **STAGE-ORDER-001** in table |
+| 2 | `/orders/{id}` | Open order; review 4 lines (`Leaping Lizard`, `Illusionary Terrain`, `Midnight Recovery`, `Fallen Angel`) | Lines match fixture |
 | 3 | Order detail | Click **Generate pick list** | Redirect or link to new pick list |
 | 4 | `/pick` | Confirm list under **Active** with item count | Status not COMPLETED |
 | 5 | `/pick/{id}` | Scan pick order top to bottom | Blocks grouped; shelf/bin order sensible |
@@ -253,8 +255,8 @@ Stories exercised: P-001, P-002, P-003, P-004, P-006, P-009, P-011, P-012, P-014
 
 | Branch | Route | Action |
 |--------|-------|--------|
-| Counter pick (P-005) | `/blocks/MTG-…` | **Counter pick** form — pick position 1 |
-| Pullsheet (P-007) | `/pick/import` | Upload `docs/fixtures/tcgplayer-pullsheet-sample.csv` |
+| Counter pick (P-005) | `/blocks/MTG-…` | **Counter pick** form on the staging-01 block — pick `Waterwhirl`, `Crackling Triton`, or `Griptide` (no fixture claims those) |
+| Pullsheet (P-007) | `/pick/import` | Upload `docs/fixtures/tcgplayer-pullsheet-staging-01.csv` (4 cards the order did not claim) |
 | Correction (P-013) | `/pick/{id}` ON_HOLD | **Import correction** → `/pick/correction` |
 
 ---
@@ -263,12 +265,65 @@ Stories exercised: P-001, P-002, P-003, P-004, P-006, P-009, P-011, P-012, P-014
 
 Run monthly or after staging/block changes.
 
-| Step | Route | Action |
-|------|-------|--------|
-| 1 | `/staging` | Upload smoke CSV again (or undo prior import first) |
-| 2 | Review | Formalize 2 blocks |
-| 3 | `/blocks` | Seal one block; leave one OPEN |
-| 4 | `/orders` + pick | Confirm OPEN block **not** allocated (P-001 guard) |
+| Step | Route | Action | Pass if |
+|------|-------|--------|---------|
+| 1 | `/staging` | Upload [`fixtures/staging-02-two-blocks.csv`](fixtures/staging-02-two-blocks.csv); set target count **10** | Review shows **2** suggested blocks of 10 cards |
+| 2 | Review | Assign block 1 to **A-B01**, block 2 to **A-B02**; Formalize | Two new block IDs, each in the bin you chose |
+| 3 | `/blocks` | Seal block 1; leave block 2 **OPEN** | One SEALED, one OPEN |
+| 4 | `/inventory` | Search a card from block 2 | Counted as **In packing (OPEN)**, not sellable |
+| 5 | `/staging` | Upload [`fixtures/staging-03-qty-split.csv`](fixtures/staging-03-qty-split.csv); set target count **8** | 3 suggested blocks; review flags `Kelsinko Ranger` and `Weakness` as split across blocks |
+| 6 | `/staging` | Upload [`fixtures/staging-05-undo.csv`](fixtures/staging-05-undo.csv), formalize, then **Undo formalize** (type `UNDO`) | Block removed; message says MTG IDs are not reused |
+
+---
+
+### ACC-003 smoke — access platform gate (~15 min)
+
+Stories exercised: **ACC-001**, **ACC-002**, **ACC-003**
+
+**Gate:** Do not flip `@pending` → `@done` for ACC-001 or ACC-002 until Agent B signs off automated coverage. Run this full checklist once **ACC-003** is implemented — it is the single manual smoke for the Phase 6 access trio.
+
+Automated coverage (Layer 1 before manual steps):
+
+| Story | Tests |
+|-------|-------|
+| ACC-001 | `tests/auth-*.test.ts` — middleware, API 401, session, bootstrap, users, pre-auth data |
+| ACC-002 | `tests/auth-permissions*.test.ts` — matrix, staff paths, UI markup, denial audit |
+| ACC-003 | `tests/auth-actor.test.ts`, `tests/auth-actor-ui.test.ts`, `tests/inventory-events.test.ts`, `tests/auth-pre-auth-data.test.ts`, `tests/cron-sync.test.ts` |
+
+**Agent B (before ACC-003 build):** Fresh chat → review **ACC-001** and **ACC-002** separately or in one pass. Fix gaps before starting ACC-003 implementation.
+
+#### A — Auth (ACC-001)
+
+| # | Route | You do | Pass if |
+|---|-------|--------|---------|
+| A1 | `/setup` or `/login` | Fresh DB → `/setup` creates owner; existing DB → sign in | Header shows your display name + **Sign out** |
+| A2 | `/blocks` (signed out) | Open in private window or after sign out | Redirect to `/login`; no block data |
+| A3 | API | `GET /api/backup/export` without session cookie | **401** JSON `{ "error": "Unauthorized" }` |
+| A4 | `/settings/users` | As owner: create staff, reset password, disable | Disabled account cannot sign in |
+
+#### B — Roles (ACC-002)
+
+**Setup:** As owner, create Manager, Staff, and Read-only accounts at `/settings/users` (keep Owner).
+
+| # | Role | Route | You do | Pass if |
+|---|------|-------|--------|---------|
+| B1 | Staff | `/settings` | Open settings | No **Danger zone**, no shelf/bin forms, no backup download |
+| B2 | Manager | `/settings` | Open settings | Shelf/bin forms visible; **Danger zone** still hidden |
+| B3 | Staff | `/blocks/{id}` | Open a removable block | No **Remove block** section |
+| B4 | Manager | `/blocks/{id}` | Same block | **Remove block** section visible (may still be blocked by pick history) |
+| B5 | Read-only | Nav | Sign in | No Staging, Orders, Pick, or Settings nav items |
+| B6 | Staff | API | `GET /api/backup/export` with staff cookie | **403** `{ "error": "Forbidden" }` |
+| B7 | Owner | `/activity` | After staff denial (B6) | `Permission denied` event with staff actor |
+
+#### C — Actor on events (ACC-003)
+
+| # | Role | Route | You do | Pass if |
+|---|------|-------|--------|---------|
+| C1 | Manager | `/blocks/{id}` | **Seal** an OPEN block | `/activity` seal event shows manager display name as actor |
+| C2 | Owner | `/activity` | Scan recent events | Each new mutation shows actor alongside what/when; pre-auth rows show unattributed (not guessed) |
+| C3 | Owner | `/activity` | Filter by a staff user | Only that user's actions listed |
+| C4 | Staff | `/pick/{id}` | Mark an item **Picked** | Pick event in `/activity` shows staff actor |
+| C5 | Owner | `/activity` | Find a system/cron event (e.g. price refresh when available) | Actor is **system**, not a person |
 
 ---
 
@@ -276,135 +331,21 @@ Run monthly or after staging/block changes.
 
 Stories exercised: **S-001**, **S-004**, **O-002**, **SAS-001**, **P-015**
 
+**Prerequisites:** Sign in at `/login` (or complete `/setup` on a fresh DB). Steps 1–2 need the staging-01 block from the one-time setup; step 6 also needs the staging-04 block on shelf B. Card details are in [`fixtures/golden-path-inventory-map.json`](fixtures/golden-path-inventory-map.json).
+
 | # | Route | You do | Pass if |
 |---|-------|--------|---------|
-| 1 | `/inventory` | Search a card name from seeded data (e.g. a card in your blocks) | Locations table lists block ID, position, status |
-| 2 | `/inventory` | Confirm quantity panel | Available excludes OPEN-block copies; allocated shows pick reservations |
+| 1 | `/inventory` | Search **Leaping Lizard** | Staging-01 block, position 1, location A / A-B01, status SEALED |
+| 1b | `/inventory` | Search **Legions of Lim-Dûl** (needs staging-03 formalized) | On hand **5**, spread across two blocks |
+| 2 | `/inventory` | Open the **Leaping Lizard** quantity panel | Available excludes OPEN-block copies; allocated shows pick reservations |
 | 3 | `/blocks` | Select 2 blocks; bulk transfer to another bin | Success message; locations update |
-| 4 | `/blocks` | Use "Entire bin" mode to move all blocks from one bin | All blocks in destination bin |
-| 5 | API | `POST /api/webhooks/manapool` with no secret configured | **503**, no order created |
-| 6 | `/orders` | Generate pick list spanning 2 shelves (move a block first if needed) | Pick detail shows **Wave 1**, **Wave 2** headers |
-
-**Prefer your existing imported blocks?** Use [Phase 5 golden path — existing inventory](#phase-5-golden-path--existing-inventory-ready-to-run) (no Test Cards, no seed).
-
----
-
-### Phase 5 golden path — existing inventory (ready to run)
-
-Uses **your ManaBox blocks** (`MTG-0001`, etc.) and fixtures in [`docs/fixtures/golden-path-inventory-map.json`](fixtures/golden-path-inventory-map.json). No Test Cards. Step 5 webhook: use the `curl.exe` one-liner in the seed section below (Windows PowerShell 5.1).
-
-**Prerequisites:** App running at http://localhost:3000. You already have ACTIVE/SEALED blocks (you do).
-
-| # | Route | You do | Pass if |
-|---|-------|--------|---------|
-| 1 | `/inventory` | Search **Leaping Lizard** | **MTG-0001**, position 1, location **BOX_001**, status ACTIVE |
-| 1b | `/inventory` | Search **Snow Devil** | Global qty **On hand 3**; condition chip **LP: 3** |
-| 2 | `/inventory` | **Leaping Lizard** quantity panel | On hand ≥ 1, Available ≥ 1 (skip OPEN/packing sub-check unless you have an OPEN block) |
-| 3 | `/blocks` | Tick **MTG-0001** + **MTG-0002** → bulk move to **B-B01** | Success; both show **B / B-B01** |
-| 4 | `/blocks` | **Entire bin** — source **BOX_001** → dest **A-B02** | Remaining blocks from BOX_001 now on **A-B02** |
-| 5 | API | Webhook (no secret) — `curl.exe` one-liner below | **HTTP 503**; no new order on `/orders` |
-| 6-prep | `/blocks` | Move **MTG-0006** to **B-B01**. Move **MTG-0001** back to **BOX_001** (shelf A) if needed | MTG-0001 on A bin; MTG-0006 on **B-B01** |
-| 6a | `/orders` | Import [`manapool-order-dev-wave.json`](fixtures/manapool-order-dev-wave.json) | Order **DEV-WAVE-001** |
+| 4 | `/blocks` | Use **Entire bin** mode to move all blocks from one bin | All blocks in destination bin |
+| 5 | API | `POST /api/webhooks/manapool` with no secret configured — `curl.exe` one-liner below | **503**, no order created |
+| 6-prep | `/blocks` | Confirm the staging-01 block is on a shelf **A** bin and the staging-04 block is on **B-B01** (steps 3–4 may have moved them) | One block per shelf |
+| 6a | `/orders` | Import [`manapool-order-staging-wave.json`](fixtures/manapool-order-staging-wave.json) | Order **STAGE-WAVE-001** appears |
 | 6b | Order detail | **Generate pick list** | Pick detail opens |
-| 6c | `/pick/{id}` | Scroll list | **Wave 1** = Leaping Lizard (MTG-0001); **Wave 2** = Homarid Spawning Bed (MTG-0006) |
-| 2b | `/inventory` | Search **Leaping Lizard** again | **On pick lists = 1**; Available −1 |
-
-**Step 5 — Windows PowerShell 5.1:**
-
-```powershell
-curl.exe -s -o NUL -w "HTTP %{http_code}\n" -X POST "http://localhost:3000/api/webhooks/manapool" -H "Content-Type: application/json" -d "{\"manapoolOrderId\":\"smoke-test-unauth\",\"lines\":[{\"name\":\"Bolt\",\"quantity\":1,\"condition\":\"NM\",\"finish\":\"NONFOIL\",\"language\":\"en\"}]}"
-```
-
-**Optional:** Import [`manapool-order-from-db.json`](fixtures/manapool-order-from-db.json) for a 16-line order sampled from your ACTIVE blocks (regenerate after big inventory changes — command in [`fixtures/README.md`](fixtures/README.md)).
-
----
-
-### Phase 5 golden path — seed inventory (no Test Cards) (~20 min)
-
-Uses **`db:seed`** blocks only — real card names (`Lightning Bolt`, `Counterspell`, `Path to Exile`). Same stories: **S-001**, **S-004**, **O-002**, **SAS-001**, **P-015**.
-
-#### Prerequisites
-
-**Option A — rebuild + seed (adds MTG-0003 automatically)**
-
-The app container bakes in `prisma/seed.ts` at **image build** time. If you added MTG-0003 locally but have not rebuilt, `db:seed` completes with “Seed complete” yet **does not create MTG-0003**.
-
-```powershell
-docker compose up --build -d
-docker compose exec app npm run db:seed
-```
-
-Confirm in the container: `docker compose exec app grep MTG-0003 prisma/seed.ts` should print a line (not “NOT FOUND”).
-
-**Important:** `db:seed` is **non-destructive**. It only creates `MTG-0001`–`MTG-0003` when those IDs are **missing**. If you already imported ManaBox CSVs into `MTG-0001` / `MTG-0002` / `MTG-0003` (50-card blocks), seed will **not** replace them with Lightning Bolt / Path to Exile. The blocks page showing **50 cards** is your real imported inventory, not a seed bug.
-
-**Option C — existing imported inventory (your current DB)**
-
-Skip seed demo blocks. Use real card names already in your blocks:
-
-| Step | Route | Action |
-|------|-------|--------|
-| C1 | `/blocks` | **Bulk move** block **MTG-0006** to bin **B-B01** (shelf B). Leave **MTG-0001** on **BOX_001** or **A-B01** (shelf A). |
-| C2 | `/orders` | Import [`manapool-order-dev-wave.json`](fixtures/manapool-order-dev-wave.json) → **DEV-WAVE-001** |
-| C3 | Order detail | **Generate pick list** |
-| C4 | `/pick/{id}` | **Wave 1** = **Leaping Lizard** (MTG-0001); **Wave 2** = **Homarid Spawning Bed** (MTG-0006 on B) |
-
-Search smoke on `/inventory`: try **Leaping Lizard** or **Swords to Plowshares** (cards you actually hold).
-
-Regenerate a larger order from live stock anytime:
-
-```powershell
-$env:DATABASE_URL = "postgresql://tcg:tcg@localhost:5432/tcg_inventory"
-npm run fixtures:from-db
-```
-
-Then import `manapool-order-from-db.json` at `/orders`.
-
-**Option B — no rebuild (staging CSV for shelf B)**
-
-If you cannot rebuild right now, create shelf-B stock manually:
-
-| Step | Route | Action |
-|------|-------|--------|
-| B1 | `/staging` | Upload [`smoke-seed-shelf-b-manabox.csv`](fixtures/smoke-seed-shelf-b-manabox.csv) |
-| B2 | Review | Formalize **1 block** to **B-B01**; **Seal** (or Seal + activate via lifecycle) |
-
-Use the new block ID (e.g. `MTG-0004`) instead of **MTG-0003** in the table below — same shelf **B / B-B01**, same card **Path to Exile**.
-
-**Seed blocks (after Option A or B):**
-
-| Block | Shelf / bin | Cards |
-|-------|-------------|--------|
-| **MTG-0001** | A / A-B01 | 2× Lightning Bolt (NM), 4× Counterspell (LP) — SEALED |
-| **MTG-0002** | B / B-B01 | Bulk commons line (not used for pick wave) |
-| **MTG-0003** | B / B-B01 | 1× Path to Exile (NM) — ACTIVE *(Option A only; or any sealed block on B-B01 from Option B)* |
-
-If **MTG-0003** is missing and you have not done Option B, re-run Option A (rebuild + seed).
-
-#### Optional — OPEN-block quantity check (Step 2a)
-
-Only needed if you have not already passed Step 2a another way:
-
-| Step | Route | Action |
-|------|-------|--------|
-| O1 | `/staging` | Upload [`smoke-seed-open-manabox.csv`](fixtures/smoke-seed-open-manabox.csv) |
-| O2 | Review | Formalize **1 block** to **A-B02**; do **not** seal |
-| O3 | `/inventory` | Search **Lightning Bolt** — **In packing (OPEN)** ≥ 1 while **MTG-0001** bolts remain sellable |
-
-Skip O1–O3 if you already verified OPEN exclusion during smoke.
-
-| # | Route | You do | Pass if |
-|---|-------|--------|---------|
-| 1 | `/inventory` | Search **Lightning Bolt** | **MTG-0001** listed with positions 1–2, status SEALED, location A / A-B01 |
-| 1b | `/inventory` | Search **Counterspell** | Global qty shows **LP: 4** (condition chips) |
-| 2 | `/inventory` | **Lightning Bolt** quantity panel | On hand ≥ 2, Available ≥ 2, In packing per OPEN block (if any) |
-| 3 | `/blocks` | Select **MTG-0001** and **MTG-0003** → move to **B-B01** | Both show B / B-B01 |
-| 4 | `/blocks` | **Entire bin** — move all from **A-B01** → **A-B02** | Any remaining A-B01 blocks now on A / A-B02 |
-| 5 | API | Webhook with no secret (Windows PowerShell 5.1): see below | **503**, no new order |
-| 6 | `/orders` | Import [`manapool-order-seed-wave.json`](fixtures/manapool-order-seed-wave.json) → **SEED-WAVE-001** | Order appears |
-| 6b | Order detail | **Generate pick list** | Pick detail opens |
-| 6c | `/pick/{id}` | Scroll list | **Wave 1** (shelf A — Lightning Bolt from **MTG-0001**) and **Wave 2** (shelf B — Path to Exile from **MTG-0003**) |
-| 2b | `/inventory` | Search **Lightning Bolt** again | **On pick lists = 1**, Available reduced by 1 |
+| 6c | `/pick/{id}` | Scroll the list | **Wave 1** = `Tusked Colossodon` (shelf A); **Wave 2** = `Vesper Ghoul` (shelf B) |
+| 2b | `/inventory` | Search **Tusked Colossodon** again | **On pick lists = 1**; Available reduced by 1 |
 
 **Step 5 — Windows PowerShell 5.1 (single line):**
 
@@ -414,9 +355,21 @@ curl.exe -s -o NUL -w "HTTP %{http_code}\n" -X POST "http://localhost:3000/api/w
 
 Expect `HTTP 503`. Confirm `/orders` has no `smoke-test-unauth` row.
 
-**Step 6 prep:** Before import, ensure **MTG-0001** is on shelf **A** (e.g. A-B01 or A-B02) and **MTG-0003** on shelf **B** (B-B01). After Steps 3–4 you may need to move **MTG-0001** back to an **A** bin.
+**Optional — larger order from live stock:** regenerate [`manapool-order-from-db.json`](fixtures/manapool-order-from-db.json) (16 lines sampled from ACTIVE blocks) with the command in [`fixtures/README.md`](fixtures/README.md), then import it at `/orders`.
 
-**Fixture:** [`manapool-order-seed-wave.json`](fixtures/manapool-order-seed-wave.json) — line 1 **Lightning Bolt** (A only), line 2 **Path to Exile** (B only). Do not use `manapool-order-sample.json` (Test Cards).
+---
+
+### Starting over on a dirty database
+
+The staging fixtures are the same every time, so the cheapest reset is to wipe inventory rather than reconcile it.
+
+| Want | Do |
+|------|-----|
+| Fresh inventory, keep shelves and bins | `/settings` → Danger zone → **Delete all card inventory** |
+| Fresh everything | `docker compose down -v`, then `docker compose up -d` and `docker compose exec app npm run db:seed` |
+| Undo one import | Staging review → **Undo formalize** (type `UNDO`), or **Discard staging** if you have not formalized |
+
+Undo formalize never reuses a block ID, so a partial reset leaves gaps. The two full wipes reset the counter, so you start again at **MTG-0001**. Either way the IDs will not match your last smoke log — record the new ones.
 
 ---
 
@@ -544,10 +497,16 @@ If hooks do not fire, restart Cursor or check **Settings → Hooks**.
 docker compose --profile test run --rm test
 ```
 
-**Agent B:**
+**Agent B (single story):**
 
 ```text
 Read .cursor/skills/spec-compliance-review/SKILL.md and review story {ID}
+```
+
+**Agent B (ACC gate — run before ACC-003 build):**
+
+```text
+Read .cursor/skills/spec-compliance-review/SKILL.md and review stories ACC-001 and ACC-002 in docs/backlog/epic-20-access-platform.md. Run docker tests. Report gaps; do not implement fixes.
 ```
 
 **Phase 4 closure audit:**

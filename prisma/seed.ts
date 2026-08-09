@@ -1,9 +1,60 @@
 import { PrismaClient, BlockStatus, BlockTier, BlockChannel } from "@prisma/client";
 import { LANGUAGES } from "./languages-data";
+import { ensureDefaultOrganization, seedOwnerFromEnvIfConfigured } from "../src/lib/auth/bootstrap";
 
 const prisma = new PrismaClient();
 
+/** Number of blocks and bins this script creates on a fresh database. */
+const SEEDED_COUNT = 3;
+
+async function highestSeededBlockNum(prefix: string): Promise<number> {
+  const blocks = await prisma.block.findMany({
+    where: { blockId: { startsWith: `${prefix}-` } },
+    select: { blockId: true },
+  });
+
+  let highest = 0;
+  for (const { blockId } of blocks) {
+    const suffix = blockId.slice(prefix.length + 1);
+    if (!/^\d+$/.test(suffix)) continue;
+    highest = Math.max(highest, Number(suffix));
+  }
+
+  return highest;
+}
+
+/**
+ * Seed is non-destructive and re-runnable, so it must never rewind a counter.
+ * Rewinding hands out IDs that already exist and every later formalize fails
+ * on the unique blockId.
+ */
+async function raiseSequences() {
+  const [blockSeq, binSeq, highestBlock, binCount] = await Promise.all([
+    prisma.blockSequence.findUnique({ where: { id: "mtg" } }),
+    prisma.binSequence.findUnique({ where: { id: "default" } }),
+    highestSeededBlockNum("MTG"),
+    prisma.bin.count(),
+  ]);
+
+  await prisma.blockSequence.update({
+    where: { id: "mtg" },
+    data: {
+      nextNum: Math.max(blockSeq?.nextNum ?? 1, highestBlock + 1, SEEDED_COUNT + 1),
+    },
+  });
+
+  await prisma.binSequence.update({
+    where: { id: "default" },
+    data: {
+      nextNum: Math.max(binSeq?.nextNum ?? 1, binCount + 1, SEEDED_COUNT + 1),
+    },
+  });
+}
+
 async function main() {
+  await ensureDefaultOrganization(process.env.SEED_ORG_NAME?.trim() || "Shop");
+  await seedOwnerFromEnvIfConfigured();
+
   for (const lang of LANGUAGES) {
     await prisma.language.upsert({
       where: { scryfallCode: lang.scryfallCode },
@@ -245,15 +296,7 @@ async function main() {
     });
   }
 
-  await prisma.blockSequence.update({
-    where: { id: "mtg" },
-    data: { nextNum: 4 },
-  });
-
-  await prisma.binSequence.update({
-    where: { id: "default" },
-    data: { nextNum: 4 },
-  });
+  await raiseSequences();
 
   console.log("Seed complete");
 }

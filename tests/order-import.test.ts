@@ -6,7 +6,7 @@ import { INVENTORY_EVENT_TYPES } from "@/lib/events";
 import { db } from "@/lib/db";
 import { disconnectTestDb, resetTestDb } from "./helpers/db";
 import { createTestExternalOrder } from "./helpers/fixtures";
-import fixtureJson from "../docs/fixtures/manapool-order-sample.json";
+import fixtureJson from "../docs/fixtures/manapool-order-staging-01.json";
 
 describe("order import", () => {
   beforeEach(async () => {
@@ -23,14 +23,14 @@ describe("order import", () => {
 
     const result = await importExternalOrder(orders[0]!, TEST_CONTEXT);
     expect(result.created).toBe(true);
-    expect(result.lineCount).toBe(2);
+    expect(result.lineCount).toBe(4);
 
     const stored = await db.externalOrder.findUnique({
       where: { id: result.externalOrderId },
       include: { lines: true },
     });
     expect(stored?.status).toBe("IMPORTED");
-    expect(stored?.lines).toHaveLength(2);
+    expect(stored?.lines).toHaveLength(4);
   });
 
   it("skips duplicate manapool order id", async () => {

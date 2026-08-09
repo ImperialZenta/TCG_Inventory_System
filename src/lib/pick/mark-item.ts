@@ -10,10 +10,6 @@ import { PickError } from "@/lib/pick/errors";
 import { getReservedCardLineIds } from "@/lib/pick/allocate";
 import type { ShortReason } from "@/lib/pick/types";
 
-function actorLabel(ctx: DomainContext): string | null {
-  return ctx.actor?.email ?? ctx.actor?.id ?? null;
-}
-
 export async function markPickItemSubstituted(
   pickItemId: string,
   alternateCardLineId: string,
@@ -65,7 +61,7 @@ export async function markPickItemSubstituted(
     const fromPosition = item.cardLine?.position ?? 0;
 
     if (fromMtgBlockId !== alternate.block.blockId || fromPosition !== alternate.position) {
-      await recordInventoryEvent(tx, {
+      await recordInventoryEvent(tx, ctx, {
         eventType: INVENTORY_EVENT_TYPES.PICK_ITEM_SUBSTITUTED,
         payload: {
           pickListId: item.pickList.pickListId,
@@ -79,7 +75,6 @@ export async function markPickItemSubstituted(
         pickListId: item.pickListId,
         blockId: alternate.block.id,
         externalOrderId: item.externalOrderId,
-        actor: actorLabel(ctx),
       });
     }
 
@@ -161,7 +156,7 @@ export async function markPickItemShort(
       });
     }
 
-    await recordInventoryEvent(tx, {
+    await recordInventoryEvent(tx, ctx, {
       eventType: INVENTORY_EVENT_TYPES.PICK_ITEM_SHORT,
       payload: {
         pickListId: item.pickList.pickListId,
@@ -173,7 +168,6 @@ export async function markPickItemShort(
       pickListId: item.pickListId,
       blockId: item.blockId,
       externalOrderId: item.externalOrderId,
-      actor: actorLabel(ctx),
     });
   });
 

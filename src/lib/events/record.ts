@@ -1,4 +1,6 @@
 import type { Prisma } from "@prisma/client";
+import type { DomainContext } from "@/lib/context/domain-context";
+import { inventoryEventActor } from "@/lib/context/actor";
 import {
   EVENT_PAYLOAD_SCHEMAS,
   type EventPayloadMap,
@@ -21,8 +23,14 @@ export interface RecordInventoryEventInput<T extends RecordableEventType> {
 
 export async function recordInventoryEvent<T extends RecordableEventType>(
   tx: TransactionClient,
-  input: RecordInventoryEventInput<T>,
+  inputOrCtx: RecordInventoryEventInput<T> | DomainContext,
+  inputMaybe?: RecordInventoryEventInput<T>,
 ): Promise<void> {
+  const input =
+    inputMaybe ??
+    (inputOrCtx as RecordInventoryEventInput<T>);
+  const ctx = inputMaybe ? (inputOrCtx as DomainContext) : undefined;
+
   const schema = EVENT_PAYLOAD_SCHEMAS[input.eventType];
   const payload = schema.parse(input.payload);
   const summary = buildEventSummary(input.eventType, payload as EventPayloadMap[T]);
@@ -37,7 +45,7 @@ export async function recordInventoryEvent<T extends RecordableEventType>(
       stagingImportId: input.stagingImportId ?? null,
       pickListId: input.pickListId ?? null,
       externalOrderId: input.externalOrderId ?? null,
-      actor: input.actor ?? null,
+      actor: input.actor ?? (ctx ? inventoryEventActor(ctx) : null),
     },
   });
 }

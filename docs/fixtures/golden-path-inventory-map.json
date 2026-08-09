@@ -1,46 +1,97 @@
 {
-  "description": "Phase 5 golden path — maps to YOUR current Chaos Inventory blocks (not Test Cards). Regenerate wave order if you change inventory.",
-  "blocks": {
-    "MTG-0001": { "bin": "BOX_001", "shelf": "SHELF_01", "status": "ACTIVE", "cards": 50 },
-    "MTG-0002": { "bin": "BOX_001", "shelf": "SHELF_01", "status": "ACTIVE", "cards": 50 },
-    "MTG-0006": { "bin": "BOX_001", "shelf": "SHELF_01", "status": "SEALED", "cards": 50 },
-    "MTG-0010": { "bin": "BOX_003", "shelf": "SHELF_01", "status": "SEALED", "cards": 4, "note": "Test Card block — ignore for this path" }
-  },
+  "description": "Which cards land where after formalizing the sequenced staging fixtures. Block IDs are allocated at formalize time, so record the IDs you get and use them for the rest of the golden path.",
+  "setup": [
+    {
+      "fixture": "staging-01-single-block.csv",
+      "rows": 12,
+      "units": 12,
+      "targetCount": 50,
+      "blocks": 1,
+      "bin": "shelf A bin (A-B01)",
+      "seal": true,
+      "note": "Source of every pick fixture below"
+    },
+    {
+      "fixture": "staging-02-two-blocks.csv",
+      "rows": 20,
+      "units": 20,
+      "targetCount": 10,
+      "blocks": 2,
+      "bin": "assign block 1 to A-B01 and block 2 to A-B02",
+      "seal": false,
+      "note": "Per-block bin override and the OPEN-block pick guard (P-001)"
+    },
+    {
+      "fixture": "staging-03-qty-split.csv",
+      "rows": 6,
+      "units": 24,
+      "targetCount": 8,
+      "blocks": 3,
+      "bin": "any",
+      "seal": false,
+      "note": "Kelsinko Ranger and Weakness each straddle a block boundary — review page flags them as split"
+    },
+    {
+      "fixture": "staging-04-shelf-b.csv",
+      "rows": 6,
+      "units": 6,
+      "targetCount": 50,
+      "blocks": 1,
+      "bin": "shelf B bin (B-B01)",
+      "seal": true,
+      "note": "Second wave in the wave order"
+    },
+    {
+      "fixture": "staging-05-undo.csv",
+      "rows": 4,
+      "units": 4,
+      "targetCount": 50,
+      "blocks": 1,
+      "bin": "any",
+      "seal": false,
+      "note": "Disposable — undo formalize, discard staging, delete staging"
+    }
+  ],
   "searchExamples": [
     {
-      "step": "1",
+      "step": "inventory search",
       "query": "Leaping Lizard",
-      "expectBlock": "MTG-0001",
+      "from": "staging-01-single-block.csv",
       "expectPosition": 1,
-      "expectLocation": "SHELF_01 / BOX_001"
+      "expectOnHand": 1
     },
     {
-      "step": "1b",
-      "query": "Snow Devil",
-      "expectOnHand": 3,
-      "expectConditionChip": "LP: 3",
-      "note": "Same printing, three copies on MTG-0001"
+      "step": "quantity rollup",
+      "query": "Legions of Lim-Dûl",
+      "from": "staging-03-qty-split.csv",
+      "expectOnHand": 5,
+      "note": "Five copies of one printing, spread across two blocks"
     },
     {
-      "step": "2b-after-pick",
+      "step": "after generating the pick list",
       "query": "Leaping Lizard",
       "expectOnPickLists": 1
     }
   ],
-  "wavePrep": {
-    "moveBlockToShelfB": "MTG-0006",
-    "destinationBin": "B-B01",
-    "leaveOnShelfA": "MTG-0001",
-    "orderFixture": "manapool-order-dev-wave.json",
-    "orderReference": "DEV-WAVE-001",
-    "wave1Card": { "name": "Leaping Lizard", "block": "MTG-0001" },
-    "wave2Card": { "name": "Homarid Spawning Bed", "block": "MTG-0006" }
-  },
-  "bulkMove": {
-    "step3SelectBlocks": ["MTG-0001", "MTG-0002"],
-    "step3DestinationBin": "B-B01",
-    "step4EntireBinSource": "BOX_001",
-    "step4EntireBinDestination": "A-B02",
-    "note": "After step 3, move MTG-0001 back to BOX_001 before step 6 if needed"
+  "pickFixtures": {
+    "order": {
+      "file": "manapool-order-staging-01.json",
+      "reference": "STAGE-ORDER-001",
+      "cards": ["Leaping Lizard", "Illusionary Terrain", "Midnight Recovery", "Fallen Angel"]
+    },
+    "pullsheet": {
+      "file": "tcgplayer-pullsheet-staging-01.csv",
+      "cards": ["Kheru Dreadmaw", "Disowned Ancestor", "Ainok Tracker", "Bloodfire Expert"]
+    },
+    "waveOrder": {
+      "file": "manapool-order-staging-wave.json",
+      "reference": "STAGE-WAVE-001",
+      "wave1": { "name": "Tusked Colossodon", "from": "staging-01-single-block.csv", "shelf": "A" },
+      "wave2": { "name": "Vesper Ghoul", "from": "staging-04-shelf-b.csv", "shelf": "B" }
+    },
+    "spare": {
+      "cards": ["Waterwhirl", "Crackling Triton", "Griptide"],
+      "note": "Untouched staging-01 cards — use for counter pick (P-005) and ad-hoc searches"
+    }
   }
 }

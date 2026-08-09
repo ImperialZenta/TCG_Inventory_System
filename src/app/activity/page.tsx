@@ -1,5 +1,8 @@
 import Link from "next/link";
 import { PageHeader, EmptyState } from "@/components/page-header";
+import { getCurrentSession } from "@/lib/auth";
+import { listUsers } from "@/lib/auth/users";
+import { formatActorDisplay, resolveActorDisplayNames } from "@/lib/context/actor";
 import {
   EVENT_CATEGORIES,
   formatEventTypeLabel,
@@ -16,6 +19,7 @@ interface ActivityPageProps {
   searchParams: Promise<{
     category?: string;
     q?: string;
+    actor?: string;
   }>;
 }
 
@@ -30,25 +34,43 @@ export default async function ActivityPage({ searchParams }: ActivityPageProps) 
   const query = await searchParams;
   const category = parseCategory(query.category);
   const search = query.q?.trim();
+  const actorFilter = query.actor?.trim();
+
+  const session = await getCurrentSession();
+  const isOwner = session?.role === "OWNER";
 
   let events: Awaited<ReturnType<typeof listInventoryEvents>> = [];
+  let userFilterOptions: Awaited<ReturnType<typeof listUsers>> = [];
   let dbError = false;
 
   try {
+    if (isOwner && session) {
+      userFilterOptions = await listUsers({
+        actor: { id: session.userId, displayName: session.displayName, email: session.email },
+        organizationId: session.organizationId,
+        role: session.role,
+        source: "ui",
+      });
+    }
+
     events = await listInventoryEvents({
       category: category === "all" ? undefined : category,
       mtgBlockId: search || undefined,
+      actor: actorFilter || undefined,
       limit: 100,
     });
   } catch {
     dbError = true;
   }
 
+  const actorLabels = await resolveActorDisplayNames(events.map((e) => e.actor));
+  const userMap = new Map(actorLabels);
+
   return (
     <>
       <PageHeader
         title="Activity"
-        description="Append-only inventory event log — block operations, staging, and (future) orders and picks."
+        description="Append-only inventory event log — who did what and when."
       />
 
       {dbError ? (
@@ -68,6 +90,7 @@ export default async function ActivityPage({ searchParams }: ActivityPageProps) 
                   const params = new URLSearchParams();
                   if (key !== "all") params.set("category", key);
                   if (search) params.set("q", search);
+                  if (actorFilter) params.set("actor", actorFilter);
                   const href = params.toString() ? `/activity?${params}` : "/activity";
 
                   return (
@@ -87,10 +110,41 @@ export default async function ActivityPage({ searchParams }: ActivityPageProps) 
               </div>
             </div>
 
+            {isOwner && userFilterOptions.length > 0 && (
+              <form className="flex min-w-[12rem] items-end gap-2" action="/activity" method="get">
+                {category !== "all" && (
+                  <input type="hidden" name="category" value={category} />
+                )}
+                {search && <input type="hidden" name="q" value={search} />}
+                <label className="block flex-1 text-xs font-medium uppercase tracking-wide text-zinc-500">
+                  User
+                  <select
+                    name="actor"
+                    defaultValue={actorFilter ?? ""}
+                    className="mt-2 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-100"
+                  >
+                    <option value="">All users</option>
+                    {userFilterOptions.map((user) => (
+                      <option key={user.id} value={user.id}>
+                        {user.displayName}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <button
+                  type="submit"
+                  className="rounded-lg border border-zinc-700 px-3 py-2 text-sm text-zinc-200 hover:bg-zinc-800"
+                >
+                  Filter
+                </button>
+              </form>
+            )}
+
             <form className="min-w-[14rem] flex-1" action="/activity" method="get">
               {category !== "all" && (
                 <input type="hidden" name="category" value={category} />
               )}
+              {actorFilter && <input type="hidden" name="actor" value={actorFilter} />}
               <label className="block text-xs font-medium uppercase tracking-wide text-zinc-500">
                 MTG block ID
                 <input
@@ -114,6 +168,7 @@ export default async function ActivityPage({ searchParams }: ActivityPageProps) 
                 <thead className="border-b border-zinc-800 bg-zinc-900/80 text-zinc-400">
                   <tr>
                     <th className="px-4 py-3 font-medium">When</th>
+                    <th className="px-4 py-3 font-medium">Who</th>
                     <th className="px-4 py-3 font-medium">Type</th>
                     <th className="px-4 py-3 font-medium">Summary</th>
                     <th className="px-4 py-3 font-medium">Links</th>
@@ -132,6 +187,9 @@ export default async function ActivityPage({ searchParams }: ActivityPageProps) 
                       <tr key={entry.id} className="bg-zinc-950/30">
                         <td className="whitespace-nowrap px-4 py-3 text-zinc-500">
                           {formatDate(entry.createdAt)}
+                        </td>
+                        <td className="px-4 py-3 text-zinc-300">
+                          {formatActorDisplay(entry.actor, userMap)}
                         </td>
                         <td className="px-4 py-3 text-zinc-400">
                           {formatEventTypeLabel(entry.eventType)}

@@ -1,6 +1,7 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { db } from "@/lib/db";
 import { removeBlockByBlockId } from "@/lib/blocks/remove";
+import { TEST_OWNER_CONTEXT, TEST_CONTEXT } from "@/lib/context/domain-context";
 import { sealOpenBlocksByInternalIds } from "@/lib/blocks/seal";
 import { transitionBlockStatus } from "@/lib/blocks/lifecycle";
 import { INVENTORY_EVENT_TYPES } from "@/lib/events";
@@ -21,7 +22,15 @@ describe("inventory events (B-013)", () => {
 
   it("records formalize and seal events", async () => {
     const fixture = await createFormalizedImport(binId, 2);
-    await sealOpenBlocksByInternalIds([fixture.internalIds[0]!]);
+    await sealOpenBlocksByInternalIds(TEST_OWNER_CONTEXT, [fixture.internalIds[0]!]);
+
+    const sealEvent = await db.inventoryEvent.findFirst({
+      where: {
+        eventType: INVENTORY_EVENT_TYPES.BLOCK_SEALED,
+        blockId: fixture.internalIds[0]!,
+      },
+    });
+    expect(sealEvent?.actor).toBe(TEST_OWNER_CONTEXT.actor!.id);
 
     const events = await listInventoryEvents({ category: "staging" });
     expect(events.some((e) => e.eventType === INVENTORY_EVENT_TYPES.STAGING_FORMALIZED)).toBe(
@@ -41,7 +50,7 @@ describe("inventory events (B-013)", () => {
     const fixture = await createFormalizedImport(binId, 1);
     const blockId = fixture.blockIds[0]!;
 
-    await removeBlockByBlockId(blockId);
+    await removeBlockByBlockId(TEST_OWNER_CONTEXT, blockId);
 
     const removed = await db.inventoryEvent.findFirst({
       where: { eventType: INVENTORY_EVENT_TYPES.BLOCK_REMOVED },
@@ -53,6 +62,7 @@ describe("inventory events (B-013)", () => {
       priorStatus: "OPEN",
     });
     expect(removed?.summary).toContain(blockId);
+    expect(removed?.actor).toBe(TEST_OWNER_CONTEXT.actor!.id);
 
     const bySearch = await listInventoryEvents({ mtgBlockId: blockId });
     expect(bySearch.length).toBeGreaterThan(0);
@@ -61,9 +71,9 @@ describe("inventory events (B-013)", () => {
   it("records lifecycle transitions in global feed", async () => {
     const fixture = await createFormalizedImport(binId, 1);
     const blockId = fixture.blockIds[0]!;
-    await sealOpenBlocksByInternalIds([fixture.internalIds[0]!]);
-    await transitionBlockStatus(blockId, "ACTIVATE");
-    await transitionBlockStatus(blockId, "ARCHIVE");
+    await sealOpenBlocksByInternalIds(TEST_CONTEXT, [fixture.internalIds[0]!]);
+    await transitionBlockStatus(TEST_CONTEXT, blockId, "ACTIVATE");
+    await transitionBlockStatus(TEST_CONTEXT, blockId, "ARCHIVE");
 
     const events = await listInventoryEvents({ category: "blocks", limit: 20 });
     const lifecycle = events.filter((e) => e.eventType === INVENTORY_EVENT_TYPES.BLOCK_LIFECYCLE);

@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import type { DomainContext } from "@/lib/context/domain-context";
 import { allocateNextBlockId } from "@/lib/blocks";
 import { getBinUtilization } from "@/lib/location";
 import { INVENTORY_EVENT_TYPES, recordInventoryEvent } from "@/lib/events";
@@ -51,6 +52,7 @@ function groupCardsBySuggestedBlock<T extends { suggestedBlock: number | null }>
 }
 
 export async function formalizeStagingImport(
+  ctx: DomainContext,
   importId: string,
   binAssignments: Record<number, string>,
 ): Promise<string[]> {
@@ -122,7 +124,7 @@ export async function formalizeStagingImport(
       data: { status: "ASSIGNED" },
     });
 
-    await recordInventoryEvent(tx, {
+    await recordInventoryEvent(tx, ctx, {
       eventType: INVENTORY_EVENT_TYPES.STAGING_FORMALIZED,
       payload: {
         importId,

@@ -1,5 +1,7 @@
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
+import type { DomainContext } from "@/lib/context/domain-context";
+import { requirePermission, PERMISSIONS } from "@/lib/auth/permissions";
 
 type TransactionClient = Prisma.TransactionClient;
 
@@ -37,18 +39,21 @@ export async function deleteOperationalInventory(tx: TransactionClient) {
   await resetBlockSequences(tx);
 }
 
-export async function deleteAllCardInventory() {
+export async function deleteAllCardInventory(ctx: DomainContext) {
+  await requirePermission(ctx, PERMISSIONS.DANGER_ZONE);
   await db.$transaction(deleteOperationalInventory);
 }
 
-export async function deleteAllBins() {
+export async function deleteAllBins(ctx: DomainContext) {
+  await requirePermission(ctx, PERMISSIONS.DANGER_ZONE);
   await db.$transaction(async (tx) => {
     await deleteOperationalInventory(tx);
     await tx.bin.deleteMany();
   });
 }
 
-export async function deleteAllShelves() {
+export async function deleteAllShelves(ctx: DomainContext) {
+  await requirePermission(ctx, PERMISSIONS.DANGER_ZONE);
   await db.$transaction(async (tx) => {
     await tx.bin.updateMany({ data: { shelfId: null } });
     await tx.shelf.deleteMany();
@@ -70,7 +75,8 @@ export async function wipeAllForRestore(tx: TransactionClient) {
   await tx.appSetting.deleteMany();
 }
 
-export async function deleteAllInventoryData() {
+export async function deleteAllInventoryData(ctx: DomainContext) {
+  await requirePermission(ctx, PERMISSIONS.DANGER_ZONE);
   await db.$transaction(async (tx) => {
     await wipeAllForRestore(tx);
     await resetBlockSequences(tx);

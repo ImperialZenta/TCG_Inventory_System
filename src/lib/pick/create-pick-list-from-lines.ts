@@ -8,10 +8,6 @@ import { assignWavesForPickList } from "@/lib/pick/waves";
 
 type TransactionClient = Prisma.TransactionClient;
 
-function actorLabel(ctx: DomainContext): string | null {
-  return ctx.actor?.email ?? ctx.actor?.id ?? null;
-}
-
 export interface AdHocPickLine {
   scryfallId?: string | null;
   name: string;
@@ -85,7 +81,7 @@ export async function createPickListFromLines(
             },
           });
 
-          await recordInventoryEvent(tx, {
+          await recordInventoryEvent(tx, ctx, {
             eventType: INVENTORY_EVENT_TYPES.PICK_ITEM_ALLOCATED,
             payload: {
               pickListId: humanPickListId,
@@ -96,7 +92,6 @@ export async function createPickListFromLines(
             },
             pickListId: pickList.id,
             blockId: allocation.blockId,
-            actor: actorLabel(ctx),
           });
         } else {
           await tx.pickItem.create({
@@ -118,7 +113,7 @@ export async function createPickListFromLines(
       }
     }
 
-    await recordInventoryEvent(tx, {
+    await recordInventoryEvent(tx, ctx, {
       eventType: INVENTORY_EVENT_TYPES.PICK_LIST_CREATED,
       payload: {
         pickListId: humanPickListId,
@@ -126,7 +121,6 @@ export async function createPickListFromLines(
         orderIds: [],
       },
       pickListId: pickList.id,
-      actor: actorLabel(ctx),
     });
 
     await assignWavesForPickList(pickList.id, tx);

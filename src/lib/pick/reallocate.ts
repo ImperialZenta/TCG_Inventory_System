@@ -9,10 +9,6 @@ import { PickError } from "@/lib/pick/errors";
 import { tryAutoReleaseHold } from "@/lib/pick/hold-list";
 import { assignWavesForPickList } from "@/lib/pick/waves";
 
-function actorLabel(ctx: DomainContext): string | null {
-  return ctx.actor?.email ?? ctx.actor?.id ?? null;
-}
-
 export async function reallocatePendingPickItems(
   pickListId: string,
   ctx: DomainContext,
@@ -84,7 +80,7 @@ export async function reallocatePendingPickItems(
 
       if (allocation) {
         if (fromMtgBlockId && fromPosition) {
-          await recordInventoryEvent(tx, {
+          await recordInventoryEvent(tx, ctx, {
             eventType: INVENTORY_EVENT_TYPES.PICK_ITEM_SUBSTITUTED,
             payload: {
               pickListId: pickList.pickListId,
@@ -98,7 +94,6 @@ export async function reallocatePendingPickItems(
             pickListId: pickList.id,
             blockId: allocation.blockId,
             externalOrderId: item.externalOrderId,
-            actor: actorLabel(ctx),
           });
         }
 
@@ -113,7 +108,7 @@ export async function reallocatePendingPickItems(
           },
         });
 
-        await recordInventoryEvent(tx, {
+        await recordInventoryEvent(tx, ctx, {
           eventType: INVENTORY_EVENT_TYPES.PICK_ITEM_ALLOCATED,
           payload: {
             pickListId: pickList.pickListId,
@@ -125,7 +120,6 @@ export async function reallocatePendingPickItems(
           pickListId: pickList.id,
           blockId: allocation.blockId,
           externalOrderId: item.externalOrderId,
-          actor: actorLabel(ctx),
         });
 
         reallocated++;

@@ -62,7 +62,9 @@ export function buildEventSummary<T extends RecordableEventType>(
     }
     case INVENTORY_EVENT_TYPES.INVENTORY_DECREMENTED: {
       const p = payload as EventPayloadMap[typeof INVENTORY_EVENT_TYPES.INVENTORY_DECREMENTED];
-      return `${p.mtgBlockId} · −${p.quantity} · pick item`;
+      const pos = p.position != null ? ` pos ${p.position}` : "";
+      const label = p.cardName ?? "pick item";
+      return `${p.mtgBlockId}${pos} · −${p.quantity} · ${label}`;
     }
     case INVENTORY_EVENT_TYPES.PICK_ITEM_SUBSTITUTED: {
       const p = payload as EventPayloadMap[typeof INVENTORY_EVENT_TYPES.PICK_ITEM_SUBSTITUTED];
@@ -84,6 +86,10 @@ export function buildEventSummary<T extends RecordableEventType>(
       const p = payload as EventPayloadMap[typeof INVENTORY_EVENT_TYPES.STAGING_CORRECTION_CREATED];
       const link = p.sourceMtgBlockId ? ` · from ${p.sourceMtgBlockId}` : "";
       return `Correction intake ${p.filename} · ${p.cardCount} card${p.cardCount === 1 ? "" : "s"}${link}`;
+    }
+    case INVENTORY_EVENT_TYPES.PERMISSION_DENIED: {
+      const p = payload as EventPayloadMap[typeof INVENTORY_EVENT_TYPES.PERMISSION_DENIED];
+      return `Permission denied: ${p.permission}`;
     }
     default:
       return eventType;
@@ -110,6 +116,7 @@ export function formatEventTypeLabel(eventType: string): string {
     [INVENTORY_EVENT_TYPES.BLOCK_QUARANTINED]: "Block quarantined",
     [INVENTORY_EVENT_TYPES.BLOCK_QUARANTINE_CLEARED]: "Quarantine cleared",
     [INVENTORY_EVENT_TYPES.STAGING_CORRECTION_CREATED]: "Correction intake",
+    [INVENTORY_EVENT_TYPES.PERMISSION_DENIED]: "Permission denied",
   };
   return labels[eventType] ?? eventType;
 }

@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
 import { searchScryfallCards } from "@/lib/scryfall";
+import { requireApiAuth } from "@/lib/auth/require-api-auth";
 
 export async function GET(request: Request) {
+  const auth = await requireApiAuth();
+  if (!auth.ok) {
+    return auth.response;
+  }
+
   const { searchParams } = new URL(request.url);
   const q = searchParams.get("q");
 

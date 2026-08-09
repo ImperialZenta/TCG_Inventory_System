@@ -7,10 +7,6 @@ import { PickError } from "@/lib/pick/errors";
 
 type TransactionClient = Prisma.TransactionClient;
 
-function actorLabel(ctx: DomainContext): string | null {
-  return ctx.actor?.email ?? ctx.actor?.id ?? null;
-}
-
 const QUARANTINABLE_STATUSES = ["SEALED", "ACTIVE"] as const;
 
 function lineHint(item: {
@@ -117,7 +113,7 @@ export async function quarantineBlockForPickingInTx(
     }
   }
 
-  await recordInventoryEvent(tx, {
+  await recordInventoryEvent(tx, ctx, {
     eventType: INVENTORY_EVENT_TYPES.BLOCK_QUARANTINED,
     payload: {
       mtgBlockId: block.blockId,
@@ -125,13 +121,12 @@ export async function quarantineBlockForPickingInTx(
       heldPickListIds: [...heldPickListIds],
     },
     blockId: block.id,
-    actor: actorLabel(ctx),
   });
 }
 
 export async function clearBlockPickHold(
   blockId: string,
-  ctx: DomainContext = { actor: null, source: "ui" },
+  ctx: DomainContext = { actor: null, organizationId: null, role: null, source: "ui" },
 ): Promise<void> {
   const block = await db.block.findUnique({ where: { id: blockId } });
   if (!block) {
@@ -167,11 +162,10 @@ export async function clearBlockPickHold(
       });
     }
 
-    await recordInventoryEvent(tx, {
+    await recordInventoryEvent(tx, ctx, {
       eventType: INVENTORY_EVENT_TYPES.BLOCK_QUARANTINE_CLEARED,
       payload: { mtgBlockId: block.blockId },
       blockId: block.id,
-      actor: actorLabel(ctx),
     });
 
     return [...new Set(pendingOnBlock.map((i) => i.pickListId))];

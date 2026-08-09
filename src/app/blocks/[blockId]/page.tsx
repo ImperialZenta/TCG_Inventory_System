@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { getCurrentSession } from "@/lib/auth";
+import { roleCanPerform, PERMISSIONS } from "@/lib/auth/permissions";
 import { PageHeader, Badge } from "@/components/page-header";
 import { db } from "@/lib/db";
 import {
@@ -66,6 +68,13 @@ export default async function BlockDetailPage({ params }: BlockDetailPageProps) 
     pickItemCount: block._count.pickItems,
   });
   const availableTransitions = getAvailableTransitions(block.status);
+
+  const session = await getCurrentSession();
+  const role = session?.role ?? null;
+  const canSealBlock = canSeal && roleCanPerform(role, PERMISSIONS.BLOCK_SEAL);
+  const canMoveBlock = roleCanPerform(role, PERMISSIONS.BLOCK_MOVE);
+  const canRemoveBlock = roleCanPerform(role, PERMISSIONS.BLOCK_REMOVE);
+  const canLifecycle = roleCanPerform(role, PERMISSIONS.BLOCK_LIFECYCLE);
 
   return (
     <>
@@ -180,7 +189,7 @@ export default async function BlockDetailPage({ params }: BlockDetailPageProps) 
         </section>
 
         <section className="space-y-6">
-          {canSeal && (
+          {canSealBlock && (
             <div>
               <h2 className="mb-4 text-lg font-medium text-zinc-100">Seal block</h2>
               <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
@@ -193,36 +202,42 @@ export default async function BlockDetailPage({ params }: BlockDetailPageProps) 
             </div>
           )}
 
-          <BlockLifecycleSection
-            blockId={block.blockId}
-            status={block.status}
-            availableTransitions={availableTransitions}
-          />
+          {canLifecycle && (
+            <BlockLifecycleSection
+              blockId={block.blockId}
+              status={block.status}
+              availableTransitions={availableTransitions}
+            />
+          )}
 
-          <div>
-            <h2 className="mb-4 text-lg font-medium text-zinc-100">Move block</h2>
-            <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-4">
-              <MoveBlockForm
-                blockId={block.blockId}
-                currentBinId={block.binId}
-                bins={binOptions}
-              />
+          {canMoveBlock && (
+            <div>
+              <h2 className="mb-4 text-lg font-medium text-zinc-100">Move block</h2>
+              <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-4">
+                <MoveBlockForm
+                  blockId={block.blockId}
+                  currentBinId={block.binId}
+                  bins={binOptions}
+                />
+              </div>
             </div>
-          </div>
+          )}
 
-          <div>
-            <h2 className="mb-4 text-lg font-medium text-red-200">Remove block</h2>
-            <div className="rounded-xl border border-red-900/40 bg-red-950/20 p-4">
-              <RemoveBlockForm
-                blockId={block.blockId}
-                cardCount={cardCount}
-                statusLabel={BLOCK_STATUS_LABELS[block.status]}
-                canRemove={removalEligibility.allowed}
-                removeBlockedReason={removalEligibility.reason}
-                removeRemediation={removalEligibility.remediation}
-              />
+          {canRemoveBlock && (
+            <div>
+              <h2 className="mb-4 text-lg font-medium text-red-200">Remove block</h2>
+              <div className="rounded-xl border border-red-900/40 bg-red-950/20 p-4">
+                <RemoveBlockForm
+                  blockId={block.blockId}
+                  cardCount={cardCount}
+                  statusLabel={BLOCK_STATUS_LABELS[block.status]}
+                  canRemove={removalEligibility.allowed}
+                  removeBlockedReason={removalEligibility.reason}
+                  removeRemediation={removalEligibility.remediation}
+                />
+              </div>
             </div>
-          </div>
+          )}
 
           <div>
             <h2 className="mb-4 text-lg font-medium text-zinc-100">Metadata</h2>

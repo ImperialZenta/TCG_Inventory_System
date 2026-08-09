@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import type { DomainContext } from "@/lib/context/domain-context";
 import { BLOCK_STATUS_LABELS } from "@/lib/constants";
 import { BLOCK_HAS_PICK_HISTORY_MESSAGE } from "@/lib/blocks/pick-guard";
 import { getLinkedBlocks } from "@/lib/staging/linked-blocks";
@@ -82,7 +83,10 @@ export async function getImportUndoSummary(importId: string): Promise<ImportUndo
   };
 }
 
-export async function undoFormalizeImport(importId: string): Promise<UndoFormalizeResult> {
+export async function undoFormalizeImport(
+  ctx: DomainContext,
+  importId: string,
+): Promise<UndoFormalizeResult> {
   const stagingImport = await db.stagingImport.findUnique({ where: { id: importId } });
 
   if (!stagingImport) {
@@ -135,7 +139,7 @@ export async function undoFormalizeImport(importId: string): Promise<UndoFormali
       await tx.block.delete({ where: { id: block.id } });
     }
 
-    await recordInventoryEvent(tx, {
+    await recordInventoryEvent(tx, ctx, {
       eventType: INVENTORY_EVENT_TYPES.STAGING_UNDO_FORMALIZE,
       payload: {
         importId,

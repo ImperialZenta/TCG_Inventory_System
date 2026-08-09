@@ -1,7 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { SYSTEM_CONTEXT } from "@/lib/context/domain-context";
+import { ForbiddenError } from "@/lib/auth/errors";
+import { PERMISSIONS, requirePermissionContext } from "@/lib/auth/permissions";
 import { backfillCardLinePrices } from "@/lib/pricing/backfill-prices";
 import type { BackfillUnresolved } from "@/lib/pricing/backfill-prices";
 
@@ -14,7 +15,8 @@ export async function backfillPricesAction(
 ): Promise<BackfillActionResult> {
   void _;
   try {
-    const result = await backfillCardLinePrices(SYSTEM_CONTEXT);
+    const ctx = await requirePermissionContext(PERMISSIONS.PRICING_BACKFILL);
+    const result = await backfillCardLinePrices(ctx);
 
     revalidatePath("/");
     revalidatePath("/blocks");
@@ -32,6 +34,9 @@ export async function backfillPricesAction(
       unresolved: result.unresolved,
     };
   } catch (error) {
+    if (error instanceof ForbiddenError) {
+      return { ok: false, message: error.message, unresolved: [] };
+    }
     return {
       ok: false,
       message: error instanceof Error ? error.message : "Backfill failed",

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { AppNav } from "@/components/app-nav";
+import { AppNavShell } from "@/components/app-nav-shell";
+import { SessionGate } from "@/components/session-gate";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -26,8 +27,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} min-h-screen antialiased`}>
-        <AppNav />
-        <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">{children}</main>
+        <AppNavShell />
+        <SessionGate>
+          <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">{children}</main>
+        </SessionGate>
       </body>
     </html>
   );

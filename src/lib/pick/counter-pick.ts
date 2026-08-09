@@ -10,10 +10,6 @@ type TransactionClient = Prisma.TransactionClient;
 
 const PICKABLE_BLOCK_STATUSES = ["SEALED", "ACTIVE"] as const;
 
-function actorLabel(ctx: DomainContext): string | null {
-  return ctx.actor?.email ?? ctx.actor?.id ?? null;
-}
-
 export interface CounterPickInput {
   mtgBlockId: string;
   position: number;
@@ -102,7 +98,7 @@ export async function recordCounterPick(
       },
     });
 
-    await recordInventoryEvent(tx, {
+    await recordInventoryEvent(tx, ctx, {
       eventType: INVENTORY_EVENT_TYPES.PICK_COUNTER,
       payload: {
         mtgBlockId: block.blockId,
@@ -111,19 +107,19 @@ export async function recordCounterPick(
       },
       pickListId: pickList.id,
       blockId: block.id,
-      actor: actorLabel(ctx),
     });
 
-    await recordInventoryEvent(tx, {
+    await recordInventoryEvent(tx, ctx, {
       eventType: INVENTORY_EVENT_TYPES.INVENTORY_DECREMENTED,
       payload: {
         cardLineId: cardLine.id,
         mtgBlockId: block.blockId,
+        position: pickedPosition,
+        cardName: cardLine.name,
         quantity: 1,
       },
       pickListId: pickList.id,
       blockId: block.id,
-      actor: actorLabel(ctx),
     });
 
     return {

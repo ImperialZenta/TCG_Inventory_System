@@ -386,3 +386,60 @@ model AppSetting {
   key   String @id
   value String
 }
+
+// ---------------------------------------------------------------------------
+// Access control (ACC-001) — tenant-shaped for ADR-010
+// ---------------------------------------------------------------------------
+
+enum MembershipRole {
+  OWNER
+  MANAGER
+  STAFF
+  READ_ONLY
+}
+
+model Organization {
+  id        String                   @id @default(cuid())
+  slug      String                   @unique @default("default")
+  name      String
+  createdAt DateTime                 @default(now())
+  members   OrganizationMembership[]
+}
+
+model User {
+  id           String                   @id @default(cuid())
+  email        String                   @unique
+  passwordHash String
+  displayName  String
+  enabled      Boolean                  @default(true)
+  createdAt    DateTime                 @default(now())
+  updatedAt    DateTime                 @updatedAt
+  memberships  OrganizationMembership[]
+  sessions     Session[]
+}
+
+model OrganizationMembership {
+  id             String         @id @default(cuid())
+  organizationId String
+  userId         String
+  role           MembershipRole
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt      DateTime       @default(now())
+
+  @@unique([organizationId, userId])
+  @@index([userId])
+}
+
+model Session {
+  id         String   @id @default(cuid())
+  userId     String
+  tokenHash  String   @unique
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  lastSeenAt DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}

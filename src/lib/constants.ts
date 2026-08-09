@@ -107,3 +107,12 @@ export const NAV_ITEMS = [
   { href: "/activity", label: "Activity" },
   { href: "/settings", label: "Settings" },
 ] as const;
+
+const READ_ONLY_HIDDEN_HREFS = new Set(["/staging", "/orders", "/pick", "/settings"]);
+
+export function navItemsForRole(role: import("@prisma/client").MembershipRole | null) {
+  if (role === "READ_ONLY") {
+    return NAV_ITEMS.filter((item) => !READ_ONLY_HIDDEN_HREFS.has(item.href));
+  }
+  return NAV_ITEMS;
+}

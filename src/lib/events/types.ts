@@ -21,6 +21,7 @@ export const INVENTORY_EVENT_TYPES = {
   BLOCK_QUARANTINED: "block.quarantined",
   BLOCK_QUARANTINE_CLEARED: "block.quarantine_cleared",
   STAGING_CORRECTION_CREATED: "staging.correction_created",
+  PERMISSION_DENIED: "auth.permission_denied",
 } as const;
 
 export type InventoryEventType =
@@ -121,6 +122,8 @@ const pickItemShortPayload = z.object({
 const inventoryDecrementedPayload = z.object({
   cardLineId: z.string(),
   mtgBlockId: z.string(),
+  position: z.number().int().positive(),
+  cardName: z.string(),
   quantity: z.number().int().positive(),
   pickItemId: z.string().optional(),
 });
@@ -159,6 +162,11 @@ const stagingCorrectionCreatedPayload = z.object({
   cardCount: z.number().int().nonnegative(),
 });
 
+const permissionDeniedPayload = z.object({
+  permission: z.string(),
+  source: z.enum(["ui", "api", "webhook", "test"]),
+});
+
 export const EVENT_PAYLOAD_SCHEMAS = {
   [INVENTORY_EVENT_TYPES.BLOCK_SEALED]: blockSealedPayload,
   [INVENTORY_EVENT_TYPES.BLOCK_LIFECYCLE]: blockLifecyclePayload,
@@ -178,6 +186,7 @@ export const EVENT_PAYLOAD_SCHEMAS = {
   [INVENTORY_EVENT_TYPES.BLOCK_QUARANTINED]: blockQuarantinedPayload,
   [INVENTORY_EVENT_TYPES.BLOCK_QUARANTINE_CLEARED]: blockQuarantineClearedPayload,
   [INVENTORY_EVENT_TYPES.STAGING_CORRECTION_CREATED]: stagingCorrectionCreatedPayload,
+  [INVENTORY_EVENT_TYPES.PERMISSION_DENIED]: permissionDeniedPayload,
 } as const;
 
 export type EventPayloadMap = {
@@ -199,6 +208,7 @@ export type EventPayloadMap = {
   [INVENTORY_EVENT_TYPES.BLOCK_QUARANTINED]: z.infer<typeof blockQuarantinedPayload>;
   [INVENTORY_EVENT_TYPES.BLOCK_QUARANTINE_CLEARED]: z.infer<typeof blockQuarantineClearedPayload>;
   [INVENTORY_EVENT_TYPES.STAGING_CORRECTION_CREATED]: z.infer<typeof stagingCorrectionCreatedPayload>;
+  [INVENTORY_EVENT_TYPES.PERMISSION_DENIED]: z.infer<typeof permissionDeniedPayload>;
 };
 
 export type RecordableEventType = keyof typeof EVENT_PAYLOAD_SCHEMAS;

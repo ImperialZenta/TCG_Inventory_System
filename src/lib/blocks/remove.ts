@@ -1,4 +1,6 @@
 import { db } from "@/lib/db";
+import type { DomainContext } from "@/lib/context/domain-context";
+import { requirePermission, PERMISSIONS } from "@/lib/auth/permissions";
 import {
   assertBlockHasNoPickItems,
   BLOCK_HAS_PICK_HISTORY_MESSAGE,
@@ -31,7 +33,11 @@ export interface RemoveBlockResult {
  * Clears staging links so formalized imports can be re-formalized or deleted
  * once all of their blocks are gone. Refuses when pick items still reference the block.
  */
-export async function removeBlockByBlockId(blockId: string): Promise<RemoveBlockResult> {
+export async function removeBlockByBlockId(
+  ctx: DomainContext,
+  blockId: string,
+): Promise<RemoveBlockResult> {
+  await requirePermission(ctx, PERMISSIONS.BLOCK_REMOVE);
   const block = await db.block.findUnique({
     where: { blockId },
     include: {
@@ -99,7 +105,7 @@ export async function removeBlockByBlockId(blockId: string): Promise<RemoveBlock
         data: { assignedBlockId: null },
       });
 
-      await recordInventoryEvent(tx, {
+      await recordInventoryEvent(tx, ctx, {
         eventType: INVENTORY_EVENT_TYPES.BLOCK_REMOVED,
         payload: {
           mtgBlockId: humanBlockId,

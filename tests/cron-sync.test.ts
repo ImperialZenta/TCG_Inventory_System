@@ -66,6 +66,12 @@ describe("cron sync-manapool-orders", () => {
 
     expect(res.status).toBe(200);
     expect(importBatchMock).toHaveBeenCalledOnce();
+    expect(importBatchMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actor: { id: "cron:sync-orders" },
+        source: "api",
+      }),
+    );
   });
 
   it("syncs when ALLOW_INSECURE_INBOUND is set without secret", async () => {

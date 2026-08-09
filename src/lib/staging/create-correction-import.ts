@@ -3,10 +3,6 @@ import type { DomainContext } from "@/lib/context/domain-context";
 import { INVENTORY_EVENT_TYPES, recordInventoryEvent } from "@/lib/events";
 import type { Condition, Finish } from "@prisma/client";
 
-function actorLabel(ctx: DomainContext): string | null {
-  return ctx.actor?.email ?? ctx.actor?.id ?? null;
-}
-
 export interface CorrectionCardInput {
   name: string;
   setCode: string;
@@ -63,7 +59,7 @@ export async function createCorrectionImport(
       },
     });
 
-    await recordInventoryEvent(tx, {
+    await recordInventoryEvent(tx, ctx, {
       eventType: INVENTORY_EVENT_TYPES.STAGING_CORRECTION_CREATED,
       payload: {
         importId: stagingImport.id,
@@ -74,7 +70,6 @@ export async function createCorrectionImport(
       },
       stagingImportId: stagingImport.id,
       pickListId: input.sourcePickListId,
-      actor: actorLabel(ctx),
     });
 
     return { importId: stagingImport.id };

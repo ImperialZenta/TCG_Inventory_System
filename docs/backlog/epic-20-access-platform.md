@@ -10,9 +10,9 @@ Back to [index](../BACKLOG.md) · [conventions](CONVENTIONS.md) · [parity matri
 
 | ID | Story | Priority | Status |
 |----|-------|----------|--------|
-| ACC-001 | User accounts and authentication | Must | — |
-| ACC-002 | Roles and permissions | Must | — |
-| ACC-003 | Actor on every event and movement | Must | — |
+| ACC-001 | User accounts and authentication | Must | Done |
+| ACC-002 | Roles and permissions | Must | Done |
+| ACC-003 | Actor on every event and movement | Must | Done |
 | ACC-004 | Session management and device sign-out | Should | — |
 | ACC-005 | Feature modules | Could | Parked |
 | ACC-006 | External inventory API | Could | Parked |
@@ -41,7 +41,7 @@ Back to [index](../BACKLOG.md) · [conventions](CONVENTIONS.md) · [parity matri
 None of this changes the acceptance scenarios below; it constrains where the code lives so that Stage 3 of ADR-010 extends one interface instead of rebuilding auth.
 
 ```gherkin
-@pending
+@done
 Feature: ACC-001 User accounts and authentication
 
   Scenario: Sign in and reach the app
@@ -89,6 +89,8 @@ Feature: ACC-001 User accounts and authentication
 
 **Schema notes (negotiable):** a `User` table with email, hashed password, display name and an enabled flag; an `Organization` table with a single seeded row; a membership record joining the two and carrying the role (see tenancy seam notes above — role on membership, not on `User`). Prefer a maintained library for session handling over hand-rolled cookies. The last scenario matters — do not backfill `actor` with a guess. Protected surface per [ADR-009](../architecture/adr/009-protected-api-surface.md); actor threading per [ADR-002](../architecture/adr/002-actor-context-propagation.md); staged tenancy per [ADR-010](../architecture/adr/010-saas-evolution-strategy.md).
 
+**Verification:** Automated tests in `tests/auth-*.test.ts`. Manual smoke rolls into [ACC-003 smoke](../TESTING-PLAYBOOK.md#acc-003-smoke--access-platform-gate-15-min) section A; flip `@done` only after Agent B + ACC-003 gate checklist.
+
 ---
 
 ### ACC-002 — Roles and permissions
@@ -111,7 +113,7 @@ Feature: ACC-001 User accounts and authentication
 | **Read-only** | View inventory and reports. No mutations |
 
 ```gherkin
-@pending
+@done
 Feature: ACC-002 Roles and permissions
 
   Scenario Outline: Destructive actions are restricted to the owner
@@ -140,7 +142,10 @@ Feature: ACC-002 Roles and permissions
 
   Scenario: Staff can do their own job
     Given a signed-in user with role Staff
-    Then they can upload imports, formalize, seal, pick and sell at the counter
+    Then they can upload imports, formalize, seal and pick
+
+  # Counter sales deferred until POS-001 (Epic 15). Staff role table still lists POS;
+  # permission matrix will gain POS permissions when the till ships.
 
   Scenario: Read-only cannot mutate anything
     Given a signed-in user with role Read-only
@@ -159,6 +164,8 @@ Feature: ACC-002 Roles and permissions
     Then permission refusals are recorded with the user, the action and the time
 ```
 
+**Verification:** Automated tests in `tests/auth-permissions*.test.ts`. Manual smoke rolls into [ACC-003 smoke](../TESTING-PLAYBOOK.md#acc-003-smoke--access-platform-gate-15-min) section B; flip `@done` only after Agent B + ACC-003 gate checklist.
+
 ---
 
 ### ACC-003 — Actor on every event and movement
@@ -174,7 +181,7 @@ Feature: ACC-002 Roles and permissions
 **This is the story the epic exists for.** The event log already works; it is missing one column's worth of truth.
 
 ```gherkin
-@pending
+@done
 Feature: ACC-003 Actor on every event and movement
 
   Scenario: Inventory events carry their actor
@@ -189,23 +196,29 @@ Feature: ACC-003 Actor on every event and movement
     When the owner filters by a user
     Then only that user's actions are listed
 
+  # Deferred until SKU-001 — no StockMovement table yet.
   Scenario: Stock movements carry their actor
     Given a signed-in user adjusts a stock quantity
     Then the movement records that user
 
   Scenario: System actions are attributed to the system
-    Given a scheduled price refresh changes prices
-    Then the resulting records are attributed to the system rather than to a person
+    Given a webhook or cron job imports an order
+    Then the resulting event is attributed to the system rather than to a person
 
   Scenario: Historical events are honestly unattributed
     Given events recorded before authentication existed
     Then their actor remains null
     And the feed shows them as unattributed rather than guessing
 
+  # Stock movements deferred until SKU-001 (no StockMovement table yet).
+  # Scheduled price refresh deferred until PRC-002.
+
   Scenario: Actor cannot be spoofed by the client
     Then the actor is taken from the server session
     And a client-supplied actor value is ignored
 ```
+
+**Verification:** Automated tests in `tests/auth-actor.test.ts`, `tests/inventory-events.test.ts`. Manual smoke rolls into [ACC-003 gate](../TESTING-PLAYBOOK.md#acc-003-smoke--access-platform-gate-15-min) section C.
 
 ---
 

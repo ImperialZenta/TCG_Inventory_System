@@ -11,15 +11,58 @@ export type BlockWithRelations = Block & {
   cards: CardLine[];
 };
 
-export async function allocateNextBlockId(client: TransactionClient | typeof db = db): Promise<string> {
-  const seq = await client.blockSequence.upsert({
-    where: { id: "mtg" },
-    update: { nextNum: { increment: 1 } },
-    create: { id: "mtg", nextNum: 2, prefix: "MTG" },
+const MAX_BLOCK_ID_ATTEMPTS = 5;
+
+export function formatBlockId(prefix: string, num: number): string {
+  return `${prefix}-${String(num).padStart(4, "0")}`;
+}
+
+/** Highest numeric suffix already used by a block, or 0 when none exist. */
+export async function highestBlockNumber(
+  client: TransactionClient | typeof db,
+  prefix: string,
+): Promise<number> {
+  const blocks = await client.block.findMany({
+    where: { blockId: { startsWith: `${prefix}-` } },
+    select: { blockId: true },
   });
 
-  const num = seq.nextNum - 1;
-  return `${seq.prefix}-${String(num).padStart(4, "0")}`;
+  let highest = 0;
+  for (const { blockId } of blocks) {
+    const suffix = blockId.slice(prefix.length + 1);
+    if (!/^\d+$/.test(suffix)) continue;
+    highest = Math.max(highest, Number(suffix));
+  }
+
+  return highest;
+}
+
+export async function allocateNextBlockId(client: TransactionClient | typeof db = db): Promise<string> {
+  for (let attempt = 0; attempt < MAX_BLOCK_ID_ATTEMPTS; attempt++) {
+    const seq = await client.blockSequence.upsert({
+      where: { id: "mtg" },
+      update: { nextNum: { increment: 1 } },
+      create: { id: "mtg", nextNum: 2, prefix: "MTG" },
+    });
+
+    const candidate = formatBlockId(seq.prefix, seq.nextNum - 1);
+    const taken = await client.block.findUnique({
+      where: { blockId: candidate },
+      select: { id: true },
+    });
+
+    if (!taken) return candidate;
+
+    // The counter fell behind the blocks that exist (a re-seed or restore rewound it).
+    // Fast-forward past the highest block so the next pass lands on a free ID.
+    const highest = await highestBlockNumber(client, seq.prefix);
+    await client.blockSequence.update({
+      where: { id: "mtg" },
+      data: { nextNum: highest + 1 },
+    });
+  }
+
+  throw new Error("Could not allocate an unused block ID");
 }
 
 export async function getNextBlockId(): Promise<string> {

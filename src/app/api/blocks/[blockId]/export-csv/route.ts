@@ -1,12 +1,18 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { aggregateCardLinesForListing, toManaPoolCsv } from "@/lib/manapool/csv-export";
+import { requireApiAuth } from "@/lib/auth/require-api-auth";
 
 interface RouteParams {
   params: Promise<{ blockId: string }>;
 }
 
 export async function GET(_request: Request, { params }: RouteParams) {
+  const auth = await requireApiAuth();
+  if (!auth.ok) {
+    return auth.response;
+  }
+
   const { blockId } = await params;
 
   const block = await db.block.findUnique({

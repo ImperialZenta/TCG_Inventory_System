@@ -4,10 +4,6 @@ import { INVENTORY_EVENT_TYPES, recordInventoryEvent } from "@/lib/events";
 import { OrderImportError } from "@/lib/pick/errors";
 import type { ImportedOrderDTO, OrderImportResult } from "@/lib/orders/types";
 
-function actorLabel(ctx: DomainContext): string | null {
-  return ctx.actor?.email ?? ctx.actor?.id ?? null;
-}
-
 export async function importExternalOrder(
   order: ImportedOrderDTO,
   ctx: DomainContext,
@@ -58,7 +54,7 @@ export async function importExternalOrder(
       include: { lines: true },
     });
 
-    await recordInventoryEvent(tx, {
+    await recordInventoryEvent(tx, ctx, {
       eventType: INVENTORY_EVENT_TYPES.ORDER_IMPORTED,
       payload: {
         externalOrderId: created.id,
@@ -68,7 +64,6 @@ export async function importExternalOrder(
         source: options?.importSource ?? (ctx.source === "webhook" ? "webhook" : ctx.source === "api" ? "api" : "api"),
       },
       externalOrderId: created.id,
-      actor: actorLabel(ctx),
     });
 
     return {

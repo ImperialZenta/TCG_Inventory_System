@@ -1,5 +1,6 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { db } from "@/lib/db";
+import { TEST_CONTEXT } from "@/lib/context/domain-context";
 import { sealOpenBlocksByInternalIds } from "@/lib/blocks/seal";
 import {
   getImportUndoSummary,
@@ -28,7 +29,7 @@ describe("undo formalize (I-023)", () => {
   it("removes all linked blocks and deletes the staging import", async () => {
     const fixture = await createFormalizedImport(binId, 3);
 
-    const result = await undoFormalizeImport(fixture.importId);
+    const result = await undoFormalizeImport(TEST_CONTEXT,fixture.importId);
 
     expect(result.blocksRemoved).toBe(3);
     expect(result.cardsRemoved).toBe(6);
@@ -59,7 +60,7 @@ describe("undo formalize (I-023)", () => {
     expect(before.canUndo).toBe(true);
     expect(before.blockCount).toBe(2);
 
-    await undoFormalizeImport(fixture.importId);
+    await undoFormalizeImport(TEST_CONTEXT,fixture.importId);
 
     const after = await getImportUndoSummary(fixture.importId);
     expect(after.canUndo).toBe(false);
@@ -68,16 +69,16 @@ describe("undo formalize (I-023)", () => {
 
   it("blocks undo when any linked block is sealed", async () => {
     const fixture = await createFormalizedImport(binId, 2);
-    await sealOpenBlocksByInternalIds([fixture.internalIds[0]!]);
+    await sealOpenBlocksByInternalIds(TEST_CONTEXT, [fixture.internalIds[0]!]);
 
     const summary = await getImportUndoSummary(fixture.importId);
     expect(summary.canUndo).toBe(false);
     expect(summary.blockReason).toMatch(/sealed/i);
 
-    await expect(undoFormalizeImport(fixture.importId)).rejects.toBeInstanceOf(
+    await expect(undoFormalizeImport(TEST_CONTEXT,fixture.importId)).rejects.toBeInstanceOf(
       UndoFormalizeError,
     );
-    await expect(undoFormalizeImport(fixture.importId)).rejects.toThrow(/sealed/i);
+    await expect(undoFormalizeImport(TEST_CONTEXT,fixture.importId)).rejects.toThrow(/sealed/i);
 
     const stillThere = await db.stagingImport.findUnique({
       where: { id: fixture.importId },
@@ -88,7 +89,7 @@ describe("undo formalize (I-023)", () => {
   it("blocks undo when import is not formalized", async () => {
     const { importId } = await createMultiBlockImport(2);
 
-    await expect(undoFormalizeImport(importId)).rejects.toThrow(/not formalized/i);
+    await expect(undoFormalizeImport(TEST_CONTEXT,importId)).rejects.toThrow(/not formalized/i);
 
     const summary = await getImportUndoSummary(importId);
     expect(summary.canUndo).toBe(false);
@@ -99,10 +100,10 @@ describe("undo formalize (I-023)", () => {
     const fixture = await createFormalizedImport(binId, 2);
     await seedPickItemForBlock(fixture.blockIds[0]!);
 
-    await expect(undoFormalizeImport(fixture.importId)).rejects.toBeInstanceOf(
+    await expect(undoFormalizeImport(TEST_CONTEXT,fixture.importId)).rejects.toBeInstanceOf(
       UndoFormalizeError,
     );
-    await expect(undoFormalizeImport(fixture.importId)).rejects.toThrow(
+    await expect(undoFormalizeImport(TEST_CONTEXT,fixture.importId)).rejects.toThrow(
       BLOCK_HAS_PICK_HISTORY_MESSAGE,
     );
 

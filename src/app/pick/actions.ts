@@ -1,7 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { SYSTEM_CONTEXT } from "@/lib/context/domain-context";
+import { ForbiddenError } from "@/lib/auth/errors";
+import { PERMISSIONS, requirePermissionContext } from "@/lib/auth/permissions";
 import { quarantineBlockByMtgId, clearBlockPickHold } from "@/lib/blocks/quarantine";
 import { holdPickList, resumePickList } from "@/lib/pick/hold-list";
 import { markPickItemPicked, markPickItemShort, markPickItemSubstituted } from "@/lib/pick/mark-item";
@@ -17,8 +18,13 @@ export interface PickActionResult {
 
 export async function pickItemAction(pickItemId: string, pickListId: string): Promise<void> {
   try {
-    await markPickItemPicked(pickItemId, SYSTEM_CONTEXT);
+    const ctx = await requirePermissionContext(PERMISSIONS.PICK_OPERATIONS);
+    await markPickItemPicked(pickItemId, ctx);
   } catch (error) {
+    if (error instanceof ForbiddenError) {
+      revalidatePath(`/pick/${pickListId}`);
+      throw new Error(error.message);
+    }
     const message = error instanceof PickError ? error.message : "Pick failed";
     revalidatePath(`/pick/${pickListId}`);
     throw new Error(message);
@@ -33,8 +39,9 @@ export async function substitutePickItemAction(
   pickListId: string,
   alternateCardLineId: string,
 ): Promise<void> {
+  const ctx = await requirePermissionContext(PERMISSIONS.PICK_OPERATIONS);
   try {
-    await markPickItemSubstituted(pickItemId, alternateCardLineId, SYSTEM_CONTEXT);
+    await markPickItemSubstituted(pickItemId, alternateCardLineId, ctx);
   } catch (error) {
     const message = error instanceof PickError ? error.message : "Substitute failed";
     revalidatePath(`/pick/${pickListId}`);
@@ -54,8 +61,9 @@ export async function shortPickItemAction(
     ? (reason as ShortReason)
     : "OTHER";
 
+  const ctx = await requirePermissionContext(PERMISSIONS.PICK_OPERATIONS);
   try {
-    await markPickItemShort(pickItemId, shortReason, SYSTEM_CONTEXT);
+    await markPickItemShort(pickItemId, shortReason, ctx);
     revalidatePath(`/pick/${pickListId}`);
     revalidatePath("/pick");
     revalidatePath("/activity");
@@ -72,8 +80,9 @@ export async function holdPickListAction(
   pickListId: string,
   reason: string,
 ): Promise<PickActionResult> {
+  const ctx = await requirePermissionContext(PERMISSIONS.PICK_OPERATIONS);
   try {
-    await holdPickList(pickListId, reason, SYSTEM_CONTEXT);
+    await holdPickList(pickListId, reason, ctx);
     revalidatePath(`/pick/${pickListId}`);
     revalidatePath("/pick");
     return { ok: true, message: "Pick list on hold" };
@@ -86,8 +95,9 @@ export async function holdPickListAction(
 }
 
 export async function resumePickListAction(pickListId: string): Promise<PickActionResult> {
+  const ctx = await requirePermissionContext(PERMISSIONS.PICK_OPERATIONS);
   try {
-    await resumePickList(pickListId, SYSTEM_CONTEXT);
+    await resumePickList(pickListId, ctx);
     revalidatePath(`/pick/${pickListId}`);
     revalidatePath("/pick");
     return { ok: true, message: "Pick list resumed" };
@@ -100,8 +110,9 @@ export async function resumePickListAction(pickListId: string): Promise<PickActi
 }
 
 export async function reallocatePickListAction(pickListId: string): Promise<PickActionResult> {
+  const ctx = await requirePermissionContext(PERMISSIONS.PICK_OPERATIONS);
   try {
-    const result = await reallocatePendingPickItems(pickListId, SYSTEM_CONTEXT);
+    const result = await reallocatePendingPickItems(pickListId, ctx);
     revalidatePath(`/pick/${pickListId}`);
     revalidatePath("/pick");
     return {
@@ -121,8 +132,9 @@ export async function quarantineBlockAction(
   pickListId: string,
   reason: string,
 ): Promise<PickActionResult> {
+  const ctx = await requirePermissionContext(PERMISSIONS.PICK_OPERATIONS);
   try {
-    await quarantineBlockByMtgId(mtgBlockId, reason, SYSTEM_CONTEXT);
+    await quarantineBlockByMtgId(mtgBlockId, reason, ctx);
     revalidatePath(`/pick/${pickListId}`);
     revalidatePath("/blocks");
     return { ok: true, message: `${mtgBlockId} quarantined` };
@@ -138,12 +150,13 @@ export async function clearBlockHoldAction(
   mtgBlockId: string,
   pickListId: string,
 ): Promise<PickActionResult> {
+  const ctx = await requirePermissionContext(PERMISSIONS.PICK_OPERATIONS);
   try {
     const block = await import("@/lib/db").then(({ db }) =>
       db.block.findUnique({ where: { blockId: mtgBlockId } }),
     );
     if (!block) throw new PickError("Block not found");
-    await clearBlockPickHold(block.id, SYSTEM_CONTEXT);
+    await clearBlockPickHold(block.id, ctx);
     revalidatePath(`/pick/${pickListId}`);
     revalidatePath("/blocks");
     return { ok: true, message: `${mtgBlockId} hold cleared` };

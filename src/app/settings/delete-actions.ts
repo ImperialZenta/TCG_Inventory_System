@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import type { SettingsActionResult } from "./actions";
+import { ForbiddenError } from "@/lib/auth/errors";
+import { PERMISSIONS, requirePermissionContext } from "@/lib/auth/permissions";
 import {
   deleteAllBins,
   deleteAllCardInventory,
@@ -25,6 +27,13 @@ function validateConfirmation(formData: FormData): SettingsActionResult | null {
   return null;
 }
 
+function forbiddenResult(error: unknown): SettingsActionResult | null {
+  if (error instanceof ForbiddenError) {
+    return { ok: false, message: error.message };
+  }
+  return null;
+}
+
 export async function deleteCardInventoryAction(
   _prev: SettingsActionResult | null,
   formData: FormData,
@@ -33,10 +42,13 @@ export async function deleteCardInventoryAction(
   if (error) return error;
 
   try {
-    await deleteAllCardInventory();
+    const ctx = await requirePermissionContext(PERMISSIONS.DANGER_ZONE);
+    await deleteAllCardInventory(ctx);
     revalidateInventoryPaths();
     return { ok: true, message: "Card inventory cleared" };
-  } catch {
+  } catch (e) {
+    const denied = forbiddenResult(e);
+    if (denied) return denied;
     return { ok: false, message: "Delete failed" };
   }
 }
@@ -49,10 +61,13 @@ export async function deleteAllBinsAction(
   if (error) return error;
 
   try {
-    await deleteAllBins();
+    const ctx = await requirePermissionContext(PERMISSIONS.DANGER_ZONE);
+    await deleteAllBins(ctx);
     revalidateInventoryPaths();
     return { ok: true, message: "All bins deleted" };
-  } catch {
+  } catch (e) {
+    const denied = forbiddenResult(e);
+    if (denied) return denied;
     return { ok: false, message: "Delete failed" };
   }
 }
@@ -65,10 +80,13 @@ export async function deleteAllShelvesAction(
   if (error) return error;
 
   try {
-    await deleteAllShelves();
+    const ctx = await requirePermissionContext(PERMISSIONS.DANGER_ZONE);
+    await deleteAllShelves(ctx);
     revalidateInventoryPaths();
     return { ok: true, message: "All shelves deleted" };
-  } catch {
+  } catch (e) {
+    const denied = forbiddenResult(e);
+    if (denied) return denied;
     return { ok: false, message: "Delete failed" };
   }
 }
@@ -81,10 +99,13 @@ export async function deleteAllInventoryAction(
   if (error) return error;
 
   try {
-    await deleteAllInventoryData();
+    const ctx = await requirePermissionContext(PERMISSIONS.DANGER_ZONE);
+    await deleteAllInventoryData(ctx);
     revalidateInventoryPaths();
     return { ok: true, message: "All inventory data deleted" };
-  } catch {
+  } catch (e) {
+    const denied = forbiddenResult(e);
+    if (denied) return denied;
     return { ok: false, message: "Delete failed" };
   }
 }

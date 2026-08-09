@@ -1,5 +1,6 @@
 import type { BlockStatus } from "@prisma/client";
 import { db } from "@/lib/db";
+import type { DomainContext } from "@/lib/context/domain-context";
 import { BLOCK_STATUS_LABELS } from "@/lib/constants";
 import { INVENTORY_EVENT_TYPES, recordInventoryEvent } from "@/lib/events";
 
@@ -43,6 +44,7 @@ function formatStatusLabel(status: BlockStatus): string {
 }
 
 export async function transitionBlockStatus(
+  ctx: DomainContext,
   blockId: string,
   transition: LifecycleTransition,
 ): Promise<{ message: string }> {
@@ -101,7 +103,7 @@ export async function transitionBlockStatus(
       data,
     });
 
-    await recordInventoryEvent(tx, {
+    await recordInventoryEvent(tx, ctx, {
       eventType: INVENTORY_EVENT_TYPES.BLOCK_LIFECYCLE,
       payload: {
         mtgBlockId: block.blockId,

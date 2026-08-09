@@ -1,5 +1,7 @@
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
+import type { DomainContext } from "@/lib/context/domain-context";
+import { requirePermission, PERMISSIONS } from "@/lib/auth/permissions";
 import type {
   BackupBin,
   BackupBlock,
@@ -200,7 +202,11 @@ async function restoreBackupInTransaction(
   await restoreSequences(tx, backup.blocks, backup.bins.length);
 }
 
-export async function restoreInventoryBackup(raw: string): Promise<BackupSummary> {
+export async function restoreInventoryBackup(
+  ctx: DomainContext,
+  raw: string,
+): Promise<BackupSummary> {
+  await requirePermission(ctx, PERMISSIONS.DANGER_ZONE);
   const backup = parseBackupJson(raw);
   const summary = summarizeBackup(backup);
 

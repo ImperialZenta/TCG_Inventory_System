@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import type { DomainContext } from "@/lib/context/domain-context";
 import { INVENTORY_EVENT_TYPES, recordInventoryEvent } from "@/lib/events";
 
 export interface SealBlockCandidate {
@@ -100,6 +101,7 @@ export async function getBinSealSummary(binId: string): Promise<SealSummary> {
 }
 
 export async function sealOpenBlocksByInternalIds(
+  ctx: DomainContext,
   blockInternalIds: string[],
 ): Promise<BulkSealOutcome> {
   if (blockInternalIds.length === 0) {
@@ -135,7 +137,7 @@ export async function sealOpenBlocksByInternalIds(
           where: { id: block.id },
           data: { status: "SEALED", sealedAt },
         });
-        await recordInventoryEvent(tx, {
+        await recordInventoryEvent(tx, ctx, {
           eventType: INVENTORY_EVENT_TYPES.BLOCK_SEALED,
           payload: {
             mtgBlockId: block.blockId,
@@ -161,7 +163,10 @@ export async function sealOpenBlocksByInternalIds(
   };
 }
 
-export async function sealBlocksFromStagingImport(importId: string): Promise<BulkSealOutcome> {
+export async function sealBlocksFromStagingImport(
+  ctx: DomainContext,
+  importId: string,
+): Promise<BulkSealOutcome> {
   const stagingImport = await db.stagingImport.findUnique({ where: { id: importId } });
   if (!stagingImport) {
     return { sealed: 0, skipped: 0, message: "Import not found" };
@@ -180,10 +185,13 @@ export async function sealBlocksFromStagingImport(importId: string): Promise<Bul
     .map((row) => row.assignedBlockId)
     .filter((id): id is string => Boolean(id));
 
-  return sealOpenBlocksByInternalIds(blockIds);
+  return sealOpenBlocksByInternalIds(ctx, blockIds);
 }
 
-export async function sealOpenBlocksInBin(binId: string): Promise<BulkSealOutcome> {
+export async function sealOpenBlocksInBin(
+  ctx: DomainContext,
+  binId: string,
+): Promise<BulkSealOutcome> {
   const bin = await db.bin.findUnique({ where: { id: binId } });
   if (!bin) {
     return { sealed: 0, skipped: 0, message: "Bin not found" };
@@ -194,5 +202,5 @@ export async function sealOpenBlocksInBin(binId: string): Promise<BulkSealOutcom
     select: { id: true },
   });
 
-  return sealOpenBlocksByInternalIds(blocks.map((block) => block.id));
+  return sealOpenBlocksByInternalIds(ctx, blocks.map((block) => block.id));
 }

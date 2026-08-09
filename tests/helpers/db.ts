@@ -1,6 +1,10 @@
 import { db } from "@/lib/db";
 
 const TRUNCATE_TABLES = [
+  "Session",
+  "OrganizationMembership",
+  "User",
+  "Organization",
   "PickHistory",
   "PickItem",
   "PickWave",
@@ -39,6 +43,10 @@ export async function resetTestDb(): Promise<{ binId: string }> {
   });
   await db.appSetting.create({
     data: { key: "default_staging_target_count", value: "50" },
+  });
+
+  await db.organization.create({
+    data: { slug: "default", name: "Test Shop" },
   });
 
   const shelf = await db.shelf.create({

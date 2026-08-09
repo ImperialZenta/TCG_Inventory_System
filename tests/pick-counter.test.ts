@@ -49,5 +49,17 @@ describe("counter pick", () => {
       position: 1,
       cardName: "Test Card B1-P1",
     });
+
+    const decrementEvent = await db.inventoryEvent.findFirst({
+      where: { eventType: INVENTORY_EVENT_TYPES.INVENTORY_DECREMENTED },
+    });
+    expect(decrementEvent).not.toBeNull();
+    expect(decrementEvent?.payload).toMatchObject({
+      mtgBlockId: fixture.blockIds[0],
+      position: 1,
+      cardName: "Test Card B1-P1",
+      quantity: 1,
+    });
+    expect(decrementEvent?.summary).toBe(`${fixture.blockIds[0]} pos 1 · −1 · Test Card B1-P1`);
   });
 });

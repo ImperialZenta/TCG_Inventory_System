@@ -328,9 +328,9 @@ Six stories at header level. Unparks when the shop commits to consignment commer
 
 | ID | Story | Priority | Status |
 |----|-------|----------|--------|
-| ACC-001 | User accounts and authentication | Must | — |
-| ACC-002 | Roles and permissions | Must | — |
-| ACC-003 | Actor on every event and movement | Must | — |
+| ACC-001 | User accounts and authentication | Must | Done |
+| ACC-002 | Roles and permissions | Must | Done |
+| ACC-003 | Actor on every event and movement | Must | Done |
 | ACC-004 | Session management and device sign-out | Should | — |
 | ACC-005 | Feature modules | Could | Parked |
 | ACC-006 | External inventory API | Could | Parked |

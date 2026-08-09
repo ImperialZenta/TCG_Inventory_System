@@ -1,0 +1,58 @@
+{
+  "orders": [
+    {
+      "id": "mp-staging-001",
+      "reference": "STAGE-ORDER-001",
+      "lines": [
+        {
+          "id": "line-1",
+          "name": "Leaping Lizard",
+          "setCode": "hml",
+          "collectorNumber": "90",
+          "scryfallId": "4b0e4744-4d73-4e6e-950b-bb4c83229499",
+          "condition": "NM",
+          "finish": "NONFOIL",
+          "language": "en",
+          "quantity": 1,
+          "priceCents": 25
+        },
+        {
+          "id": "line-2",
+          "name": "Illusionary Terrain",
+          "setCode": "ice",
+          "collectorNumber": "77",
+          "scryfallId": "691f4a1b-4706-41aa-82da-ae920739f036",
+          "condition": "NM",
+          "finish": "NONFOIL",
+          "language": "en",
+          "quantity": 1,
+          "priceCents": 38
+        },
+        {
+          "id": "line-3",
+          "name": "Midnight Recovery",
+          "setCode": "gtc",
+          "collectorNumber": "73",
+          "scryfallId": "4df40471-1118-4429-83bf-8225ea50b69f",
+          "condition": "NM",
+          "finish": "NONFOIL",
+          "language": "en",
+          "quantity": 1,
+          "priceCents": 25
+        },
+        {
+          "id": "line-4",
+          "name": "Fallen Angel",
+          "setCode": "btd",
+          "collectorNumber": "25",
+          "scryfallId": "9b0fdc3e-8ad6-419d-8974-27648107bd13",
+          "condition": "NM",
+          "finish": "NONFOIL",
+          "language": "en",
+          "quantity": 1,
+          "priceCents": 32
+        }
+      ]
+    }
+  ]
+}

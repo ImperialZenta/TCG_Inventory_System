@@ -15,7 +15,8 @@ import {
   transitionBlockStatus,
   type LifecycleTransition,
 } from "@/lib/blocks/lifecycle";
-import { SYSTEM_CONTEXT } from "@/lib/context/domain-context";
+import { ForbiddenError } from "@/lib/auth/errors";
+import { PERMISSIONS, requirePermissionContext } from "@/lib/auth/permissions";
 import { BlockMoveError, bulkMoveBlocksInBin, bulkMoveBlocksToBin, moveBlockToBin as moveBlockToBinLib } from "@/lib/blocks/move";
 import { recordCounterPick } from "@/lib/pick/counter-pick";
 import { clearBlockPickHold } from "@/lib/blocks/quarantine";
@@ -41,11 +42,15 @@ export async function moveBlockToBin(
   }
 
   try {
-    const result = await moveBlockToBinLib(SYSTEM_CONTEXT, blockId, binId);
+    const ctx = await requirePermissionContext(PERMISSIONS.BLOCK_MOVE);
+    const result = await moveBlockToBinLib(ctx, blockId, binId);
     if (result.skipped) {
       return { ok: true, message: "Already in this bin" };
     }
   } catch (error) {
+    if (error instanceof ForbiddenError) {
+      return { ok: false, message: error.message };
+    }
     const message = error instanceof BlockMoveError ? error.message : "Move failed";
     return { ok: false, message };
   }
@@ -73,7 +78,8 @@ export async function bulkMoveBlocksAction(
       if (!sourceBinId) {
         return { ok: false, message: "Select a source bin" };
       }
-      const result = await bulkMoveBlocksInBin(SYSTEM_CONTEXT, sourceBinId, targetBinId);
+    const ctx = await requirePermissionContext(PERMISSIONS.BLOCK_MOVE);
+      const result = await bulkMoveBlocksInBin(ctx, sourceBinId, targetBinId);
       revalidatePath("/blocks");
       return {
         ok: true,
@@ -82,7 +88,8 @@ export async function bulkMoveBlocksAction(
     }
 
     const blockIds = formData.getAll("blockIds").map((v) => String(v).trim()).filter(Boolean);
-    const result = await bulkMoveBlocksToBin(SYSTEM_CONTEXT, blockIds, targetBinId);
+    const ctx = await requirePermissionContext(PERMISSIONS.BLOCK_MOVE);
+    const result = await bulkMoveBlocksToBin(ctx, blockIds, targetBinId);
     revalidatePath("/blocks");
     for (const id of result.blockIds) {
       revalidatePath(`/blocks/${id}`);
@@ -92,6 +99,9 @@ export async function bulkMoveBlocksAction(
       message: `Moved ${result.moved} block${result.moved === 1 ? "" : "s"}${result.skipped ? ` (${result.skipped} skipped)` : ""}`,
     };
   } catch (error) {
+    if (error instanceof ForbiddenError) {
+      return { ok: false, message: error.message };
+    }
     const message = error instanceof BlockMoveError ? error.message : "Bulk move failed";
     return { ok: false, message };
   }
@@ -116,6 +126,16 @@ export async function sealBlockAction(
     return { ok: false, message: "Block not found" };
   }
 
+  let ctx;
+  try {
+    ctx = await requirePermissionContext(PERMISSIONS.BLOCK_SEAL);
+  } catch (error) {
+    if (error instanceof ForbiddenError) {
+      return { ok: false, message: error.message };
+    }
+    throw error;
+  }
+
   const block = await db.block.findUnique({
     where: { blockId },
     select: { id: true },
@@ -125,7 +145,7 @@ export async function sealBlockAction(
     return { ok: false, message: "Block not found" };
   }
 
-  const outcome = await sealOpenBlocksByInternalIds([block.id]);
+  const outcome = await sealOpenBlocksByInternalIds(ctx, [block.id]);
 
   if (outcome.sealed === 0) {
     if (outcome.message === "No blocks to seal") {
@@ -160,13 +180,18 @@ export async function lifecycleBlockAction(
   }
 
   try {
+    const ctx = await requirePermissionContext(PERMISSIONS.BLOCK_LIFECYCLE);
     const outcome = await transitionBlockStatus(
+      ctx,
       blockId,
       transition as LifecycleTransition,
     );
     revalidateBlockPaths(blockId);
     return { ok: true, message: outcome.message };
   } catch (error) {
+    if (error instanceof ForbiddenError) {
+      return { ok: false, message: error.message };
+    }
     if (error instanceof LifecycleError) {
       return { ok: false, message: error.message };
     }
@@ -191,8 +216,12 @@ export async function removeBlockAction(
 
   let result;
   try {
-    result = await removeBlockByBlockId(blockId);
+    const ctx = await requirePermissionContext(PERMISSIONS.BLOCK_REMOVE);
+    result = await removeBlockByBlockId(ctx, blockId);
   } catch (error) {
+    if (error instanceof ForbiddenError) {
+      return { ok: false, message: error.message };
+    }
     if (error instanceof RemoveBlockError) {
       return { ok: false, message: error.message };
     }
@@ -220,7 +249,17 @@ export async function sealBlocksByBinAction(
     return { ok: false, message: "Select a bin" };
   }
 
-  const outcome = await sealOpenBlocksInBin(binId);
+  let ctx;
+  try {
+    ctx = await requirePermissionContext(PERMISSIONS.BLOCK_SEAL);
+  } catch (error) {
+    if (error instanceof ForbiddenError) {
+      return { ok: false, message: error.message };
+    }
+    throw error;
+  }
+
+  const outcome = await sealOpenBlocksInBin(ctx, binId);
 
   if (outcome.sealed === 0) {
     return { ok: false, message: outcome.message };
@@ -240,7 +279,17 @@ export async function sealBlocksByImportAction(
     return { ok: false, message: "Import not found" };
   }
 
-  const outcome = await sealBlocksFromStagingImport(importId);
+  let ctx;
+  try {
+    ctx = await requirePermissionContext(PERMISSIONS.BLOCK_SEAL);
+  } catch (error) {
+    if (error instanceof ForbiddenError) {
+      return { ok: false, message: error.message };
+    }
+    throw error;
+  }
+
+  const outcome = await sealBlocksFromStagingImport(ctx, importId);
 
   if (outcome.sealed === 0) {
     return { ok: false, message: outcome.message };
@@ -256,7 +305,8 @@ export async function counterPickAction(
   position: number,
 ): Promise<BlockActionResult> {
   try {
-    const result = await recordCounterPick({ mtgBlockId, position }, SYSTEM_CONTEXT);
+    const ctx = await requirePermissionContext(PERMISSIONS.PICK_OPERATIONS);
+    const result = await recordCounterPick({ mtgBlockId, position }, ctx);
     revalidateBlockPaths(mtgBlockId);
     revalidatePath("/pick");
     revalidatePath("/activity");
@@ -265,6 +315,9 @@ export async function counterPickAction(
       message: `Counter pick: ${result.cardName} from ${result.mtgBlockId} pos ${result.position}`,
     };
   } catch (error) {
+    if (error instanceof ForbiddenError) {
+      return { ok: false, message: error.message };
+    }
     return {
       ok: false,
       message: error instanceof PickError ? error.message : "Counter pick failed",
@@ -276,12 +329,16 @@ export async function clearQuarantineAction(mtgBlockId: string): Promise<BlockAc
   try {
     const block = await db.block.findUnique({ where: { blockId: mtgBlockId } });
     if (!block) return { ok: false, message: "Block not found" };
-    await clearBlockPickHold(block.id, SYSTEM_CONTEXT);
+    const ctx = await requirePermissionContext(PERMISSIONS.PICK_OPERATIONS);
+    await clearBlockPickHold(block.id, ctx);
     revalidateBlockPaths(mtgBlockId);
     revalidatePath("/pick");
     revalidatePath("/activity");
     return { ok: true, message: `Quarantine cleared on ${mtgBlockId}` };
   } catch (error) {
+    if (error instanceof ForbiddenError) {
+      return { ok: false, message: error.message };
+    }
     return {
       ok: false,
       message: error instanceof PickError ? error.message : "Clear quarantine failed",

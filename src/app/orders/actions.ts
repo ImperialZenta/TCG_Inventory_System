@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { SYSTEM_CONTEXT } from "@/lib/context/domain-context";
+import { ForbiddenError } from "@/lib/auth/errors";
+import { PERMISSIONS, requirePermissionContext } from "@/lib/auth/permissions";
 import { normalizeOrdersFromFixture } from "@/lib/manapool/normalize-order";
 import { importExternalOrder } from "@/lib/orders/import-order";
 import { importOrdersFromManaPool } from "@/lib/orders/import-orders-batch";
@@ -16,7 +17,8 @@ export interface ActionResult {
 
 export async function importFromManaPoolAction(): Promise<ActionResult> {
   try {
-    const summary = await importOrdersFromManaPool(SYSTEM_CONTEXT);
+    const ctx = await requirePermissionContext(PERMISSIONS.ORDER_IMPORT);
+    const summary = await importOrdersFromManaPool(ctx);
     return {
       ok: true,
       message: `Imported ${summary.imported}, skipped ${summary.skipped}${
@@ -24,6 +26,9 @@ export async function importFromManaPoolAction(): Promise<ActionResult> {
       }`,
     };
   } catch (error) {
+    if (error instanceof ForbiddenError) {
+      return { ok: false, message: error.message };
+    }
     return {
       ok: false,
       message: error instanceof Error ? error.message : "Import failed",
@@ -47,8 +52,9 @@ export async function importFixtureAction(formData: FormData): Promise<ActionRes
     let imported = 0;
     let skipped = 0;
 
+    const ctx = await requirePermissionContext(PERMISSIONS.ORDER_IMPORT);
     for (const order of orders) {
-      const result = await importExternalOrder(order, SYSTEM_CONTEXT, { importSource: "fixture" });
+      const result = await importExternalOrder(order, ctx, { importSource: "fixture" });
       if (result.created) imported++;
       else skipped++;
     }
@@ -59,6 +65,9 @@ export async function importFixtureAction(formData: FormData): Promise<ActionRes
       message: `Fixture import: ${imported} new, ${skipped} skipped`,
     };
   } catch (error) {
+    if (error instanceof ForbiddenError) {
+      return { ok: false, message: error.message };
+    }
     return {
       ok: false,
       message: error instanceof Error ? error.message : "Fixture import failed",
@@ -74,9 +83,13 @@ export async function generatePickListAction(formData: FormData): Promise<void> 
 
   let pickListId: string;
   try {
-    const result = await createPickListForOrder(orderId, SYSTEM_CONTEXT);
+    const ctx = await requirePermissionContext(PERMISSIONS.GENERATE_PICK_LIST);
+    const result = await createPickListForOrder(orderId, ctx);
     pickListId = result.pickListId;
   } catch (error) {
+    if (error instanceof ForbiddenError) {
+      redirect(`/orders/${orderId}?error=${encodeURIComponent(error.message)}`);
+    }
     const message =
       error instanceof PickError || error instanceof OrderImportError
         ? error.message

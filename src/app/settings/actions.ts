@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
+import { ForbiddenError } from "@/lib/auth/errors";
+import { PERMISSIONS, requirePermissionContext } from "@/lib/auth/permissions";
 import { suggestNextBinId, suggestNextShelfCode } from "@/lib/blocks";
 import {
   DEFAULT_FORMALIZE_BIN_SETTING_KEY,
@@ -15,6 +17,13 @@ export async function createShelf(
   _prev: SettingsActionResult | null,
   formData: FormData,
 ): Promise<SettingsActionResult> {
+  try {
+    await requirePermissionContext(PERMISSIONS.SETTINGS_STRUCTURE);
+  } catch (e) {
+    if (e instanceof ForbiddenError) return { ok: false, message: e.message };
+    throw e;
+  }
+
   const code = (formData.get("code") as string)?.trim().toUpperCase();
   const label = (formData.get("label") as string)?.trim() || null;
 
@@ -45,6 +54,13 @@ export async function createBin(
   _prev: SettingsActionResult | null,
   formData: FormData,
 ): Promise<SettingsActionResult> {
+  try {
+    await requirePermissionContext(PERMISSIONS.SETTINGS_STRUCTURE);
+  } catch (e) {
+    if (e instanceof ForbiddenError) return { ok: false, message: e.message };
+    throw e;
+  }
+
   const shelfCode = (formData.get("shelfCode") as string)?.trim().toUpperCase();
   const binId = (formData.get("binId") as string)?.trim().toUpperCase();
   const label = (formData.get("label") as string)?.trim() || null;
@@ -89,6 +105,13 @@ export async function updateDefaultTargetCount(
   _prev: SettingsActionResult | null,
   formData: FormData,
 ): Promise<SettingsActionResult> {
+  try {
+    await requirePermissionContext(PERMISSIONS.SETTINGS_STRUCTURE);
+  } catch (e) {
+    if (e instanceof ForbiddenError) return { ok: false, message: e.message };
+    throw e;
+  }
+
   const value = (formData.get("targetCount") as string)?.trim();
   if (!value || Number.isNaN(Number(value)) || Number(value) < 1) {
     return { ok: false, message: "Enter a valid number" };
@@ -109,6 +132,13 @@ export async function updateDefaultFormalizeBin(
   _prev: SettingsActionResult | null,
   formData: FormData,
 ): Promise<SettingsActionResult> {
+  try {
+    await requirePermissionContext(PERMISSIONS.SETTINGS_STRUCTURE);
+  } catch (e) {
+    if (e instanceof ForbiddenError) return { ok: false, message: e.message };
+    throw e;
+  }
+
   const binId = (formData.get("defaultFormalizeBinId") as string)?.trim();
 
   if (!binId) {

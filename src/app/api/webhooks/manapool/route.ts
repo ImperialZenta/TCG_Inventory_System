@@ -7,6 +7,8 @@ import type { DomainContext } from "@/lib/context/domain-context";
 
 const WEBHOOK_CONTEXT: DomainContext = {
   actor: { id: "webhook:manapool" },
+  organizationId: null,
+  role: null,
   source: "webhook",
 };
 

@@ -9,6 +9,7 @@ export interface ListInventoryEventsOptions {
   category?: EventCategory;
   mtgBlockId?: string;
   stagingImportId?: string;
+  actor?: string;
 }
 
 export interface InventoryEventRow {
@@ -19,6 +20,7 @@ export interface InventoryEventRow {
   correlationId: string | null;
   blockId: string | null;
   stagingImportId: string | null;
+  actor: string | null;
   createdAt: Date;
   block: { blockId: string } | null;
 }
@@ -35,6 +37,7 @@ export async function listInventoryEvents(
     where: {
       ...(eventTypes ? { eventType: { in: eventTypes } } : {}),
       ...(options.stagingImportId ? { stagingImportId: options.stagingImportId } : {}),
+      ...(options.actor ? { actor: options.actor } : {}),
     },
     include: {
       block: { select: { blockId: true } },
