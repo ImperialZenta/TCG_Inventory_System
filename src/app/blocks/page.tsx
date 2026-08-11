@@ -63,6 +63,7 @@ export default async function BlocksPage({ searchParams }: BlocksPageProps) {
     sealedAt: block.sealedAt,
     packedAt: block.packedAt,
     pickHoldAt: block.pickHoldAt,
+    reservedSessionDisplayId: block.reservedUploadSession?.sessionId ?? null,
     locationLabel: getLocationLabel(block),
     sealedAtLabel: formatSealedAt(block),
     sealedAtPending: isSealedAtPending(block),
@@ -75,12 +76,20 @@ export default async function BlocksPage({ searchParams }: BlocksPageProps) {
         title="Blocks"
         description="Chaos blocks on shelves and bins — sorted by pack date (newest first)."
         action={
-          <Link
-            href="/staging"
-            className="inline-flex items-center rounded-lg bg-amber-500 px-4 py-2 text-sm font-medium text-zinc-950 transition hover:bg-amber-400"
-          >
-            Staging
-          </Link>
+          <div className="flex gap-2">
+            <Link
+              href="/uploads/new"
+              className="inline-flex items-center rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-200 hover:bg-zinc-800"
+            >
+              Batch upload
+            </Link>
+            <Link
+              href="/staging"
+              className="inline-flex items-center rounded-lg bg-amber-500 px-4 py-2 text-sm font-medium text-zinc-950 transition hover:bg-amber-400"
+            >
+              Staging
+            </Link>
+          </div>
         }
       />
 

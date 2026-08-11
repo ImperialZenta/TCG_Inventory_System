@@ -164,6 +164,28 @@ Every currency figure in this epic uses persisted `priceCents` on card lines (**
 | A-010 | Cohort view | Could | — |
 | A-011 | Export aging report | Should | — |
 
+## Epic 22 — [Channel Catalogs & Upload Sessions](backlog/epic-22-channel-catalogs.md) · `CHL-` · Phase 5b
+
+Block-mode marketplace listing: bin groupings per channel, upload sessions that reserve SEALED blocks, export CSV (Mana Pool first), batch ACTIVATE after external upload. [ADR-013](architecture/adr/013-channel-catalogs-block-listing.md).
+
+| ID | Story | Priority | Status |
+|----|-------|----------|--------|
+| CHL-001 | Channel catalog entity + assign bins | Must | — |
+| CHL-002 | Blocks inherit default channel from bin | Should | — |
+| CHL-003 | Upload session: select SEALED blocks, reserve | Must | Done |
+| CHL-004 | Generate session CSV (Mana Pool aggregate) | Must | Done |
+| CHL-005 | Complete session: batch ACTIVATE, set channel | Must | Done |
+| CHL-006 | Cancel session: release reservations | Must | Done |
+| CHL-007 | Upload sessions UI | Must | Done |
+| CHL-008 | Channel catalogs UI + filter sealed blocks | Should | — |
+| CHL-009 | Close PL-005 test gap (golden CSV) | Should | Done |
+| CHL-010 | Multi-channel UI; TCGplayer CSV stub | Should | — |
+| CHL-011 | Export/session audit + Activity links | Should | — |
+| CHL-012 | Pick gating for session-reserved blocks | Must | Done |
+| CHL-013 | Take offline playbook (manual Mana Pool delist) | Should | — |
+| CHL-014 | Permissions for catalogs and upload sessions | Must | Done |
+| CHL-015 | Lifecycle integrity guards (ADR-013 matrix) | Must | — |
+
 ## Epic 6 — [Search & Inventory Browser](backlog/epic-06-search.md) · `S-`
 
 | ID | Story | Priority | Status |
@@ -414,6 +436,20 @@ Deferred: **B-007** labels, **I-001** + **I-002** manual creation.
 **S-001**, **S-004**, **O-002** bulk transfer, **P-015** pick waves, **SAS-001** webhook/cron hardening. Analytics (**A-004** onward) deferred to a later pass.
 
 **QA closed 2026-08-09:** Agent B all Must stories justified; Vitest 100/100; smoke PASS (existing inventory golden path). Deferred polish (not blockers): **S-006** search autocomplete, **O-007** bulk-move tick clear.
+
+## Phase 5b — Channel catalogs & upload sessions
+
+**Status:** Not started — [Epic 22](backlog/epic-22-channel-catalogs.md) · [ADR-013](architecture/adr/013-channel-catalogs-block-listing.md).
+
+| Order | Stories | Why |
+|-------|---------|-----|
+| 1 | **CHL-003**, **CHL-006**, **CHL-012**, **CHL-015** | Session shell, reservations, pick gating, integrity guards |
+| 2 | **CHL-004**, **CHL-009** | Mana Pool CSV aggregate + golden tests (closes PL-005 gap) |
+| 3 | **CHL-005**, **CHL-007**, **CHL-014** | Complete, UI, permissions |
+| 4 | **CHL-001**, **CHL-002**, **CHL-008** | Bin catalogs (filter helper) |
+| 5 | **CHL-010**, **CHL-011**, **CHL-013** | Multi-channel stub, audit, offline playbook |
+
+Does not depend on SKU-001. Per-block PL-005 export remains for ad-hoc use.
 
 ---
 

@@ -96,10 +96,19 @@ export const PICK_STATUS_LABELS: Record<string, string> = {
   SUBSTITUTED: "Substituted",
 };
 
+export const UPLOAD_SESSION_STATUS_LABELS: Record<string, string> = {
+  DRAFT: "Draft",
+  CSV_READY: "CSV ready",
+  COMPLETED: "Completed",
+  CANCELLED: "Cancelled",
+};
+
 export const NAV_ITEMS = [
   { href: "/", label: "Dashboard" },
   { href: "/staging", label: "Staging" },
   { href: "/blocks", label: "Blocks" },
+  { href: "/uploads", label: "Uploads" },
+  { href: "/catalogs", label: "Catalogs" },
   { href: "/orders", label: "Orders" },
   { href: "/pick", label: "Pick Lists" },
   { href: "/inventory", label: "Inventory" },
@@ -108,11 +117,17 @@ export const NAV_ITEMS = [
   { href: "/settings", label: "Settings" },
 ] as const;
 
-const READ_ONLY_HIDDEN_HREFS = new Set(["/staging", "/orders", "/pick", "/settings"]);
+const READ_ONLY_HIDDEN_HREFS = new Set(["/staging", "/orders", "/pick", "/uploads", "/settings"]);
+const CATALOG_CONFIGURE_ROLES = new Set(["OWNER", "MANAGER"]);
 
 export function navItemsForRole(role: import("@prisma/client").MembershipRole | null) {
-  if (role === "READ_ONLY") {
-    return NAV_ITEMS.filter((item) => !READ_ONLY_HIDDEN_HREFS.has(item.href));
-  }
-  return NAV_ITEMS;
+  return NAV_ITEMS.filter((item) => {
+    if (role === "READ_ONLY" && READ_ONLY_HIDDEN_HREFS.has(item.href)) {
+      return false;
+    }
+    if (item.href === "/catalogs" && (!role || !CATALOG_CONFIGURE_ROLES.has(role))) {
+      return false;
+    }
+    return true;
+  });
 }

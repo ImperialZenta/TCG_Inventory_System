@@ -6,9 +6,9 @@ Back to [backlog index](../BACKLOG.md) · [backlog conventions](../backlog/CONVE
 
 ---
 
-## Current state (Phases 1–3)
+## Current state (Phases 1–5)
 
-The app is a **Next.js 15 monolith** with **Prisma + PostgreSQL 16** (Docker). There is no authentication, no background worker, and no external write integrations — only read-only Scryfall lookups and manual Mana Pool CSV export.
+The app is a **Next.js 15 monolith** with **Prisma + PostgreSQL 16** (Docker). Auth, orders, and picking are built for the chaos-block model. External marketplace integration is **manual CSV export per block** (PL-005) plus Mana Pool order import — no listing API push yet. **Phase 5b** ([Epic 22](../backlog/epic-22-channel-catalogs.md), [ADR-013](adr/013-channel-catalogs-block-listing.md)) adds channel catalogs and upload sessions for batch listing.
 
 ### Deployment topology (ADR-011)
 
@@ -75,6 +75,7 @@ The web app remains the primary UI. A **second Node process** drains scheduled j
 | [ADR-010](adr/010-saas-evolution-strategy.md) | Staged SaaS evolution: tenancy seams now, deploy-per-tenant first, shared schema on fleet pain | **SAS-001** |
 | [ADR-011](adr/011-production-dev-environment-separation.md) | Production/dev separation: two compose stacks, external prod volume, strict migrations, pg_dump DR | **PL-009** |
 | [ADR-012](adr/012-condition-vocabulary-import-mapping.md) | Condition vocabulary: TCGplayer internal scale; ManaBox 7→5 import map; channel export separate | **C-007** |
+| [ADR-013](adr/013-channel-catalogs-block-listing.md) | Channel catalogs + upload sessions for block-mode listing; pick gating; Mana Pool additive import | **CHL-003** |
 
 Read an ADR before implementing the story named as its first implementer.
 
@@ -86,6 +87,7 @@ Read an ADR before implementing the story named as its first implementer.
 |-------|---------|---------------------------|
 | **4** (next) | P-001, P-003, P-004, P-009 | **ADR-001**, **ADR-002** — conventions only; no new infrastructure |
 | **5** | S-001, S-004, O-002 | Same conventions; search reads both inventory modes when SKU exists |
+| **5b** | CHL-* | **ADR-013** — channel catalogs, upload sessions, pick reservation gating |
 | **6** | ACC-*, V-005, SKU-* | **ADR-002** populated, **ADR-003**, **ADR-004**, **ADR-005**, **ADR-009** |
 | **7** | GAM-*, SCN-* | **ADR-008** (catalog provider + cache) |
 | **8** | PRC-* | **ADR-006** (worker for scheduled reprice) |
@@ -102,6 +104,8 @@ Phases 10–11 are the **proof** that the runways were sufficient. If a POS or f
 src/lib/
 ├── blocks/          # Chaos block domain (existing)
 ├── staging/         # Intake pipeline (existing)
+├── channel-catalogs/  # Bin → marketplace grouping (ADR-013) — Phase 5b
+├── upload-sessions/   # Reserve, export, complete (ADR-013) — Phase 5b
 ├── events/          # InventoryEvent platform (existing)
 ├── context/         # Actor/session context (ADR-002) — Phase 4 thread, Phase 6 populate
 ├── money/           # Cents formatting and arithmetic (ADR-003) — Phase 6

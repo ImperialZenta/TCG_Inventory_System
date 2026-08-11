@@ -16,6 +16,11 @@ async function resetBlockSequences(tx: TransactionClient) {
     update: { nextNum: 1 },
     create: { id: "pick", nextNum: 1, prefix: "PICK" },
   });
+  await tx.uploadSessionSequence.upsert({
+    where: { id: "upload" },
+    update: { nextNum: 1 },
+    create: { id: "upload", nextNum: 1, prefix: "UP" },
+  });
 }
 
 async function resetBinSequence(tx: TransactionClient) {
@@ -34,6 +39,11 @@ export async function deleteOperationalInventory(tx: TransactionClient) {
   await tx.externalOrder.deleteMany();
   await tx.pickList.deleteMany();
   await tx.inventoryEvent.deleteMany();
+  await tx.uploadExportAudit.deleteMany();
+  await tx.uploadSessionBlock.deleteMany();
+  await tx.uploadSession.deleteMany();
+  await tx.channelCatalogBin.deleteMany();
+  await tx.channelCatalog.deleteMany();
   await tx.stagingImport.deleteMany();
   await tx.block.deleteMany();
   await resetBlockSequences(tx);
@@ -68,6 +78,11 @@ export async function wipeAllForRestore(tx: TransactionClient) {
   await tx.externalOrder.deleteMany();
   await tx.pickList.deleteMany();
   await tx.inventoryEvent.deleteMany();
+  await tx.uploadExportAudit.deleteMany();
+  await tx.uploadSessionBlock.deleteMany();
+  await tx.uploadSession.deleteMany();
+  await tx.channelCatalogBin.deleteMany();
+  await tx.channelCatalog.deleteMany();
   await tx.stagingImport.deleteMany();
   await tx.block.deleteMany();
   await tx.bin.deleteMany();

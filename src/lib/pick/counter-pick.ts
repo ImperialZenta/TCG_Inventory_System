@@ -29,7 +29,10 @@ export async function recordCounterPick(
   return db.$transaction(async (tx) => {
     const block = await tx.block.findUnique({
       where: { blockId: input.mtgBlockId },
-      include: { cards: { where: { position: input.position } } },
+      include: {
+        cards: { where: { position: input.position } },
+        reservedUploadSession: { select: { sessionId: true } },
+      },
     });
 
     if (!block) {
@@ -42,6 +45,13 @@ export async function recordCounterPick(
 
     if (block.pickHoldAt) {
       throw new PickError(`Block ${input.mtgBlockId} is quarantined`);
+    }
+
+    if (block.reservedUploadSessionId) {
+      const sessionRef = block.reservedUploadSession?.sessionId ?? "an upload session";
+      throw new PickError(
+        `Block ${input.mtgBlockId} is reserved in upload session ${sessionRef}`,
+      );
     }
 
     const cardLine = block.cards[0];

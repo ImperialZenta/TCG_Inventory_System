@@ -97,7 +97,7 @@ Status uses the keys in [`CONVENTIONS.md`](CONVENTIONS.md). "Target" names the e
 | SortSwift capability | Status | Evidence / gap | Target |
 |---|---|---|---|
 | Channel concept | **Schema** | `BlockChannel` enum is a label with no behaviour | **CHN-001** |
-| Listing push | **Partial** | Manual: download Mana Pool CSV, upload at manapool.com | **CHN-002** |
+| Listing push | **Partial** | Manual: per-block Mana Pool CSV (PL-005); **Phase 5b** upload sessions + bin catalogs (**CHL-***) | **CHN-002** (API); block CSV path stays for bricks |
 | Shopify / eBay / TCGplayer / CardTrader / Square / Walmart | **—** | No outbound API calls exist anywhere in `src/` | **CHN-** |
 | Quantity reconciliation both directions | **—** | None | **CHN-004** |
 | Oversell guard | **—** | None | **CHN-005** |

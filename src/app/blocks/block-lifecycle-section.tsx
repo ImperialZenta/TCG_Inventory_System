@@ -5,12 +5,14 @@ interface BlockLifecycleSectionProps {
   blockId: string;
   status: string;
   availableTransitions: LifecycleTransition[];
+  reservedSessionDisplayId?: string | null;
 }
 
 export function BlockLifecycleSection({
   blockId,
   status,
   availableTransitions,
+  reservedSessionDisplayId,
 }: BlockLifecycleSectionProps) {
   if (status === "LIQUIDATED") {
     return (
@@ -38,7 +40,24 @@ export function BlockLifecycleSection({
     );
   }
 
-  if (availableTransitions.length === 0) {
+  const transitions = reservedSessionDisplayId
+    ? availableTransitions.filter((transition) => transition !== "ACTIVATE")
+    : availableTransitions;
+
+  if (transitions.length === 0) {
+    if (reservedSessionDisplayId && availableTransitions.includes("ACTIVATE")) {
+      return (
+        <div>
+          <h2 className="mb-4 text-lg font-medium text-zinc-100">Lifecycle</h2>
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-4">
+            <p className="text-sm text-zinc-400">
+              Mark as listed is disabled while this block is reserved in upload session{" "}
+              {reservedSessionDisplayId}. Complete the session instead.
+            </p>
+          </div>
+        </div>
+      );
+    }
     return null;
   }
 
@@ -46,7 +65,7 @@ export function BlockLifecycleSection({
     <div>
       <h2 className="mb-4 text-lg font-medium text-zinc-100">Lifecycle</h2>
       <div className="space-y-4">
-        {availableTransitions.map((transition) => (
+        {transitions.map((transition) => (
           <div
             key={transition}
             className={

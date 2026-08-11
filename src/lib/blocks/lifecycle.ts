@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import type { DomainContext } from "@/lib/context/domain-context";
 import { BLOCK_STATUS_LABELS } from "@/lib/constants";
 import { INVENTORY_EVENT_TYPES, recordInventoryEvent } from "@/lib/events";
+import { OPEN_SESSION_STATUSES } from "@/lib/upload-sessions/guards";
 
 export type LifecycleTransition = "ACTIVATE" | "ARCHIVE" | "LIQUIDATE";
 
@@ -68,6 +69,21 @@ export async function transitionBlockStatus(
   const cardCount = block.cards.reduce((sum, card) => sum + card.quantity, 0);
   if (transition !== "LIQUIDATE" && cardCount === 0) {
     throw new LifecycleError("Cannot transition an empty block");
+  }
+
+  if (transition === "ACTIVATE" && block.reservedUploadSessionId) {
+    const session = await db.uploadSession.findUnique({
+      where: { id: block.reservedUploadSessionId },
+      select: { sessionId: true, status: true },
+    });
+    if (
+      session &&
+      OPEN_SESSION_STATUSES.includes(session.status as (typeof OPEN_SESSION_STATUSES)[number])
+    ) {
+      throw new LifecycleError(
+        `Cannot activate — ${block.blockId} is reserved in upload session ${session.sessionId}. Complete the session instead.`,
+      );
+    }
   }
 
   const fromStatus = block.status;

@@ -19,6 +19,9 @@ export const PERMISSIONS = {
   BLOCK_SEAL: "block_seal",
   PICK_OPERATIONS: "pick_operations",
   GENERATE_PICK_LIST: "generate_pick_list",
+  UPLOAD_SESSION_CREATE: "upload_session_create",
+  UPLOAD_SESSION_COMPLETE: "upload_session_complete",
+  CATALOG_CONFIGURE: "catalog_configure",
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -39,6 +42,9 @@ const PERMISSION_MATRIX: Record<Permission, MembershipRole[]> = {
   [PERMISSIONS.BLOCK_SEAL]: ["OWNER", "MANAGER", "STAFF"],
   [PERMISSIONS.PICK_OPERATIONS]: ["OWNER", "MANAGER", "STAFF"],
   [PERMISSIONS.GENERATE_PICK_LIST]: ["OWNER", "MANAGER", "STAFF"],
+  [PERMISSIONS.UPLOAD_SESSION_CREATE]: ["OWNER", "MANAGER", "STAFF"],
+  [PERMISSIONS.UPLOAD_SESSION_COMPLETE]: ["OWNER", "MANAGER"],
+  [PERMISSIONS.CATALOG_CONFIGURE]: ["OWNER", "MANAGER"],
 };
 
 export function canPerform(ctx: DomainContext, permission: Permission): boolean {

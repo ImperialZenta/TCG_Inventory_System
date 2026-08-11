@@ -1,14 +1,15 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { aggregateCardLinesForListing, toManaPoolCsv } from "@/lib/manapool/csv-export";
-import { requireApiAuth } from "@/lib/auth/require-api-auth";
+import { requireApiPermission } from "@/lib/auth/require-api-auth";
+import { PERMISSIONS } from "@/lib/auth/permissions";
 
 interface RouteParams {
   params: Promise<{ blockId: string }>;
 }
 
 export async function GET(_request: Request, { params }: RouteParams) {
-  const auth = await requireApiAuth();
+  const auth = await requireApiPermission(PERMISSIONS.UPLOAD_SESSION_CREATE);
   if (!auth.ok) {
     return auth.response;
   }

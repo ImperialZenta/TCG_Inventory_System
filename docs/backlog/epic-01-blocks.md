@@ -109,6 +109,8 @@ Feature: B-002 Block lifecycle
     Then no further lifecycle action is offered
 ```
 
+**Related:** **CHL-004**, **CHL-005** (batch ACTIVATE on upload session complete), **CHL-013** (ARCHIVE + manual marketplace delist), **CHL-015** (per-block ACTIVATE blocked while reserved in open upload session).
+
 ---
 
 ### B-003 — Track packed, sealed and last-pick dates

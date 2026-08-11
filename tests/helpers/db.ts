@@ -13,6 +13,11 @@ const TRUNCATE_TABLES = [
   "PickList",
   "CardLine",
   "InventoryEvent",
+  "UploadExportAudit",
+  "UploadSessionBlock",
+  "UploadSession",
+  "ChannelCatalogBin",
+  "ChannelCatalog",
   "StagingCard",
   "StagingImport",
   "Block",
@@ -21,6 +26,7 @@ const TRUNCATE_TABLES = [
   "BlockSequence",
   "BinSequence",
   "PickListSequence",
+  "UploadSessionSequence",
   "AppSetting",
   "Language",
 ] as const;
@@ -40,6 +46,9 @@ export async function resetTestDb(): Promise<{ binId: string }> {
   });
   await db.pickListSequence.create({
     data: { id: "pick", nextNum: 1, prefix: "PICK" },
+  });
+  await db.uploadSessionSequence.create({
+    data: { id: "upload", nextNum: 1, prefix: "UP" },
   });
   await db.appSetting.create({
     data: { key: "default_staging_target_count", value: "50" },

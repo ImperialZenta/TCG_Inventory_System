@@ -1,0 +1,5 @@
+{
+  "_comment": "Negative spec for CHL-003 / CHL-015 I-03 — ACTIVE block must be rejected from new upload session.",
+  "block": { "blockId": "MTG-0010", "status": "ACTIVE", "channel": "MANAPOOL" },
+  "expectedError": "already active"
+}

@@ -34,6 +34,7 @@ interface BlockRow {
   sealedAt: Date | null;
   packedAt: Date;
   pickHoldAt: Date | null;
+  reservedSessionDisplayId: string | null;
   locationLabel: string;
   sealedAtLabel: string;
   sealedAtPending: boolean;
@@ -216,6 +217,13 @@ export function BlocksPageContent({
                         {BLOCK_STATUS_LABELS[block.status]}
                       </Badge>
                       {block.pickHoldAt && <Badge variant="warning">Quarantined</Badge>}
+                      {block.reservedSessionDisplayId && (
+                        <Link href={`/uploads/${block.reservedSessionDisplayId}`}>
+                          <Badge variant="warning">
+                            Reserved · {block.reservedSessionDisplayId}
+                          </Badge>
+                        </Link>
+                      )}
                     </div>
                   </td>
                   <td className="px-4 py-3">

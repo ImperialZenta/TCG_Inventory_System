@@ -85,9 +85,14 @@ From [CONVENTIONS.md](backlog/CONVENTIONS.md):
 | `pick-sort.test.ts` | Pick route ordering |
 | `tcgplayer-pullsheet.test.ts` | Pullsheet CSV parser |
 | `manapool-webhook.test.ts` | Webhook route (mocked import) |
+| `upload-sessions.test.ts` | Upload session domain (CHL-003–006, CHL-012, CHL-015 partial) |
+| `upload-permissions.test.ts` | Upload/catalog permissions (CHL-014, CHL-005 confirm action) |
+| `upload-session-ui.test.ts` | Session actions markup (CHL-005/006/007) |
+| `upload-session-pages-ui.test.ts` | Upload list + detail pages (CHL-007) |
+| `manapool-csv-export.test.ts` | Mana Pool CSV golden exports (CHL-009) |
 | `pl009-prod-separation.test.ts` | PL-009 prod/dev compose contracts, MIGRATE_STRICT entrypoint, backup/restore guard |
 
-**Known gaps** (tracked in PL-008, not blocking current Done claims): Scryfall client, ManaBox CSV parse, JSON backup restore UI roundtrip, Mana Pool export format, analytics UI. **PL-009 drill:** full `pg_restore` roundtrip logged before first `store-vN` upgrade ([SMOKE-LOG](../operations/SMOKE-LOG.md)).
+**Known gaps** (tracked in PL-008 / **CHL-009**, not blocking current Done claims): Scryfall client, ManaBox CSV parse, JSON backup restore UI roundtrip, **Mana Pool export format golden tests** (PL-005 aggregation — **CHL-009**), analytics UI. **PL-009 drill:** full `pg_restore` roundtrip logged before first `store-vN` upgrade ([SMOKE-LOG](../operations/SMOKE-LOG.md)).
 
 ---
 

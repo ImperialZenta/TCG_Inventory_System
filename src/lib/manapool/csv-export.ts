@@ -1,5 +1,43 @@
 import type { CardLine } from "@prisma/client";
-import { FINISH_TO_MANAPOOL } from "@/lib/languages";
+import {
+  FINISH_TO_MANABOX_FOIL,
+  INTERNAL_TO_MANABOX_CONDITION,
+} from "@/lib/languages";
+
+/** ManaBox export header — Mana Pool accepts this for new listing imports. */
+export const MANABOX_LISTING_CSV_COLUMNS = [
+  "Name",
+  "Set code",
+  "Set name",
+  "Collector number",
+  "Foil",
+  "Rarity",
+  "Quantity",
+  "ManaBox ID",
+  "Scryfall ID",
+  "Purchase price",
+  "Misprint",
+  "Altered",
+  "Condition",
+  "Language",
+  "Purchase price currency",
+  "Added",
+] as const;
+
+export interface ListingLineInput {
+  scryfallId: string | null;
+  isBulkLine: boolean;
+  name: string;
+  setCode: string;
+  collectorNumber?: string | null;
+  condition: string;
+  finish: string;
+  language: string;
+  quantity: number;
+  priceCents?: number | null;
+  setName?: string | null;
+  rarity?: string | null;
+}
 
 export interface ManaPoolCsvRow {
   scryfallId: string;
@@ -9,11 +47,37 @@ export interface ManaPoolCsvRow {
   quantity: number;
   name: string;
   setCode: string;
+  collectorNumber: string;
+  setName: string;
+  rarity: string;
+  priceCents: number | null;
+}
+
+function escapeCsvField(value: string): string {
+  if (/[",\n]/.test(value)) {
+    return `"${value.replace(/"/g, '""')}"`;
+  }
+  return value;
+}
+
+function formatPurchasePrice(priceCents: number | null | undefined): string {
+  if (priceCents == null) {
+    return "";
+  }
+  return (priceCents / 100).toFixed(2);
+}
+
+function internalConditionToManabox(condition: string): string {
+  return INTERNAL_TO_MANABOX_CONDITION[condition] ?? "near_mint";
+}
+
+function internalFinishToManaboxFoil(finish: string): string {
+  return FINISH_TO_MANABOX_FOIL[finish] ?? "normal";
 }
 
 /** Aggregate card lines by identity for Mana Pool listing export. */
 export function aggregateCardLinesForListing(
-  lines: CardLine[],
+  lines: Array<CardLine | ListingLineInput>,
 ): ManaPoolCsvRow[] {
   const map = new Map<string, ManaPoolCsvRow>();
 
@@ -26,14 +90,20 @@ export function aggregateCardLinesForListing(
     if (existing) {
       existing.quantity += line.quantity;
     } else {
+      const setName = "setName" in line ? (line.setName ?? "") : "";
+      const rarity = "rarity" in line ? (line.rarity ?? "common") : "common";
       map.set(key, {
         scryfallId: line.scryfallId,
         language: line.language,
-        finish: FINISH_TO_MANAPOOL[line.finish] ?? "NF",
+        finish: line.finish,
         condition: line.condition,
         quantity: line.quantity,
         name: line.name,
         setCode: line.setCode,
+        collectorNumber: line.collectorNumber ?? "",
+        setName,
+        rarity,
+        priceCents: line.priceCents ?? null,
       });
     }
   }
@@ -41,31 +111,89 @@ export function aggregateCardLinesForListing(
   return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
 }
 
-/** Mana Pool / ManaBox compatible CSV (quantity filled; user edits prices). */
+/** ManaBox-compatible CSV for Mana Pool import (CHL-009). */
 export function toManaPoolCsv(rows: ManaPoolCsvRow[]): string {
-  const header = [
-    "Scryfall ID",
-    "Name",
-    "Set code",
-    "Language",
-    "Condition",
-    "Finish",
-    "Quantity",
-    "My Store Price",
-  ];
+  const header = MANABOX_LISTING_CSV_COLUMNS.join(",");
 
-  const body = rows.map((r) =>
+  const body = rows.map((row) =>
     [
-      r.scryfallId,
-      `"${r.name.replace(/"/g, '""')}"`,
-      r.setCode,
-      r.language,
-      r.condition,
-      r.finish,
-      r.quantity,
+      escapeCsvField(row.name),
+      row.setCode,
+      escapeCsvField(row.setName),
+      row.collectorNumber,
+      internalFinishToManaboxFoil(row.finish),
+      row.rarity,
+      row.quantity,
+      "",
+      row.scryfallId,
+      formatPurchasePrice(row.priceCents),
+      "FALSE",
+      "FALSE",
+      internalConditionToManabox(row.condition),
+      row.language,
+      "USD",
       "",
     ].join(","),
   );
 
-  return [header.join(","), ...body].join("\n");
+  return [header, ...body].join("\n");
+}
+
+/** Compare CSV rows ignoring Purchase price column values. */
+export function normalizeCsvForGoldenCompare(csv: string): string {
+  const lines = csv.trim().split("\n");
+  if (lines.length === 0) {
+    return "";
+  }
+
+  const header = parseCsvLine(lines[0]!);
+  const priceIdx = header.findIndex((col) => col.toLowerCase() === "purchase price");
+  if (priceIdx < 0) {
+    return csv.trim();
+  }
+
+  return lines
+    .map((line, index) => {
+      if (index === 0) {
+        return line;
+      }
+      const fields = parseCsvLine(line);
+      if (priceIdx < fields.length) {
+        fields[priceIdx] = "";
+      }
+      return fields.map(escapeCsvField).join(",");
+    })
+    .join("\n");
+}
+
+function parseCsvLine(line: string): string[] {
+  const fields: string[] = [];
+  let field = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i]!;
+    if (inQuotes) {
+      if (char === '"' && line[i + 1] === '"') {
+        field += '"';
+        i++;
+      } else if (char === '"') {
+        inQuotes = false;
+      } else {
+        field += char;
+      }
+      continue;
+    }
+    if (char === '"') {
+      inQuotes = true;
+    } else if (char === ",") {
+      fields.push(field);
+      field = "";
+    } else {
+      field += char;
+    }
+  }
+
+  fields.push(field);
+  return fields;
 }

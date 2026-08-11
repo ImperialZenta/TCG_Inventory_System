@@ -33,17 +33,40 @@ model Shelf {
 }
 
 model Bin {
-  id        String   @id @default(cuid())
-  binId     String   @unique
-  shelfId   String?
-  shelf     Shelf?   @relation(fields: [shelfId], references: [id], onDelete: SetNull)
-  label     String?
-  sortOrder Int      @default(0)
-  blocks    Block[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                  String              @id @default(cuid())
+  binId                 String              @unique
+  shelfId               String?
+  shelf                 Shelf?              @relation(fields: [shelfId], references: [id], onDelete: SetNull)
+  label                 String?
+  sortOrder             Int                 @default(0)
+  blocks                Block[]
+  catalogMemberships    ChannelCatalogBin[]
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
 
   @@index([shelfId])
+}
+
+model ChannelCatalog {
+  id        String              @id @default(cuid())
+  channel   BlockChannel
+  label     String
+  bins      ChannelCatalogBin[]
+  createdAt DateTime            @default(now())
+
+  @@index([channel])
+}
+
+model ChannelCatalogBin {
+  id        String         @id @default(cuid())
+  catalogId String
+  catalog   ChannelCatalog @relation(fields: [catalogId], references: [id], onDelete: Cascade)
+  binId     String
+  bin       Bin            @relation(fields: [binId], references: [id], onDelete: Cascade)
+  createdAt DateTime       @default(now())
+
+  @@unique([catalogId, binId])
+  @@index([binId])
 }
 
 model BinSequence {
@@ -94,6 +117,9 @@ model Block {
   notes       String?
   pickHoldAt     DateTime?
   pickHoldReason String?
+  reservedUploadSessionId String?
+  reservedUploadSession   UploadSession? @relation(fields: [reservedUploadSessionId], references: [id], onDelete: SetNull)
+  uploadSessionBlocks     UploadSessionBlock[]
   cards       CardLine[]
   pickItems       PickItem[]
   pickHistory     PickHistory[]
@@ -102,6 +128,7 @@ model Block {
   updatedAt   DateTime     @updatedAt
 
   @@index([status])
+  @@index([reservedUploadSessionId])
   @@index([channel])
   @@index([lastPickAt])
   @@index([packedAt])
@@ -360,6 +387,8 @@ model InventoryEvent {
   pickList        PickList?      @relation(fields: [pickListId], references: [id], onDelete: SetNull)
   externalOrderId String?
   externalOrder   ExternalOrder? @relation(fields: [externalOrderId], references: [id], onDelete: SetNull)
+  uploadSessionId String?
+  uploadSession   UploadSession? @relation(fields: [uploadSessionId], references: [id], onDelete: SetNull)
   actor           String?
   createdAt       DateTime       @default(now())
 
@@ -368,6 +397,69 @@ model InventoryEvent {
   @@index([blockId])
   @@index([correlationId])
   @@index([stagingImportId])
+  @@index([uploadSessionId])
+}
+
+// ---------------------------------------------------------------------------
+// Upload sessions (block-mode marketplace listing — ADR-013)
+// ---------------------------------------------------------------------------
+
+enum UploadSessionStatus {
+  DRAFT
+  CSV_READY
+  COMPLETED
+  CANCELLED
+}
+
+model UploadSessionSequence {
+  id      String @id @default("upload")
+  nextNum Int    @default(1)
+  prefix  String @default("UP")
+}
+
+model UploadSession {
+  id             String              @id @default(cuid())
+  sessionId      String              @unique
+  channel        BlockChannel
+  status         UploadSessionStatus @default(DRAFT)
+  createdBy      String?
+  csvGeneratedAt DateTime?
+  completedAt    DateTime?
+  cancelledAt    DateTime?
+  blocks         UploadSessionBlock[]
+  reservedBlocks Block[]
+  exportAudits   UploadExportAudit[]
+  inventoryEvents InventoryEvent[]
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model UploadSessionBlock {
+  id        String        @id @default(cuid())
+  sessionId String
+  session   UploadSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  blockId   String
+  block     Block         @relation(fields: [blockId], references: [id])
+  addedAt   DateTime      @default(now())
+
+  @@unique([sessionId, blockId])
+  @@index([blockId])
+}
+
+model UploadExportAudit {
+  id        String        @id @default(cuid())
+  sessionId String
+  session   UploadSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  rowCount  Int
+  blockIds  String[]
+  filename  String
+  actor     String?
+  createdAt DateTime      @default(now())
+
+  @@index([sessionId])
 }
 
 model BlockSequence {

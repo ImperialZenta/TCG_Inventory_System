@@ -101,6 +101,36 @@ Once **CHN-** ships, undo gains a further guard: an import cannot be undone if a
 
 ---
 
+## Outbound: sealed blocks → marketplace (Phase 5b)
+
+Mirror of intake: physical inventory already exists; listing is a **publish** step, not a create step.
+
+```mermaid
+flowchart LR
+  Sealed["SEALED blocks"] --> Session["Upload session"]
+  Session --> CSV["Mana Pool CSV"]
+  CSV --> MP["manapool.com import"]
+  MP --> Complete["Complete session"]
+  Complete --> Active["ACTIVE blocks"]
+  Active --> Pick["Order pick"]
+```
+
+| Step | Tool | Story |
+|------|------|-------|
+| Group bins by marketplace (optional) | Channel catalog in `/catalogs` | **CHL-001** |
+| Select sealed blocks, reserve | Upload session | **CHL-003** |
+| Generate aggregated CSV | App export | **CHL-004** |
+| Upload externally | Mana Pool seller dashboard | Manual |
+| Confirm and activate | Complete session | **CHL-005** |
+| Take offline | ARCHIVE + manual MP delist | **CHL-013**, **B-002** |
+
+**Not** the same as staging: no CSV upload into the app; no undo that deletes blocks. Cancel session
+releases reservations only.
+
+Full integrity matrix: [ADR-013](../architecture/adr/013-channel-catalogs-block-listing.md).
+
+---
+
 ## Exception path: manual block + card add (Deferred)
 
 **I-001** (create OPEN block) and **I-002** (add cards via Scryfall) are **one bundled slice**, not separate deliverables. An empty OPEN block alone is a dead end (cannot seal, cannot export for Mana Pool, cannot pick).

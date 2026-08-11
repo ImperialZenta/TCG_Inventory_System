@@ -91,6 +91,22 @@ export function buildEventSummary<T extends RecordableEventType>(
       const p = payload as EventPayloadMap[typeof INVENTORY_EVENT_TYPES.PERMISSION_DENIED];
       return `Permission denied: ${p.permission}`;
     }
+    case INVENTORY_EVENT_TYPES.UPLOAD_SESSION_CREATED: {
+      const p = payload as EventPayloadMap[typeof INVENTORY_EVENT_TYPES.UPLOAD_SESSION_CREATED];
+      return `Created upload ${p.sessionId} · ${p.mtgBlockIds.length} block${p.mtgBlockIds.length === 1 ? "" : "s"} · ${p.channel}`;
+    }
+    case INVENTORY_EVENT_TYPES.UPLOAD_CSV_GENERATED: {
+      const p = payload as EventPayloadMap[typeof INVENTORY_EVENT_TYPES.UPLOAD_CSV_GENERATED];
+      return `Generated CSV for ${p.sessionId} · ${p.rowCount} row${p.rowCount === 1 ? "" : "s"}`;
+    }
+    case INVENTORY_EVENT_TYPES.UPLOAD_COMPLETED: {
+      const p = payload as EventPayloadMap[typeof INVENTORY_EVENT_TYPES.UPLOAD_COMPLETED];
+      return `Completed ${p.sessionId} · ${p.mtgBlockIds.length} block${p.mtgBlockIds.length === 1 ? "" : "s"} → ACTIVE`;
+    }
+    case INVENTORY_EVENT_TYPES.UPLOAD_CANCELLED: {
+      const p = payload as EventPayloadMap[typeof INVENTORY_EVENT_TYPES.UPLOAD_CANCELLED];
+      return `Cancelled ${p.sessionId} · ${p.mtgBlockIds.length} block${p.mtgBlockIds.length === 1 ? "" : "s"} released`;
+    }
     default:
       return eventType;
   }
@@ -117,6 +133,10 @@ export function formatEventTypeLabel(eventType: string): string {
     [INVENTORY_EVENT_TYPES.BLOCK_QUARANTINE_CLEARED]: "Quarantine cleared",
     [INVENTORY_EVENT_TYPES.STAGING_CORRECTION_CREATED]: "Correction intake",
     [INVENTORY_EVENT_TYPES.PERMISSION_DENIED]: "Permission denied",
+    [INVENTORY_EVENT_TYPES.UPLOAD_SESSION_CREATED]: "Upload session created",
+    [INVENTORY_EVENT_TYPES.UPLOAD_CSV_GENERATED]: "Upload CSV generated",
+    [INVENTORY_EVENT_TYPES.UPLOAD_COMPLETED]: "Upload completed",
+    [INVENTORY_EVENT_TYPES.UPLOAD_CANCELLED]: "Upload cancelled",
   };
   return labels[eventType] ?? eventType;
 }

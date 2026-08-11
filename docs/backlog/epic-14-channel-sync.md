@@ -115,6 +115,8 @@ Feature: CHN-006 Marketplace CSV export templates
     Then the per-block Mana Pool listing CSV continues to work as before
 ```
 
+**Block-mode vs stock-mode:** Chaos block listing (upload sessions, bin catalogs) is **CHL-*** ([Epic 22](../epic-22-channel-catalogs.md), [ADR-013](../architecture/adr/013-channel-catalogs-block-listing.md)) — aggregate `CardLine` export, no SKU ledger. **CHN-006** stock-mode export targets `StockItem` rows (`@dual`). Both may share CSV formatters later.
+
 ---
 
 ### CHN-002 — Listing push to one live channel

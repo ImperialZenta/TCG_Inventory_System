@@ -57,3 +57,18 @@ export function mapManaboxCondition(raw: string): "NM" | "LP" | "MP" | "HP" | "D
   const key = raw.trim().toLowerCase().replace(/\s+/g, "_");
   return MANABOX_CONDITION_MAP[key] ?? null;
 }
+
+/** Outward ManaBox grades for Mana Pool CSV import (CHL-009). Not the MP roundtrip collapse. */
+export const INTERNAL_TO_MANABOX_CONDITION: Record<string, string> = {
+  NM: "near_mint",
+  LP: "excellent",
+  MP: "good",
+  HP: "light_played",
+  DMG: "poor",
+};
+
+export const FINISH_TO_MANABOX_FOIL: Record<string, string> = {
+  NONFOIL: "normal",
+  FOIL: "foil",
+  ETCHED: "foil",
+};

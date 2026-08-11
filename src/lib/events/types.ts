@@ -22,6 +22,10 @@ export const INVENTORY_EVENT_TYPES = {
   BLOCK_QUARANTINE_CLEARED: "block.quarantine_cleared",
   STAGING_CORRECTION_CREATED: "staging.correction_created",
   PERMISSION_DENIED: "auth.permission_denied",
+  UPLOAD_SESSION_CREATED: "upload.session_created",
+  UPLOAD_CSV_GENERATED: "upload.csv_generated",
+  UPLOAD_COMPLETED: "upload.completed",
+  UPLOAD_CANCELLED: "upload.cancelled",
 } as const;
 
 export type InventoryEventType =
@@ -32,6 +36,7 @@ export const EVENT_CATEGORIES = {
   blocks: "Blocks",
   staging: "Staging",
   orders: "Orders & picks",
+  uploads: "Uploads",
 } as const;
 
 export type EventCategory = keyof typeof EVENT_CATEGORIES;
@@ -167,6 +172,29 @@ const permissionDeniedPayload = z.object({
   source: z.enum(["ui", "api", "webhook", "test"]),
 });
 
+const uploadSessionCreatedPayload = z.object({
+  sessionId: z.string(),
+  channel: z.string(),
+  mtgBlockIds: z.array(z.string()),
+});
+
+const uploadCsvGeneratedPayload = z.object({
+  sessionId: z.string(),
+  rowCount: z.number().int().nonnegative(),
+  mtgBlockIds: z.array(z.string()),
+});
+
+const uploadCompletedPayload = z.object({
+  sessionId: z.string(),
+  channel: z.string(),
+  mtgBlockIds: z.array(z.string()),
+});
+
+const uploadCancelledPayload = z.object({
+  sessionId: z.string(),
+  mtgBlockIds: z.array(z.string()),
+});
+
 export const EVENT_PAYLOAD_SCHEMAS = {
   [INVENTORY_EVENT_TYPES.BLOCK_SEALED]: blockSealedPayload,
   [INVENTORY_EVENT_TYPES.BLOCK_LIFECYCLE]: blockLifecyclePayload,
@@ -187,6 +215,10 @@ export const EVENT_PAYLOAD_SCHEMAS = {
   [INVENTORY_EVENT_TYPES.BLOCK_QUARANTINE_CLEARED]: blockQuarantineClearedPayload,
   [INVENTORY_EVENT_TYPES.STAGING_CORRECTION_CREATED]: stagingCorrectionCreatedPayload,
   [INVENTORY_EVENT_TYPES.PERMISSION_DENIED]: permissionDeniedPayload,
+  [INVENTORY_EVENT_TYPES.UPLOAD_SESSION_CREATED]: uploadSessionCreatedPayload,
+  [INVENTORY_EVENT_TYPES.UPLOAD_CSV_GENERATED]: uploadCsvGeneratedPayload,
+  [INVENTORY_EVENT_TYPES.UPLOAD_COMPLETED]: uploadCompletedPayload,
+  [INVENTORY_EVENT_TYPES.UPLOAD_CANCELLED]: uploadCancelledPayload,
 } as const;
 
 export type EventPayloadMap = {
@@ -209,6 +241,10 @@ export type EventPayloadMap = {
   [INVENTORY_EVENT_TYPES.BLOCK_QUARANTINE_CLEARED]: z.infer<typeof blockQuarantineClearedPayload>;
   [INVENTORY_EVENT_TYPES.STAGING_CORRECTION_CREATED]: z.infer<typeof stagingCorrectionCreatedPayload>;
   [INVENTORY_EVENT_TYPES.PERMISSION_DENIED]: z.infer<typeof permissionDeniedPayload>;
+  [INVENTORY_EVENT_TYPES.UPLOAD_SESSION_CREATED]: z.infer<typeof uploadSessionCreatedPayload>;
+  [INVENTORY_EVENT_TYPES.UPLOAD_CSV_GENERATED]: z.infer<typeof uploadCsvGeneratedPayload>;
+  [INVENTORY_EVENT_TYPES.UPLOAD_COMPLETED]: z.infer<typeof uploadCompletedPayload>;
+  [INVENTORY_EVENT_TYPES.UPLOAD_CANCELLED]: z.infer<typeof uploadCancelledPayload>;
 };
 
 export type RecordableEventType = keyof typeof EVENT_PAYLOAD_SCHEMAS;
@@ -216,6 +252,7 @@ export type RecordableEventType = keyof typeof EVENT_PAYLOAD_SCHEMAS;
 export function getEventCategory(eventType: string): EventCategory {
   if (eventType.startsWith("block.")) return "blocks";
   if (eventType.startsWith("staging.")) return "staging";
+  if (eventType.startsWith("upload.")) return "uploads";
   if (
     eventType.startsWith("order.") ||
     eventType.startsWith("pick.") ||
@@ -237,6 +274,8 @@ export function categoryEventTypes(category: EventCategory): string[] | undefine
         (t) =>
           t.startsWith("order.") || t.startsWith("pick.") || t.startsWith("inventory."),
       );
+    case "uploads":
+      return Object.values(INVENTORY_EVENT_TYPES).filter((t) => t.startsWith("upload."));
     default:
       return undefined;
   }

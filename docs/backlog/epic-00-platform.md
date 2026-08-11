@@ -192,6 +192,8 @@ Feature: PL-005 Mana Pool listing CSV export per block
     Then the preview rows match the downloaded file
 ```
 
+**Related:** **CHL-003**, **CHL-004** (multi-block upload session aggregate reuses same export functions), **CHL-009** (golden CSV tests). Per-block export remains when upload sessions are not used.
+
 ---
 
 ### PL-006 — Settings: shelves, bins, staging target

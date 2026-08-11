@@ -1,0 +1,7 @@
+{
+  "_comment": "Spec fixture for CHL-001/CHL-008 — bin membership for Mana Pool catalog filter UI.",
+  "catalogLabel": "Mana Pool — Shelf A",
+  "channel": "MANAPOOL",
+  "memberBins": ["A-B01", "A-B02"],
+  "expectedSealedBlockSource": "staging-02-two-blocks after seal"
+}

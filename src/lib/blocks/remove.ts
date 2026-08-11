@@ -53,6 +53,7 @@ export async function removeBlockByBlockId(
   const eligibility = getBlockRemovalEligibility({
     status: block.status,
     pickItemCount: block._count.pickItems,
+    reservedUploadSessionId: block.reservedUploadSessionId,
   });
   if (!eligibility.allowed) {
     throw new RemoveBlockError(eligibility.reason ?? "Cannot remove this block");
@@ -68,6 +69,7 @@ export async function removeBlockByBlockId(
         where: { id: blockInternalId },
         select: {
           status: true,
+          reservedUploadSessionId: true,
           _count: { select: { pickItems: true } },
         },
       });
@@ -79,6 +81,7 @@ export async function removeBlockByBlockId(
       const txEligibility = getBlockRemovalEligibility({
         status: current.status,
         pickItemCount: current._count.pickItems,
+        reservedUploadSessionId: current.reservedUploadSessionId,
       });
       if (!txEligibility.allowed) {
         throw new RemoveBlockError(txEligibility.reason ?? "Cannot remove this block");

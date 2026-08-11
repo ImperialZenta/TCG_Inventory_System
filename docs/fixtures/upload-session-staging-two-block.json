@@ -1,0 +1,15 @@
+{
+  "_comment": "Spec fixture for CHL-003/CHL-005 — generate/update when goldens land. Source: staging-02-two-blocks formalized + sealed.",
+  "sessionDisplayId": "UP-0001",
+  "channel": "MANAPOOL",
+  "expectedStatusAfterComplete": "COMPLETED",
+  "blocks": [
+    { "note": "First block from staging-02 — assign bin at formalize", "expectedStatusBefore": "SEALED", "expectedStatusAfter": "ACTIVE" },
+    { "note": "Second block from staging-02", "expectedStatusBefore": "SEALED", "expectedStatusAfter": "ACTIVE" }
+  ],
+  "integrityChecks": [
+    "I-02: blocks not in a second open session while reserved",
+    "I-05: complete requires staff confirmation — app does not verify Mana Pool",
+    "I-10: per-block ACTIVATE blocked while reserved"
+  ]
+}

@@ -14,6 +14,12 @@
  */
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { mapManaboxCondition } from "../src/lib/languages";
+import {
+  aggregateCardLinesForListing,
+  toManaPoolCsv,
+  type ListingLineInput,
+} from "../src/lib/manapool/csv-export";
 
 const DEFAULT_SOURCE = "docs/fixtures/source/manabox-dax-250.csv";
 const DEFAULT_OUT_DIR = "docs/fixtures";
@@ -25,9 +31,13 @@ interface SourceRow {
   setCode: string;
   setName: string;
   collectorNumber: string;
+  foil: string;
+  rarity: string;
   quantity: number;
   scryfallId: string;
   purchasePrice: number;
+  condition: string;
+  language: string;
 }
 
 /** `Name|SET|collectorNumber`, exactly as written in the source CSV. */
@@ -168,9 +178,13 @@ function readSource(text: string): { header: string; rows: SourceRow[] } {
     setCode: column("set code"),
     setName: column("set name"),
     collectorNumber: column("collector number"),
+    foil: column("foil"),
+    rarity: column("rarity"),
     quantity: column("quantity"),
     scryfallId: column("scryfall id"),
     purchasePrice: column("purchase price"),
+    condition: column("condition"),
+    language: column("language"),
   };
 
   const rows = lines.slice(1).map((raw) => {
@@ -181,9 +195,13 @@ function readSource(text: string): { header: string; rows: SourceRow[] } {
       setCode: fields[idx.setCode] ?? "",
       setName: fields[idx.setName] ?? "",
       collectorNumber: fields[idx.collectorNumber] ?? "",
+      foil: fields[idx.foil] ?? "normal",
+      rarity: fields[idx.rarity] ?? "common",
       quantity: Number.parseInt(fields[idx.quantity] ?? "1", 10) || 1,
       scryfallId: fields[idx.scryfallId] ?? "",
       purchasePrice: Number.parseFloat(fields[idx.purchasePrice] ?? "0") || 0,
+      condition: fields[idx.condition] ?? "near_mint",
+      language: fields[idx.language] ?? "en",
     };
   });
 
@@ -284,6 +302,31 @@ function pullsheetCsv(rows: SourceRow[]): string {
   return `${header}\n${body.join("\n")}\n`;
 }
 
+function sourceRowToListingInput(row: SourceRow): ListingLineInput {
+  const internalCondition = mapManaboxCondition(row.condition) ?? "NM";
+  const finish = row.foil === "foil" ? "FOIL" : "NONFOIL";
+
+  return {
+    scryfallId: row.scryfallId,
+    isBulkLine: false,
+    name: row.name,
+    setCode: row.setCode,
+    collectorNumber: row.collectorNumber,
+    condition: internalCondition,
+    finish,
+    language: row.language,
+    quantity: row.quantity,
+    priceCents: Math.round(row.purchasePrice * 100),
+    setName: row.setName,
+    rarity: row.rarity,
+  };
+}
+
+function listingCsvFromSliceRows(rows: SourceRow[]): string {
+  const aggregated = aggregateCardLinesForListing(rows.map(sourceRowToListingInput));
+  return `${toManaPoolCsv(aggregated)}\n`;
+}
+
 async function main() {
   const sourcePath = path.resolve(process.env.FIXTURE_SOURCE ?? DEFAULT_SOURCE);
   const outDir = path.resolve(process.env.FIXTURE_OUT_DIR ?? DEFAULT_OUT_DIR);
@@ -326,6 +369,18 @@ async function main() {
   for (const [file, contents] of outputs) {
     await writeFile(path.join(outDir, file), contents, "utf8");
     console.log(`${file}: written`);
+  }
+
+  const staging01 = slices.get("staging-01-single-block.csv")!;
+  const staging02 = slices.get("staging-02-two-blocks.csv")!;
+  const goldenOutputs: [string, string][] = [
+    ["manapool-listing-staging-01.csv", listingCsvFromSliceRows(staging01)],
+    ["manapool-upload-session-merged.csv", listingCsvFromSliceRows(staging02)],
+  ];
+
+  for (const [file, contents] of goldenOutputs) {
+    await writeFile(path.join(outDir, file), contents, "utf8");
+    console.log(`${file}: golden Mana Pool listing CSV written`);
   }
 
   console.log(`\nOrder lines:     ${orderRows.map((r) => r.name).join(", ")}`);

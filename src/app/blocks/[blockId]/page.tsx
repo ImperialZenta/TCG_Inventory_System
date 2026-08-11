@@ -40,6 +40,7 @@ export default async function BlockDetailPage({ params }: BlockDetailPageProps) 
     include: {
       bin: { include: { shelf: true } },
       cards: { orderBy: { position: "asc" } },
+      reservedUploadSession: { select: { id: true, sessionId: true, status: true } },
       _count: { select: { pickItems: true } },
     },
   });
@@ -66,8 +67,15 @@ export default async function BlockDetailPage({ params }: BlockDetailPageProps) 
   const removalEligibility = getBlockRemovalEligibility({
     status: block.status,
     pickItemCount: block._count.pickItems,
+    reservedUploadSessionId: block.reservedUploadSessionId,
   });
   const availableTransitions = getAvailableTransitions(block.status);
+  const reservedSessionDisplayId =
+    block.reservedUploadSession &&
+    (block.reservedUploadSession.status === "DRAFT" ||
+      block.reservedUploadSession.status === "CSV_READY")
+      ? block.reservedUploadSession.sessionId
+      : null;
 
   const session = await getCurrentSession();
   const role = session?.role ?? null;
@@ -75,6 +83,7 @@ export default async function BlockDetailPage({ params }: BlockDetailPageProps) 
   const canMoveBlock = roleCanPerform(role, PERMISSIONS.BLOCK_MOVE);
   const canRemoveBlock = roleCanPerform(role, PERMISSIONS.BLOCK_REMOVE);
   const canLifecycle = roleCanPerform(role, PERMISSIONS.BLOCK_LIFECYCLE);
+  const canExportListing = roleCanPerform(role, PERMISSIONS.UPLOAD_SESSION_CREATE);
 
   return (
     <>
@@ -124,6 +133,22 @@ export default async function BlockDetailPage({ params }: BlockDetailPageProps) 
         </div>
       )}
 
+      {reservedSessionDisplayId && (
+        <div className="mb-6 rounded-lg border border-sky-500/30 bg-sky-500/10 px-4 py-3 text-sm text-sky-100">
+          <p className="font-medium text-sky-200">Reserved in upload session</p>
+          <p>
+            This block is reserved in{" "}
+            <Link
+              href={`/uploads/${reservedSessionDisplayId}`}
+              className="font-mono text-sky-300 hover:text-sky-200"
+            >
+              {reservedSessionDisplayId}
+            </Link>
+            . Complete or cancel the session to release it — per-block activation is disabled.
+          </p>
+        </div>
+      )}
+
       {(block.status === "ACTIVE" || block.status === "SEALED") && !block.pickHoldAt && (
         <CounterPickForm
           mtgBlockId={block.blockId}
@@ -131,7 +156,7 @@ export default async function BlockDetailPage({ params }: BlockDetailPageProps) 
         />
       )}
 
-      {csvPreview && (
+      {csvPreview && canExportListing && (
         <section className="mb-8 rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
@@ -207,6 +232,7 @@ export default async function BlockDetailPage({ params }: BlockDetailPageProps) 
               blockId={block.blockId}
               status={block.status}
               availableTransitions={availableTransitions}
+              reservedSessionDisplayId={reservedSessionDisplayId}
             />
           )}
 

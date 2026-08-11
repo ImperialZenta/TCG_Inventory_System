@@ -161,6 +161,7 @@ Prefixes are permanent. Never renumber a shipped story; retire it with a **Super
 | `S-` | Epic 6 — Search & inventory browser |
 | `V-` | Epic 7 — Pricing & valuation |
 | `O-` | Epic 8 — Operations |
+| `CHL-` | Epic 22 — Channel catalogs & upload sessions (block-mode listing, Phase 5b) |
 
 Epic 9 (I-015 QA hardening) has no prefix of its own; it reuses `I-`, `B-` and `PL-` IDs.
 
@@ -195,6 +196,14 @@ Two storage modes exist. Every story that touches inventory must say which mode 
 | **Sorted stock** | `StockItem` (Epic 10) | Shelf / bin / row | Yes — live quantity, syncs to channels |
 
 A physical card is in exactly one mode. Moving between them is the **promote** path (**SKU-004**) and it is always an explicit, audited action — never implicit.
+
+### Listing terminology (Epic 22 / ADR-013)
+
+| Term | Meaning |
+|------|---------|
+| **Card catalog** | Scryfall / `CatalogCard` — card identity (Epic 2/11) |
+| **Channel catalog** | Bin → marketplace grouping (configuration) |
+| **Upload session** | SEALED blocks → CSV → reserve → complete → ACTIVE |
 
 ---
 

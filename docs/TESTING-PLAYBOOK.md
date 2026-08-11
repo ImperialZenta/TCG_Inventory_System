@@ -278,6 +278,54 @@ Run monthly or after staging/block changes.
 
 ---
 
+### Phase 5b golden path — upload session → Mana Pool (~15 min)
+
+Stories exercised: **CHL-003**, **CHL-004**, **CHL-005**, **CHL-006**, **CHL-015**. Pick gating (**CHL-012**) is deferred to [Phase 4×5b pick gating](#phase-45b--pick-gating-chl-012--future-golden-path). See [Epic 22](backlog/epic-22-channel-catalogs.md) and [ADR-013](architecture/adr/013-channel-catalogs-block-listing.md).
+
+**Prerequisite:** Formalize + **seal** [`fixtures/staging-02-two-blocks.csv`](fixtures/staging-02-two-blocks.csv) (both blocks SEALED). Do **not** activate before this path — activation is what the upload session completes.
+
+| # | Route | You do | Pass if |
+|---|-------|--------|---------|
+| 1 | `/uploads` | New session → select both SEALED blocks → Mana Pool | Session DRAFT; blocks show reserved |
+| 2 | Session detail | Generate CSV | Status CSV_READY; download matches expected row count |
+| 3 | (external) | Import CSV at manapool.com (optional on dev) | — |
+| 4 | Session detail | Click **Complete session** → read confirmation copy (“does not verify Mana Pool…”) → **Yes, mark all blocks active** | Disclaimer visible before activate; both blocks ACTIVE + MANAPOOL; session COMPLETED |
+
+**Cancel branch (disposable):** Use staging-05 block — create session, generate CSV, **Cancel** → block stays SEALED, reservation cleared. On CSV_READY session detail, confirm warning text includes **Mana Pool may already have been updated** before clicking Cancel.
+
+**CHL-015 integrity branch (manual UI):**
+
+| Step | Route | You do | Pass if |
+|------|-------|--------|---------|
+| A | `/uploads` | Create session with one SEALED block | Block reserved; note session id (e.g. UP-0001) |
+| B | `/blocks/{id}` | Open reserved block detail | Banner names session; **Mark as listed** is absent/disabled |
+| C | `/blocks/{id}` | Move block to another bin | Move succeeds |
+| D | `/uploads/{sessionId}` | Refresh session detail | Location column shows new bin; block still listed in session |
+
+**Integrity checks (Agent B):** Map ADR-013 matrix **I-01**–**I-17** to tests or manual steps before `@done` on **CHL-015**.
+
+---
+
+### Phase 4×5b — Pick gating (CHL-012) — future golden path
+
+**Status:** Not part of Phase 5b closeout. Run when you have done [Phase 4 staging-01 setup](#prerequisites-fresh-database) and want manual proof that orders skip upload-reserved blocks. **Regression:** `tests/upload-sessions.test.ts` (`excludes reserved blocks from pick allocation`, counter-pick rejection, post-cancel allocation).
+
+**Why separate:** Phase 5b uses **staging-02**; the order fixture uses **staging-01** cards. Pick gating also needs two blocks with the same printing — one reserved, one pickable — which staging-01 alone does not provide without extra setup.
+
+**Prerequisite:** [One-time staging-01 setup](#prerequisites-fresh-database) complete; block sealed then **Active** (upload session complete or per-block activate). Optionally formalize staging-01 twice into two bins if you need duplicate printings for allocation tests — see [`fixtures/upload-session-pick-gating.json`](fixtures/upload-session-pick-gating.json).
+
+| # | Route | You do | Pass if |
+|---|-------|--------|---------|
+| 1 | `/uploads` | New session → reserve **one** sealed staging-01 block → generate CSV (do not complete) | Block reserved; session CSV_READY |
+| 2 | `/blocks/{id}` | Open the **reserved** block → **Counter pick** any card | Rejected; message names the upload session |
+| 3 | `/orders` | Import [`fixtures/manapool-order-staging-01.json`](fixtures/manapool-order-staging-01.json) → generate pick | If only the reserved block holds those cards: pick **shorts** or refuses; if a second Active block has them: lines come from the **non-reserved** block only |
+| 4 | `/uploads/{sessionId}` | **Cancel** session | Reservation cleared |
+| 5 | `/orders` | Re-import or regenerate pick for the same order | Allocation may now use the formerly reserved block |
+
+**Post-complete sanity (optional):** After activating staging-01 via upload session, import the same order fixture — pick list allocates from that Active block (Phase 4 step 1–3 with upload-activated inventory).
+
+---
+
 ### ACC-003 smoke — access platform gate (~15 min)
 
 Stories exercised: **ACC-001**, **ACC-002**, **ACC-003**

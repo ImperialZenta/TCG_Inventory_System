@@ -102,6 +102,7 @@ export async function getBlocksWithStats() {
     include: {
       bin: { include: { shelf: true } },
       cards: true,
+      reservedUploadSession: { select: { sessionId: true } },
     },
     orderBy: { packedAt: "desc" },
   });

@@ -45,6 +45,7 @@ export async function allocateCardLineForOrderLine(
       channel,
       status: { in: [...PICKABLE_BLOCK_STATUSES] },
       pickHoldAt: null,
+      reservedUploadSessionId: null,
       cards: {
         some: {
           quantity: { gt: 0 },

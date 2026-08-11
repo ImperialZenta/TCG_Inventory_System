@@ -38,8 +38,12 @@ would deploy whatever code is in your working tree; see Upgrades below).
 | Take a backup | `powershell -ExecutionPolicy Bypass -File scripts/backup-store.ps1` |
 | Tail store logs | `docker compose -f docker-compose.prod.yml logs -f app` |
 
-Store workflow lives in the app itself: intake bulk → staging → blocks → activate → export the
-block's Mana Pool CSV and upload it → import orders (button, webhook, or cron) → pick → ship.
+Store workflow lives in the app itself: intake bulk → staging → formalize → seal blocks →
+**upload session** (select sealed blocks, export Mana Pool CSV, upload at manapool.com, complete
+session to activate) → import orders (button, webhook, or cron) → pick → ship.
+
+Per-block CSV export (PL-005) remains for ad-hoc single bricks. Full runbook:
+[Listing sealed blocks (Phase 5b)](#listing-sealed-blocks-phase-5b).
 
 ### Backup cadence
 
@@ -123,4 +127,38 @@ git checkout main
 5. Settings → create shelves and bins; adjust staging target if desired.
 6. Take backup #1: `powershell -ExecutionPolicy Bypass -File scripts/backup-store.ps1`.
 7. Create the nightly backup task (command above).
+
+## Listing sealed blocks (Phase 5b)
+
+When [Epic 22](../backlog/epic-22-channel-catalogs.md) ships ([ADR-013](../architecture/adr/013-channel-catalogs-block-listing.md)):
+
+### Mana Pool import behavior
+
+Mana Pool CSV import **adds to or updates** your seller inventory — it does **not** replace the
+entire catalog. Re-importing the same printing merges quantities. Upload sessions therefore include
+**SEALED blocks only** — never blocks already **ACTIVE** (already listed).
+
+### Recommended workflow
+
+1. **Intake** — staging → formalize → **seal** blocks (do not activate yet).
+2. **Configure catalogs (optional)** — assign bins to Mana Pool / TCGplayer channel catalogs in
+   `/catalogs` for faster block selection.
+3. **Upload session** — `/uploads` → new session → select SEALED blocks → choose channel →
+   **Generate CSV** (blocks are reserved; picks skip them until complete or cancel).
+4. **External upload** — import CSV at [manapool.com/seller/inventory/import](https://manapool.com/seller/inventory/import).
+   Verify rows and prices look correct.
+5. **Complete session** — confirm in the app → blocks become **ACTIVE** on that channel.
+
+### Integrity notes
+
+- The app **does not verify** Mana Pool accepted the file. Complete only after you checked MP.
+- **Cancel** after uploading to MP may leave marketplace qty live while blocks stay SEALED in the app.
+- **Take offline** (ARCHIVE) does **not** remove Mana Pool qty — export MP inventory, edit qty,
+  re-import, or use vacation mode manually (**CHL-013**).
+- Per-block CSV on block detail (PL-005) still works for one-off exports; reserved blocks remain
+  pick-gated if they are in an open upload session.
+
+### Until Phase 5b ships
+
+Use block detail → **Download CSV** → upload at Mana Pool → **Mark as listed** per block.
 8. Start intake.

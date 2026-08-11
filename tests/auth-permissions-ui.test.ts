@@ -56,6 +56,7 @@ describe("ACC-002 role-gated nav", () => {
     expect(hrefs).not.toContain("/staging");
     expect(hrefs).not.toContain("/orders");
     expect(hrefs).not.toContain("/pick");
+    expect(hrefs).not.toContain("/uploads");
     expect(hrefs).not.toContain("/settings");
     expect(hrefs).toContain("/inventory");
   });

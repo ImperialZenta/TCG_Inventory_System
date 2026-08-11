@@ -10,6 +10,9 @@ export const ACTIVE_BLOCK_REMOVE_REMEDIATION =
 export const LIQUIDATED_BLOCK_REMOVE_MESSAGE =
   "Cannot remove a liquidated block — final state. Restore from backup if this was a mistake.";
 
+export const RESERVED_BLOCK_REMOVE_MESSAGE =
+  "Cannot remove a block while it is reserved in an open upload session — cancel the session first.";
+
 export interface BlockRemovalEligibility {
   allowed: boolean;
   reason?: string;
@@ -19,7 +22,15 @@ export interface BlockRemovalEligibility {
 export function getBlockRemovalEligibility(block: {
   status: BlockStatus;
   pickItemCount: number;
+  reservedUploadSessionId?: string | null;
 }): BlockRemovalEligibility {
+  if (block.reservedUploadSessionId) {
+    return {
+      allowed: false,
+      reason: RESERVED_BLOCK_REMOVE_MESSAGE,
+      remediation: "Cancel or complete the upload session to release the block.",
+    };
+  }
   if (block.pickItemCount > 0) {
     return {
       allowed: false,
