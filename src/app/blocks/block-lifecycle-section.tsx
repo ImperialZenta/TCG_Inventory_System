@@ -1,9 +1,11 @@
 import { LifecycleActionForm } from "./lifecycle-action-form";
+import { shouldShowManaPoolDelistPlaybook } from "@/lib/blocks/mana-pool-delist-playbook";
 import type { LifecycleTransition } from "@/lib/blocks/lifecycle";
 
 interface BlockLifecycleSectionProps {
   blockId: string;
   status: string;
+  channel: string;
   availableTransitions: LifecycleTransition[];
   reservedSessionDisplayId?: string | null;
 }
@@ -11,6 +13,7 @@ interface BlockLifecycleSectionProps {
 export function BlockLifecycleSection({
   blockId,
   status,
+  channel,
   availableTransitions,
   reservedSessionDisplayId,
 }: BlockLifecycleSectionProps) {
@@ -74,7 +77,14 @@ export function BlockLifecycleSection({
                 : "rounded-xl border border-zinc-800 bg-zinc-900/50 p-4"
             }
           >
-            <LifecycleActionForm blockId={blockId} transition={transition} />
+            <LifecycleActionForm
+              blockId={blockId}
+              transition={transition}
+              requiresManaPoolDelistPlaybook={shouldShowManaPoolDelistPlaybook(
+                status,
+                channel,
+              )}
+            />
           </div>
         ))}
       </div>

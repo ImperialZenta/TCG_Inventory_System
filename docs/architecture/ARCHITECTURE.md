@@ -74,7 +74,7 @@ The web app remains the primary UI. A **second Node process** drains scheduled j
 | [ADR-009](adr/009-protected-api-surface.md) | Protected API surface (session, webhooks, portals) | **ACC-001** |
 | [ADR-010](adr/010-saas-evolution-strategy.md) | Staged SaaS evolution: tenancy seams now, deploy-per-tenant first, shared schema on fleet pain | **SAS-001** |
 | [ADR-011](adr/011-production-dev-environment-separation.md) | Production/dev separation: two compose stacks, external prod volume, strict migrations, pg_dump DR | **PL-009** |
-| [ADR-012](adr/012-condition-vocabulary-import-mapping.md) | Condition vocabulary: TCGplayer internal scale; ManaBox 7→5 import map; channel export separate | **C-007** |
+| [ADR-012](adr/012-condition-vocabulary-import-mapping.md) | Condition vocabulary: TCGplayer internal scale; ManaBox 7→5 import map; Mana Pool listing outward map | **C-007**, **CHL-016** |
 | [ADR-013](adr/013-channel-catalogs-block-listing.md) | Channel catalogs + upload sessions for block-mode listing; pick gating; Mana Pool additive import | **CHL-003** |
 
 Read an ADR before implementing the story named as its first implementer.

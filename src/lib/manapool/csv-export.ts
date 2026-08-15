@@ -1,7 +1,7 @@
 import type { CardLine } from "@prisma/client";
 import {
   FINISH_TO_MANABOX_FOIL,
-  INTERNAL_TO_MANABOX_CONDITION,
+  INTERNAL_TO_MANAPOOL_CONDITION,
 } from "@/lib/languages";
 
 /** ManaBox export header — Mana Pool accepts this for new listing imports. */
@@ -67,8 +67,8 @@ function formatPurchasePrice(priceCents: number | null | undefined): string {
   return (priceCents / 100).toFixed(2);
 }
 
-function internalConditionToManabox(condition: string): string {
-  return INTERNAL_TO_MANABOX_CONDITION[condition] ?? "near_mint";
+function internalConditionToManapool(condition: string): string {
+  return INTERNAL_TO_MANAPOOL_CONDITION[condition] ?? "mint";
 }
 
 function internalFinishToManaboxFoil(finish: string): string {
@@ -111,7 +111,7 @@ export function aggregateCardLinesForListing(
   return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
 }
 
-/** ManaBox-compatible CSV for Mana Pool import (CHL-009). */
+/** ManaBox-compatible CSV for Mana Pool import (CHL-009, CHL-016). */
 export function toManaPoolCsv(rows: ManaPoolCsvRow[]): string {
   const header = MANABOX_LISTING_CSV_COLUMNS.join(",");
 
@@ -129,7 +129,7 @@ export function toManaPoolCsv(rows: ManaPoolCsvRow[]): string {
       formatPurchasePrice(row.priceCents),
       "FALSE",
       "FALSE",
-      internalConditionToManabox(row.condition),
+      internalConditionToManapool(row.condition),
       row.language,
       "USD",
       "",

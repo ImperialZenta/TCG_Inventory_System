@@ -22,11 +22,13 @@ Back to [index](../BACKLOG.md) · [conventions](CONVENTIONS.md) · [ADR-013](../
 | CHL-010 | Multi-channel UI; TCGplayer CSV stub | Should | — |
 | CHL-011 | Export/session audit log + Activity feed links | Should | — |
 | CHL-012 | Pick gating: exclude session-reserved SEALED blocks | Must | Done |
-| CHL-013 | Take offline playbook + ARCHIVE delist checklist (manual MP) | Should | — |
+| CHL-013 | Take offline playbook + ARCHIVE delist checklist (manual MP) | Should | Done |
 | CHL-014 | Permissions: configure catalogs, create/complete/cancel sessions | Must | Done |
 | CHL-015 | Lifecycle integrity guards (matrix I-02–I-17) | Must | Done |
+| CHL-016 | **Hotfix:** Mana Pool export NM as `mint` not `near_mint` | Must | Done |
+| CHL-017 | Rename channel catalog label | Should | Done |
 
-**Build order:** CHL-003 → CHL-006 → CHL-012 → CHL-004 → CHL-005 → CHL-007 → CHL-014 → CHL-001 → CHL-002 → CHL-008 → CHL-009 → CHL-010 → CHL-011 → CHL-013 → CHL-015 (guards land with CHL-003–012; CHL-015 captures cross-cutting scenarios for Agent B).
+**Build order:** **CHL-016** (prod hotfix — MP maps `near_mint`→LP) → CHL-003 → CHL-006 → CHL-012 → CHL-004 → CHL-005 → CHL-007 → CHL-014 → CHL-001 → CHL-002 → CHL-008 → CHL-009 → CHL-010 → CHL-011 → CHL-013 → CHL-015 (guards land with CHL-003–012; CHL-015 captures cross-cutting scenarios for Agent B).
 
 ---
 
@@ -440,10 +442,10 @@ Feature: CHL-012 Pick gating for upload reservations
 | **I want** | clear steps to delist from Mana Pool manually |
 | **So that** | I do not leave stale qty on the marketplace |
 
-**Priority:** Should · **Status:** — · **Depends on:** B-002
+**Priority:** Should · **Status:** Done · **Depends on:** B-002
 
 ```gherkin
-@pending
+@done
 Feature: CHL-013 Take offline playbook
 
   Scenario: ARCHIVE shows manual delist checklist
@@ -540,6 +542,79 @@ Feature: CHL-015 Upload session integrity guards
 
 ---
 
+### CHL-016 — Mana Pool listing export: NM as `mint` (prod hotfix)
+
+| | |
+|---|---|
+| **As a** | seller |
+| **I want** | Near Mint cards to list as Near Mint on Mana Pool |
+| **So that** | buyers see the correct condition and I am not undercut by accidental LP pricing |
+
+**Priority:** Must · **Status:** Done · **Depends on:** CHL-004, PL-005, ADR-012 · **Urgency:** prod hotfix (store-v2 **UP-0002**, 2026-08-11)
+
+**Finding:** Upload session CSV emitted ManaBox `near_mint` for internal `NM`. Mana Pool import uses the ManaBox **roundtrip** map where `near_mint` → **LP**, not NM ([ADR-012](../architecture/adr/012-condition-vocabulary-import-mapping.md)). All 136 printings in **UP-0002** imported as LP despite NM in the app. Workaround: re-import with `mint` in the Condition column (see `UP-0002-manapool-listing_*-corrected.csv`).
+
+**Fix scope:** [`INTERNAL_TO_MANAPOOL_CONDITION`](../../../prisma/languages-data.ts) used by [`toManaPoolCsv`](../../../src/lib/manapool/csv-export.ts) (upload session and per-block PL-005). Emit **`mint`** for NM and **`near_mint`** for LP so Mana Pool lists the intended grade. Do not change ManaBox intake (`near_mint` → NM). Update golden fixtures and **CHL-009** tests; add regression asserting MP-facing grades.
+
+```gherkin
+@done
+Feature: CHL-016 Mana Pool export condition vocabulary
+
+  Scenario: Internal NM exports as mint for Mana Pool listing CSV
+    Given card lines with condition NM
+    When staff generate a Mana Pool listing CSV (upload session or per-block)
+    Then each row's Condition column is "mint"
+    And not "near_mint"
+
+  Scenario: Other internal grades use Mana Pool–correct outward map
+    Given card lines with conditions LP, MP, HP and DMG
+    When staff generate the Mana Pool listing CSV
+    Then conditions are emitted in terms Mana Pool maps to the intended seller grade
+    And golden CSV fixtures are updated
+```
+
+---
+
+### CHL-017 — Rename channel catalog label
+
+| | |
+|---|---|
+| **As a** | listing manager |
+| **I want** | to rename a channel catalog's label |
+| **So that** | a descriptive name (e.g. "TCGplayer — TV Shelf") can replace a placeholder like the bin id I typed at creation time |
+
+**Priority:** Should · **Status:** Done · **Depends on:** CHL-001, CHL-008, CHL-014
+
+```gherkin
+@done
+Feature: CHL-017 Rename channel catalog label
+
+  Scenario: Rename updates the label on the catalogs page
+    Given a TCGplayer catalog labeled "BOX_002" with bin "BOX_002" assigned
+    When staff rename the catalog to "TCGplayer — TV Shelf"
+    Then "/catalogs" shows "TCGplayer — TV Shelf"
+    And bin "BOX_002" remains assigned
+
+  Scenario: Empty label is rejected
+    Given a channel catalog exists
+    When staff submit a rename with a blank label
+    Then the action is rejected with a reason
+
+  Scenario: Renamed label appears in upload session catalog picker
+    Given catalog "Mana Pool — Shelf A" is renamed to "Mana Pool — Bulk"
+    When staff open "/uploads/new"
+    Then the catalog dropdown includes "Mana Pool — Bulk"
+
+  Scenario: Staff cannot rename catalogs
+    Given a user with role STAFF
+    When they attempt to rename a catalog
+    Then the attempt fails
+```
+
+**Out of scope v1:** change channel after create, delete catalog, label uniqueness enforcement (create already allows duplicate labels per channel).
+
+---
+
 ## Edge conditions review checklist (for Agent B / implementation)
 
 Use this when stepping through each story before `@done`:
@@ -552,6 +627,7 @@ Use this when stepping through each story before `@done`:
 6. **Concurrent sessions disjoint blocks** — allowed.
 7. **Bin removed from catalog mid-session** — session unchanged; block IDs stable (**I-08**).
 8. **PL-005 per-block export while block reserved** — allow download or block? **Decision:** allow ad-hoc export; reservation is for session batch + pick gating only (document in ADR-013 consequences).
+9. **NM export as `near_mint`** — closed by **CHL-016** (emit `mint` for NM; `near_mint` for LP).
 
 **Out of scope v1:** auto-delist on ARCHIVE, API upload verification, SKU-mode export, vacation mode integration.
 

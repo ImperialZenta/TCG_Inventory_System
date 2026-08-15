@@ -15,6 +15,7 @@ import {
   transitionBlockStatus,
   type LifecycleTransition,
 } from "@/lib/blocks/lifecycle";
+import { requiresManaPoolArchiveConfirmation } from "@/lib/blocks/mana-pool-delist-playbook";
 import { ForbiddenError } from "@/lib/auth/errors";
 import { PERMISSIONS, requirePermissionContext } from "@/lib/auth/permissions";
 import { BlockMoveError, bulkMoveBlocksInBin, bulkMoveBlocksToBin, moveBlockToBin as moveBlockToBinLib } from "@/lib/blocks/move";
@@ -177,6 +178,25 @@ export async function lifecycleBlockAction(
 
   if (!LIFECYCLE_TRANSITIONS.has(transition as LifecycleTransition)) {
     return { ok: false, message: "Invalid lifecycle action" };
+  }
+
+  const block = await db.block.findUnique({
+    where: { blockId },
+    select: { status: true, channel: true },
+  });
+
+  if (!block) {
+    return { ok: false, message: "Block not found" };
+  }
+
+  if (
+    requiresManaPoolArchiveConfirmation(block.status, block.channel, transition) &&
+    (formData.get("confirmed") as string)?.trim() !== "true"
+  ) {
+    return {
+      ok: false,
+      message: "Confirm you will update Mana Pool manually before taking offline.",
+    };
   }
 
   try {

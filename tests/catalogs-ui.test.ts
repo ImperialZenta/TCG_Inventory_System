@@ -11,6 +11,7 @@ import { listEligibleUploadBlocks } from "@/lib/upload-sessions";
 import {
   assignBinToCatalogAction,
   createChannelCatalogAction,
+  renameChannelCatalogAction,
 } from "@/app/uploads/catalog-actions";
 import { BLOCK_CHANNEL_LABELS, navItemsForRole } from "@/lib/constants";
 import {
@@ -94,6 +95,7 @@ describe("CHL-008 catalogs page UI", () => {
     expect(html).toContain("(2 sealed)");
     expect(html).toContain("2 sealed blocks");
     expect(html).toContain("Create catalog");
+    expect(html).toContain("Save label");
   });
 });
 
@@ -225,5 +227,106 @@ describe("CHL-008 catalog form actions", () => {
 
     const detail = await getCatalogWithBins(created.catalogId!);
     expect(detail?.bins.map((b) => b.binDisplayId)).toContain("TEST-A-B01");
+  });
+});
+
+describe("CHL-017 rename channel catalog label", () => {
+  beforeEach(async () => {
+    clearMockCookies();
+    await truncateAuthTables();
+  });
+
+  afterAll(async () => {
+    await disconnectTestDb();
+  });
+
+  it("renames a catalog through renameChannelCatalogAction", async () => {
+    const owner = await createTestOwner();
+    const manager = await createTestUserWithSession({
+      ownerCtx: owner.ctx,
+      email: "manager-catalog-rename@test.local",
+      role: "MANAGER",
+    });
+    setMockSessionCookie(manager.token);
+
+    const created = await createChannelCatalogAction("TCGPLAYER", "BOX_002");
+    expect(created.ok).toBe(true);
+
+    const renamed = await renameChannelCatalogAction(
+      created.catalogId!,
+      "TCGplayer — TV Shelf",
+    );
+    expect(renamed.ok).toBe(true);
+
+    const { getCurrentSession } = await import("@/lib/auth");
+    vi.mocked(getCurrentSession).mockResolvedValue(manager.session);
+
+    const { default: CatalogsPage } = await import("@/app/catalogs/page");
+    const page = await CatalogsPage();
+    const html = renderToStaticMarkup(page as ReactElement);
+
+    expect(html).toContain("TCGplayer — TV Shelf");
+    expect(html).not.toContain('value="BOX_002"');
+  });
+
+  it("shows renamed label in upload session catalog picker", async () => {
+    await resetTestDb();
+    const owner = await createTestOwner();
+    const manager = await createTestUserWithSession({
+      ownerCtx: owner.ctx,
+      email: "manager-catalog-rename-picker@test.local",
+      role: "MANAGER",
+    });
+    const staff = await createTestUserWithSession({
+      ownerCtx: owner.ctx,
+      email: "staff-catalog-rename-picker@test.local",
+      role: "STAFF",
+    });
+    setMockSessionCookie(manager.token);
+
+    const created = await createChannelCatalogAction("MANAPOOL", "Mana Pool — Shelf A");
+    expect(created.ok).toBe(true);
+
+    const renamed = await renameChannelCatalogAction(created.catalogId!, "Mana Pool — Bulk");
+    expect(renamed.ok).toBe(true);
+
+    const { getCurrentSession } = await import("@/lib/auth");
+    vi.mocked(getCurrentSession).mockResolvedValue(staff.session);
+
+    const { default: NewUploadSessionPage } = await import("@/app/uploads/new/page");
+    const page = await NewUploadSessionPage({ searchParams: Promise.resolve({}) });
+    const html = renderToStaticMarkup(page as ReactElement);
+
+    expect(html).toContain("Mana Pool — Bulk");
+    expect(html).not.toContain("Mana Pool — Shelf A");
+  });
+
+  it("rejects rename from staff without catalog configure permission", async () => {
+    const owner = await createTestOwner();
+    const manager = await createTestUserWithSession({
+      ownerCtx: owner.ctx,
+      email: "manager-catalog-rename-gate@test.local",
+      role: "MANAGER",
+    });
+    const staff = await createTestUserWithSession({
+      ownerCtx: owner.ctx,
+      email: "staff-catalog-rename@test.local",
+      role: "STAFF",
+    });
+    setMockSessionCookie(manager.token);
+
+    const created = await createChannelCatalogAction("MANAPOOL", "Mana Pool — Shelf A");
+    expect(created.ok).toBe(true);
+
+    setMockSessionCookie(staff.token);
+    const renamed = await renameChannelCatalogAction(created.catalogId!, "Mana Pool — Bulk");
+    expect(renamed).toEqual({ ok: false, message: "Not permitted" });
+
+    const catalogs = await import("@/lib/channel-catalogs").then(({ listChannelCatalogs }) =>
+      listChannelCatalogs("MANAPOOL"),
+    );
+    expect(catalogs.some((c) => c.id === created.catalogId && c.label === "Mana Pool — Shelf A")).toBe(
+      true,
+    );
   });
 });

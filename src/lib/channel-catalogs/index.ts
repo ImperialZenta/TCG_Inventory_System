@@ -1,5 +1,6 @@
 export { ChannelCatalogError } from "@/lib/channel-catalogs/errors";
 export { createChannelCatalog } from "@/lib/channel-catalogs/create";
+export { updateChannelCatalogLabel } from "@/lib/channel-catalogs/update";
 export { assignBinToCatalog, removeBinFromCatalog } from "@/lib/channel-catalogs/membership";
 export {
   listChannelCatalogs,

@@ -9,6 +9,7 @@ import {
   getCatalogWithBins,
   listChannelCatalogs,
   removeBinFromCatalog,
+  updateChannelCatalogLabel,
 } from "@/lib/channel-catalogs";
 import { disconnectTestDb, resetTestDb } from "./helpers/db";
 import { createFormalizedImport } from "./helpers/fixtures";
@@ -104,5 +105,54 @@ describe("channel catalogs (CHL-001)", () => {
 
     const detail = await getCatalogWithBins(catalog.id);
     expect(detail?.bins).toHaveLength(0);
+  });
+});
+
+describe("channel catalog rename (CHL-017)", () => {
+  beforeEach(async () => {
+    await resetTestDb();
+  });
+
+  afterAll(async () => {
+    await disconnectTestDb();
+  });
+
+  it("renames a catalog label without changing bin membership", async () => {
+    const { binA } = await createTestBins();
+    const catalog = await createChannelCatalog(TEST_CONTEXT, "TCGPLAYER", "BOX_002");
+    await assignBinToCatalog(TEST_CONTEXT, catalog.id, binA.id);
+
+    const renamed = await updateChannelCatalogLabel(
+      TEST_CONTEXT,
+      catalog.id,
+      "TCGplayer — TV Shelf",
+    );
+    expect(renamed.label).toBe("TCGplayer — TV Shelf");
+
+    const listed = await listChannelCatalogs("TCGPLAYER");
+    expect(listed[0]?.label).toBe("TCGplayer — TV Shelf");
+
+    const detail = await getCatalogWithBins(catalog.id);
+    expect(detail?.bins.map((b) => b.binDisplayId)).toEqual(["A-01"]);
+  });
+
+  it("rejects an empty label", async () => {
+    const catalog = await createChannelCatalog(TEST_CONTEXT, "MANAPOOL", "Mana Pool — Shelf A");
+
+    await expect(updateChannelCatalogLabel(TEST_CONTEXT, catalog.id, "   ")).rejects.toThrow(
+      ChannelCatalogError,
+    );
+    await expect(updateChannelCatalogLabel(TEST_CONTEXT, catalog.id, "   ")).rejects.toThrow(
+      /Catalog label is required/,
+    );
+  });
+
+  it("rejects rename when catalog is not found", async () => {
+    await expect(
+      updateChannelCatalogLabel(TEST_CONTEXT, "missing-catalog-id", "New Label"),
+    ).rejects.toThrow(ChannelCatalogError);
+    await expect(
+      updateChannelCatalogLabel(TEST_CONTEXT, "missing-catalog-id", "New Label"),
+    ).rejects.toThrow(/Channel catalog not found/);
   });
 });

@@ -28,8 +28,7 @@ export const LIFECYCLE_TRANSITION_LABELS: Record<
   ARCHIVE: {
     button: "Take offline",
     pending: "Archiving…",
-    description:
-      "Remove from new picks and listings. Use for stale inventory or bricks pulled before listing.",
+    description: "Archive this block in the app. Active Mana Pool blocks require a manual marketplace delist checklist.",
   },
   LIQUIDATE: {
     button: "Mark as liquidated",

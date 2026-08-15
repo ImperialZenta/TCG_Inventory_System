@@ -231,6 +231,7 @@ export default async function BlockDetailPage({ params }: BlockDetailPageProps) 
             <BlockLifecycleSection
               blockId={block.blockId}
               status={block.status}
+              channel={block.channel}
               availableTransitions={availableTransitions}
               reservedSessionDisplayId={reservedSessionDisplayId}
             />

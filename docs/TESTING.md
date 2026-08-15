@@ -89,7 +89,9 @@ From [CONVENTIONS.md](backlog/CONVENTIONS.md):
 | `upload-permissions.test.ts` | Upload/catalog permissions (CHL-014, CHL-005 confirm action) |
 | `upload-session-ui.test.ts` | Session actions markup (CHL-005/006/007) |
 | `upload-session-pages-ui.test.ts` | Upload list + detail pages (CHL-007) |
-| `manapool-csv-export.test.ts` | Mana Pool CSV golden exports (CHL-009) |
+| `manapool-csv-export.test.ts` | Mana Pool CSV golden exports (CHL-009) and listing condition map (CHL-016) |
+| `chl013-ui.test.ts` | Take offline Mana Pool delist playbook (CHL-013) |
+| `mana-pool-delist-playbook.test.ts` | Playbook visibility helpers (CHL-013) |
 | `pl009-prod-separation.test.ts` | PL-009 prod/dev compose contracts, MIGRATE_STRICT entrypoint, backup/restore guard |
 
 **Known gaps** (tracked in PL-008 / **CHL-009**, not blocking current Done claims): Scryfall client, ManaBox CSV parse, JSON backup restore UI roundtrip, **Mana Pool export format golden tests** (PL-005 aggregation — **CHL-009**), analytics UI. **PL-009 drill:** full `pg_restore` roundtrip logged before first `store-vN` upgrade ([SMOKE-LOG](../operations/SMOKE-LOG.md)).

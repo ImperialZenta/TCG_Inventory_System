@@ -9,6 +9,7 @@ import {
   createChannelCatalog,
   listChannelCatalogs,
   removeBinFromCatalog,
+  updateChannelCatalogLabel,
 } from "@/lib/channel-catalogs";
 import { ChannelCatalogError } from "@/lib/channel-catalogs/errors";
 
@@ -60,6 +61,17 @@ export async function removeBinFromCatalogFormAction(
   return result;
 }
 
+export async function renameChannelCatalogFormAction(
+  _prev: CatalogActionResult | null,
+  formData: FormData,
+): Promise<CatalogActionResult> {
+  const catalogId = (formData.get("catalogId") as string)?.trim() ?? "";
+  const label = (formData.get("label") as string)?.trim() ?? "";
+  const result = await renameChannelCatalogAction(catalogId, label);
+  if (result.ok) revalidateCatalogPaths();
+  return result;
+}
+
 export async function createChannelCatalogAction(
   channel: BlockChannel,
   label: string,
@@ -105,6 +117,23 @@ export async function removeBinFromCatalogAction(
       ok: true,
       message: `Removed bin ${result.binDisplayId} from catalog`,
       catalogId: result.catalogId,
+    };
+  } catch (error) {
+    return { ok: false, message: catalogErrorMessage(error) };
+  }
+}
+
+export async function renameChannelCatalogAction(
+  catalogId: string,
+  label: string,
+): Promise<CatalogActionResult> {
+  try {
+    const ctx = await requirePermissionContext(PERMISSIONS.CATALOG_CONFIGURE);
+    const result = await updateChannelCatalogLabel(ctx, catalogId, label);
+    return {
+      ok: true,
+      message: `Renamed catalog to ${result.label}`,
+      catalogId: result.id,
     };
   } catch (error) {
     return { ok: false, message: catalogErrorMessage(error) };

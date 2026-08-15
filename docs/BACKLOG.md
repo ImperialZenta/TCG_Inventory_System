@@ -170,21 +170,23 @@ Block-mode marketplace listing: bin groupings per channel, upload sessions that 
 
 | ID | Story | Priority | Status |
 |----|-------|----------|--------|
-| CHL-001 | Channel catalog entity + assign bins | Must | — |
+| CHL-001 | Channel catalog entity + assign bins | Must | Done |
 | CHL-002 | Blocks inherit default channel from bin | Should | — |
 | CHL-003 | Upload session: select SEALED blocks, reserve | Must | Done |
 | CHL-004 | Generate session CSV (Mana Pool aggregate) | Must | Done |
 | CHL-005 | Complete session: batch ACTIVATE, set channel | Must | Done |
 | CHL-006 | Cancel session: release reservations | Must | Done |
 | CHL-007 | Upload sessions UI | Must | Done |
-| CHL-008 | Channel catalogs UI + filter sealed blocks | Should | — |
+| CHL-008 | Channel catalogs UI + filter sealed blocks | Should | Done |
 | CHL-009 | Close PL-005 test gap (golden CSV) | Should | Done |
 | CHL-010 | Multi-channel UI; TCGplayer CSV stub | Should | — |
 | CHL-011 | Export/session audit + Activity links | Should | — |
 | CHL-012 | Pick gating for session-reserved blocks | Must | Done |
-| CHL-013 | Take offline playbook (manual Mana Pool delist) | Should | — |
+| CHL-013 | Take offline playbook (manual Mana Pool delist) | Should | Done |
 | CHL-014 | Permissions for catalogs and upload sessions | Must | Done |
-| CHL-015 | Lifecycle integrity guards (ADR-013 matrix) | Must | — |
+| CHL-015 | Lifecycle integrity guards (ADR-013 matrix) | Must | Done |
+| CHL-016 | **Hotfix:** Mana Pool export NM as `mint` not `near_mint` | Must | Done |
+| CHL-017 | Rename channel catalog label | Should | Done |
 
 ## Epic 6 — [Search & Inventory Browser](backlog/epic-06-search.md) · `S-`
 
@@ -439,10 +441,11 @@ Deferred: **B-007** labels, **I-001** + **I-002** manual creation.
 
 ## Phase 5b — Channel catalogs & upload sessions
 
-**Status:** Not started — [Epic 22](backlog/epic-22-channel-catalogs.md) · [ADR-013](architecture/adr/013-channel-catalogs-block-listing.md).
+**Status:** Must stories Done in the app, including **CHL-016**. Prod (`store-v2`) still lists NM as LP until the next `store-vN` tag. Remaining Shoulds: **CHL-002**, **CHL-010**, **CHL-011**. [Epic 22](backlog/epic-22-channel-catalogs.md) · [ADR-013](architecture/adr/013-channel-catalogs-block-listing.md).
 
 | Order | Stories | Why |
 |-------|---------|-----|
+| **0** | **CHL-016** | **Prod hotfix:** emit `mint` for NM on Mana Pool CSV (`near_mint` → LP on MP import) |
 | 1 | **CHL-003**, **CHL-006**, **CHL-012**, **CHL-015** | Session shell, reservations, pick gating, integrity guards |
 | 2 | **CHL-004**, **CHL-009** | Mana Pool CSV aggregate + golden tests (closes PL-005 gap) |
 | 3 | **CHL-005**, **CHL-007**, **CHL-014** | Complete, UI, permissions |

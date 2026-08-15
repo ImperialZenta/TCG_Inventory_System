@@ -183,7 +183,8 @@ describe("CHL-009 Mana Pool CSV export", () => {
 
     const csv = toManaPoolCsv(aggregateCardLinesForListing(lines));
     expect(csvQuantityForScryfallId(csv, scryfallId)).toBe(3);
-    expect(csv).toContain("near_mint");
+    expect(csv).toContain("mint");
+    expect(csv).not.toContain("near_mint");
     expect(csv).toContain("normal");
   });
 
@@ -214,6 +215,58 @@ describe("CHL-009 Mana Pool CSV export", () => {
     expect(rows).toHaveLength(1);
     expect(toManaPoolCsv(rows)).toContain("only-real-card");
     expect(toManaPoolCsv(rows)).not.toContain("Bulk pile");
+  });
+});
+
+function listingLine(condition: string): ListingLineInput {
+  return {
+    scryfallId: `scryfall-${condition}`,
+    isBulkLine: false,
+    name: `Card ${condition}`,
+    setCode: "tst",
+    collectorNumber: "1",
+    condition,
+    finish: "NONFOIL",
+    language: "en",
+    quantity: 1,
+  };
+}
+
+function csvConditionForScryfallId(csv: string, scryfallId: string): string | undefined {
+  const lines = csv.trim().split("\n");
+  const header = lines[0]!.split(",");
+  const scryfallIdx = header.indexOf("Scryfall ID");
+  const conditionIdx = header.indexOf("Condition");
+  if (scryfallIdx < 0 || conditionIdx < 0) {
+    return undefined;
+  }
+
+  for (const line of lines.slice(1)) {
+    if (!line.trim()) continue;
+    const cols = line.split(",");
+    if (cols[scryfallIdx] === scryfallId) {
+      return cols[conditionIdx];
+    }
+  }
+  return undefined;
+}
+
+describe("CHL-016 Mana Pool export condition vocabulary", () => {
+  it.each([
+    ["NM", "mint"],
+    ["LP", "near_mint"],
+    ["MP", "good"],
+    ["HP", "light_played"],
+    ["DMG", "poor"],
+  ] as const)("internal %s exports as %s", (internal, expected) => {
+    const csv = toManaPoolCsv(aggregateCardLinesForListing([listingLine(internal)]));
+    expect(csvConditionForScryfallId(csv, `scryfall-${internal}`)).toBe(expected);
+  });
+
+  it("internal NM exports as mint, not near_mint", () => {
+    const csv = toManaPoolCsv(aggregateCardLinesForListing([listingLine("NM")]));
+    expect(csv).toContain("mint");
+    expect(csv).not.toContain("near_mint");
   });
 });
 

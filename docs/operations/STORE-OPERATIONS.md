@@ -130,7 +130,7 @@ git checkout main
 
 ## Listing sealed blocks (Phase 5b)
 
-When [Epic 22](../backlog/epic-22-channel-catalogs.md) ships ([ADR-013](../architecture/adr/013-channel-catalogs-block-listing.md)):
+[Epic 22](../backlog/epic-22-channel-catalogs.md) · [ADR-013](../architecture/adr/013-channel-catalogs-block-listing.md).
 
 ### Mana Pool import behavior
 
@@ -142,23 +142,37 @@ entire catalog. Re-importing the same printing merges quantities. Upload session
 
 1. **Intake** — staging → formalize → **seal** blocks (do not activate yet).
 2. **Configure catalogs (optional)** — assign bins to Mana Pool / TCGplayer channel catalogs in
-   `/catalogs` for faster block selection.
+   `/catalogs` for faster block selection. Rename catalog labels on that page if the placeholder
+   name no longer fits.
 3. **Upload session** — `/uploads` → new session → select SEALED blocks → choose channel →
    **Generate CSV** (blocks are reserved; picks skip them until complete or cancel).
 4. **External upload** — import CSV at [manapool.com/seller/inventory/import](https://manapool.com/seller/inventory/import).
    Verify rows and prices look correct.
 5. **Complete session** — confirm in the app → blocks become **ACTIVE** on that channel.
 
+Per-block **Download CSV** on block detail (PL-005) still works for one-off listing without an
+upload session.
+
 ### Integrity notes
 
 - The app **does not verify** Mana Pool accepted the file. Complete only after you checked MP.
 - **Cancel** after uploading to MP may leave marketplace qty live while blocks stay SEALED in the app.
-- **Take offline** (ARCHIVE) does **not** remove Mana Pool qty — export MP inventory, edit qty,
-  re-import, or use vacation mode manually (**CHL-013**).
 - Per-block CSV on block detail (PL-005) still works for one-off exports; reserved blocks remain
   pick-gated if they are in an open upload session.
 
-### Until Phase 5b ships
+### Taking a block offline (Mana Pool)
 
-Use block detail → **Download CSV** → upload at Mana Pool → **Mark as listed** per block.
-8. Start intake.
+**Take offline** in the app (`ACTIVE → ARCHIVED`) stops treating the block as live listing context
+for picks. It **does not** remove or change quantity on Mana Pool — you must delist manually.
+
+1. **Export** seller inventory from Mana Pool in **ManaBox format**:
+   [manapool.com/seller/inventory](https://manapool.com/seller/inventory) → Export listings.
+2. **Edit the CSV** — find printings that came from this block. Set quantity to **0** or remove
+   those rows. Mana Pool **merges** quantities across blocks: one CSV row may represent cards from
+   several ACTIVE blocks, so reduce totals carefully rather than assuming one row equals one block.
+3. **Re-import** the edited file at
+   [manapool.com/seller/inventory/import](https://manapool.com/seller/inventory/import), **or** turn
+   on **vacation mode** on Mana Pool if you are pausing all listings temporarily.
+
+The block detail **Take offline** action shows this checklist for ACTIVE Mana Pool blocks and
+requires acknowledgment before archiving. The app never claims the marketplace was updated.

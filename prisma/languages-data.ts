@@ -43,7 +43,7 @@ export const MANAPOOL_TO_FINISH: Record<string, "NONFOIL" | "FOIL" | "ETCHED"> =
 export const MANABOX_CONDITION_MAP: Record<string, "NM" | "LP" | "MP" | "HP" | "DMG"> = {
   // TCGplayer-aligned intake (C-007, ADR-012). ManaBox exports seven snake_case grades;
   // internal storage uses NM/LP/MP/HP/DMG. Not the Mana Pool ManaBox roundtrip collapse
-  // (near_mint→LP there); channel-specific re-export belongs under CHN-006.
+  // (near_mint→LP there); listing export uses INTERNAL_TO_MANAPOOL_CONDITION (CHL-016).
   mint: "NM",
   near_mint: "NM",
   excellent: "LP",
@@ -58,10 +58,14 @@ export function mapManaboxCondition(raw: string): "NM" | "LP" | "MP" | "HP" | "D
   return MANABOX_CONDITION_MAP[key] ?? null;
 }
 
-/** Outward ManaBox grades for Mana Pool CSV import (CHL-009). Not the MP roundtrip collapse. */
-export const INTERNAL_TO_MANABOX_CONDITION: Record<string, string> = {
-  NM: "near_mint",
-  LP: "excellent",
+/**
+ * Outward ManaBox grades for Mana Pool listing CSV (CHL-016).
+ * Inverse of Mana Pool's ManaBox import table (mint→NM, near_mint→LP, excellent/good→MP,
+ * light_played/played→HP, poor→DMG) — not the inverse of MANABOX_CONDITION_MAP (C-007 intake).
+ */
+export const INTERNAL_TO_MANAPOOL_CONDITION: Record<string, string> = {
+  NM: "mint",
+  LP: "near_mint",
   MP: "good",
   HP: "light_played",
   DMG: "poor",
