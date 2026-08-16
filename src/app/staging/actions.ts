@@ -14,6 +14,10 @@ import {
   UndoFormalizeError,
   undoFormalizeImport,
 } from "@/lib/staging/undo-formalize";
+import {
+  ReorderBlockError,
+  reorderStagingBlockCards,
+} from "@/lib/staging/reorder-block";
 import { INVENTORY_EVENT_TYPES, recordInventoryEvent } from "@/lib/events";
 import {
   createUploadLogger,
@@ -181,6 +185,50 @@ export async function uploadStagingCsv(
   } catch (error) {
     const detail = error instanceof Error ? error.message : "Unknown error";
     return fail(log, `Import failed: ${detail}`);
+  }
+}
+
+export async function reorderStagingBlockAction(
+  _prev: StagingActionResult | null,
+  formData: FormData,
+): Promise<StagingActionResult> {
+  const importId = (formData.get("importId") as string)?.trim();
+  const blockIndex = Number.parseInt((formData.get("blockIndex") as string) ?? "", 10);
+  const orderedCardIdsRaw = (formData.get("orderedCardIds") as string)?.trim();
+
+  if (!importId) {
+    return { ok: false, message: "Import not found" };
+  }
+
+  if (!Number.isFinite(blockIndex) || blockIndex < 1) {
+    return { ok: false, message: "Invalid block" };
+  }
+
+  let orderedCardIds: string[];
+  try {
+    const parsed = JSON.parse(orderedCardIdsRaw ?? "[]") as unknown;
+    if (!Array.isArray(parsed) || !parsed.every((id) => typeof id === "string")) {
+      return { ok: false, message: "Invalid card order" };
+    }
+    orderedCardIds = parsed;
+  } catch {
+    return { ok: false, message: "Invalid card order" };
+  }
+
+  try {
+    const ctx = await requirePermissionContext(PERMISSIONS.STAGING_INTAKE);
+    await reorderStagingBlockCards(ctx, importId, blockIndex, orderedCardIds);
+    revalidatePath(`/staging/${importId}`);
+    revalidatePath("/staging");
+    return { ok: true, message: "Pack order saved" };
+  } catch (error) {
+    if (error instanceof ForbiddenError) {
+      return { ok: false, message: error.message };
+    }
+    if (error instanceof ReorderBlockError) {
+      return { ok: false, message: error.message };
+    }
+    return { ok: false, message: "Save order failed" };
   }
 }
 

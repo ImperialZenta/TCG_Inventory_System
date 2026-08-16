@@ -34,6 +34,7 @@ Back to [index](../BACKLOG.md) · [conventions](CONVENTIONS.md)
 | I-024 | Staging list status badges | Should | Done |
 | I-025 | Upload success without auto-redirect | Should | Done |
 | I-026 | Optional batch condition override on CSV upload | Could | — |
+| I-027 | Staging pack order editor | Should | Done |
 
 ---
 
@@ -870,3 +871,56 @@ Feature: I-026 Batch condition override on upload
 ```
 
 **Cross-ref:** **C-007** / ADR-012 (per-row map); **I-009** (upload entry point).
+
+---
+
+### I-027 — Staging pack order editor
+
+| | |
+|---|---|
+| **As a** | packer reviewing a staging import |
+| **I want** | to see every card in a suggested block and drag them into the order I will physically stack |
+| **So that** | I can fix pack order without re-exporting the CSV or manually sorting after formalize |
+
+**Priority:** Should · **Status:** Done · **Depends on:** I-010, I-011, I-013
+
+```gherkin
+@done
+Feature: I-027 Staging pack order editor
+
+  Scenario: Each suggested block shows an expandable pack-order list
+    Given an import with status PARSED breaking into 2 suggested blocks
+    When staff open the import review page
+    Then each block lists its cards in position order with name, set, condition and finish
+
+  Scenario: Save order persists positions within a block
+    Given block 1 lists cards A at position 1, B at position 2 and C at position 3
+    When staff move C to the top and save order for block 1
+    Then C has position 1, A has position 2 and B has position 3
+
+  Scenario: Formalize uses the saved pack order
+    Given staff saved a custom pack order for block 1
+    When they formalize the import
+    Then the created block's card lines occupy positions 1 to N in that saved order
+
+  Scenario: Reorder is refused after formalize
+    Given an import with status ASSIGNED
+    When staff attempt to save a new pack order
+    Then the action is rejected
+
+  Scenario: Recalculate resets pack order to CSV breakdown
+    Given staff saved a custom pack order
+    When they recalculate the breakdown and confirm
+    Then positions revert to CSV row order for every block
+
+  Scenario: Duplicate placement warnings reflect saved positions
+    Given a quantity group spans positions 5 to 7 in block 1
+    When staff reorder those copies and save
+    Then the duplicate placement warning shows the updated position range
+```
+
+**Out of scope (v1):** reorder after formalize on OPEN blocks; move cards between suggested blocks; qty-group drag-as-clump.
+
+**Smoke (2026-08-15):** PASS on dev (`localhost:3010`) — CSV upload, expand **Pack order**, drag/reorder, **Save order** during staging review.
+
+**Related:** **I-011**, **I-013**, **I-018**

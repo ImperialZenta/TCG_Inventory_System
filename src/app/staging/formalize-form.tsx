@@ -157,6 +157,8 @@ export function FormalizeForm({
           <p className="mt-1 text-sm text-zinc-400">
             {groups.length} block{groups.length === 1 ? "" : "s"} · {totalCards.toLocaleString()}{" "}
             card{totalCards === 1 ? "" : "s"}
+            {" · "}
+            <span className="text-zinc-500">Edit pack order above before creating blocks.</span>
             {uniformBinId && !customizePerBlock && binLabelById.get(uniformBinId) && (
               <>
                 {" "}

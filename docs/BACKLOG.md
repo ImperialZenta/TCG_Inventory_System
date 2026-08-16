@@ -125,6 +125,7 @@ Read [intake strategy](backlog/INTAKE-STRATEGY.md) before implementing I-001, I-
 | I-024 | Staging list status badges | Should | Done |
 | I-025 | Upload without auto-redirect | Should | Done |
 | I-026 | Optional batch condition override on CSV upload | Could | — |
+| I-027 | Staging pack order editor | Should | Done |
 
 ## Epic 4 — [Picking & Fulfillment](backlog/epic-04-picking.md) · `P-`
 

@@ -21,6 +21,7 @@ import { getImportUndoSummary } from "@/lib/staging/undo-formalize";
 import { BulkSealImportForm } from "../bulk-seal-import-form";
 import { UndoFormalizeForm } from "../undo-formalize-form";
 import { RemoveBlockFlash } from "../remove-block-flash";
+import { PackOrderSection } from "@/components/staging/pack-order-section";
 export const dynamic = "force-dynamic";
 
 interface StagingImportPageProps {
@@ -163,6 +164,10 @@ export default async function StagingImportPage({ params, searchParams }: Stagin
             ))}
           </ul>
         </div>
+      )}
+
+      {!alreadyAssigned && (
+        <PackOrderSection importId={stagingImport.id} groups={groups} totalBlocks={groups.length} />
       )}
 
       {!alreadyAssigned && (

@@ -20,7 +20,7 @@ import { ForbiddenError } from "@/lib/auth/errors";
 import { deleteAllInventoryAction } from "@/app/settings/delete-actions";
 import { removeBlockAction } from "@/app/blocks/actions";
 import { removeBlockByBlockId } from "@/lib/blocks/remove";
-import { formalizeStagingImportAction, uploadStagingCsv } from "@/app/staging/actions";
+import { formalizeStagingImportAction, reorderStagingBlockAction, uploadStagingCsv } from "@/app/staging/actions";
 import { sealBlockAction } from "@/app/blocks/actions";
 import { pickItemAction } from "@/app/pick/actions";
 import { counterPickAction } from "@/app/blocks/actions";
@@ -179,6 +179,29 @@ describe("ACC-002 read-only server refusal", () => {
     form.set("csv", new File([csv], "readonly.csv", { type: "text/csv" }));
 
     const result = await uploadStagingCsv(null, form);
+    expect(result.ok).toBe(false);
+    expect(result.message).toBe("Not permitted");
+  });
+
+  it("read-only reorder is refused", async () => {
+    const { importId } = await createMultiBlockImport(1);
+    const owner = await createTestOwner();
+    const readOnly = await createTestUserWithSession({
+      ownerCtx: owner.ctx,
+      email: "readonly-reorder@test.local",
+      role: "READ_ONLY",
+    });
+    const cards = await db.stagingCard.findMany({
+      where: { stagingImportId: importId, suggestedBlock: 1 },
+    });
+    setMockSessionCookie(readOnly.token);
+
+    const form = new FormData();
+    form.set("importId", importId);
+    form.set("blockIndex", "1");
+    form.set("orderedCardIds", JSON.stringify(cards.map((c) => c.id)));
+
+    const result = await reorderStagingBlockAction(null, form);
     expect(result.ok).toBe(false);
     expect(result.message).toBe("Not permitted");
   });

@@ -275,6 +275,7 @@ Run monthly or after staging/block changes.
 | 4 | `/inventory` | Search a card from block 2 | Counted as **In packing (OPEN)**, not sellable |
 | 5 | `/staging` | Upload [`fixtures/staging-03-qty-split.csv`](fixtures/staging-03-qty-split.csv); set target count **8** | 3 suggested blocks; review flags `Kelsinko Ranger` and `Weakness` as split across blocks |
 | 6 | `/staging` | Upload [`fixtures/staging-05-undo.csv`](fixtures/staging-05-undo.csv), formalize, then **Undo formalize** (type `UNDO`) | Block removed; message says MTG IDs are not reused |
+| 7 | `/staging` | Upload [`fixtures/staging-02-two-blocks.csv`](fixtures/staging-02-two-blocks.csv); on review expand **Pack order** for each block → drag + **Save order** → **Recalculate** (confirm) → formalize | Saved order matches block detail positions; recalculate restores CSV row order |
 
 ---
 
