@@ -81,6 +81,7 @@ The two inventory modes coexist. A physical card is in exactly one of them, and 
 | B-016 | Document MTG ID non-recycling | Could | — |
 | B-017 | Backup reminder on remove | Should | — |
 | B-018 | Empty block removal policy | Could | — |
+| B-019 | Activity category filters (uploads, stock, channels) | Should | Done |
 
 ## Epic 2 — [MTG Catalog & Card Identity](backlog/epic-02-catalog.md) · `C-`
 
@@ -234,16 +235,17 @@ See the [parity matrix](backlog/PARITY-SORTSWIFT.md) for the full gap analysis.
 
 | ID | Story | Priority | Status |
 |----|-------|----------|--------|
-| SKU-001 | Stock item ledger with on-hand quantity | Must | — |
+| SKU-001 | Stock item ledger with on-hand quantity | Must | Done |
 | SKU-002 | Sort staged cards to stock instead of a block | Must | — |
-| SKU-003 | Reserve and release stock | Must | — |
+| SKU-003 | Reserve and release stock | Must | Schema |
 | SKU-004 | Promote cards from a chaos block to stock | Must | — |
 | SKU-005 | Stock locations and transfers | Should | — |
 | SKU-006 | Cost basis and margin on stock | Must | — |
 | SKU-007 | Internal SKU and barcode | Should | — |
 | SKU-008 | Sealed product and custom SKUs | Should | — |
-| SKU-009 | Stock browser and adjustments | Must | — |
+| SKU-009 | Stock browser and adjustments | Must | Done |
 | SKU-010 | Scale to 100,000 stock items | Should | — |
+| SKU-011 | Stock listing images (scan with catalog fallback) | Should | — |
 
 ## Epic 11 — [Multi-Game Catalog](backlog/epic-11-multi-game.md) · `GAM-` · Phase 7
 
@@ -289,11 +291,13 @@ See the [parity matrix](backlog/PARITY-SORTSWIFT.md) for the full gap analysis.
 | CHN-002 | Listing push to one live channel | Must | — |
 | CHN-003 | Per-channel listing selection | Should | — |
 | CHN-004 | Quantity reconciliation both directions | Must | — |
-| CHN-005 | Oversell guard | Must | — |
+| CHN-005 | Oversell guard | Must | Done |
 | CHN-006 | Marketplace CSV export templates | Must | — |
 | CHN-007 | Order ingestion from channels | Must | — |
 | CHN-008 | Additional channels | Should | — |
 | CHN-009 | Sync health and failure recovery | Must | — |
+| CHN-010 | Incidents list numeric oversell rate | Could · Polish | — |
+| CHN-011 | Incident resolution option labels in UI tests | Could · Polish | — |
 
 ## Epic 15 — [Point of Sale & In-Store](backlog/epic-15-pos.md) · `POS-` · Phase 10
 

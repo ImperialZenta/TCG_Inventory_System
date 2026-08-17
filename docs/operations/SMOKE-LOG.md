@@ -4,6 +4,9 @@ Append one entry per smoke session. Evidence for phase closure and Agent B follo
 
 | Date | Build / branch | Path | Result | Notes |
 |------|----------------|------|--------|-------|
+| 2026-08-17 | local | B-019 Activity category filters (dev **3010**) | PASS | `/activity` **Uploads**, **Stock**, **Channels** pills filter log (were no-ops before `parseCategory` fix); **Stock** shows stock movement events; Vitest `activity-category-filters.test.ts` 2/2 |
+| 2026-08-17 | local | SKU-009 stock browser (dev **3010**) | PASS | `seed:stock-smoke` → `/stock` browse (Lightning Bolt on-hand 5); detail adjust 5→4 **Damage** (−1 movement newest-first); submit without reason → browser validation blocked; Vitest 372/372 incl. `stock-browser.test.ts`, `stock-browser-ui.test.ts`; Agent B 6/6 |
+| 2026-08-16 | local | I-027 pack order polish (dev **3010**) | PASS | Drag to viewport edge auto-scrolls; right-click / position number jump-to-slot; **Save order**; Vitest 317/317 incl. `moveCard` / `parseJumpPosition` |
 | 2026-08-15 | local | I-027 pack order (dev **3010**) | PASS | Staging CSV upload → **Pack order** expand → drag/reorder → **Save order**; Vitest 312/312 incl. `staging-reorder.test.ts`, `staging-pack-order-ui.test.ts` |
 | 2026-08-10 | local | Phase 5b + CHL-001/008/015 | PASS | Vitest 49/277; Phase 5b A/B/C + cancel + CHL-015 + E pass; CHL-012 pick gating deferred to Phase 4×5b path (Vitest covers) |
 | 2026-08-07 | local | Phase 4 golden (DB restore + `manapool-order-from-db.json`) | PASS | Steps through quarantine→clear→complete; clear quarantine auto-released ON_HOLD (no manual Resume); order PICKED; Activity + Analytics populated; short rate 25% / median pick ~82m noted for later metric check; quarantine UX fix verified (general “Quarantined” copy) |

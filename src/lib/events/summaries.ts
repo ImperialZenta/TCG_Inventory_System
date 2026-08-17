@@ -107,6 +107,19 @@ export function buildEventSummary<T extends RecordableEventType>(
       const p = payload as EventPayloadMap[typeof INVENTORY_EVENT_TYPES.UPLOAD_CANCELLED];
       return `Cancelled ${p.sessionId} · ${p.mtgBlockIds.length} block${p.mtgBlockIds.length === 1 ? "" : "s"} released`;
     }
+    case INVENTORY_EVENT_TYPES.STOCK_MOVEMENT: {
+      const p = payload as EventPayloadMap[typeof INVENTORY_EVENT_TYPES.STOCK_MOVEMENT];
+      const sign = p.delta > 0 ? "+" : "";
+      return `${sign}${p.delta}× ${p.name} (${p.setCode}) · on-hand ${p.onHandAfter}`;
+    }
+    case INVENTORY_EVENT_TYPES.OVERSELL_DETECTED: {
+      const p = payload as EventPayloadMap[typeof INVENTORY_EVENT_TYPES.OVERSELL_DETECTED];
+      return `Oversell · ${p.stockItemName} · orders: ${p.orderRefs.join(", ")}`;
+    }
+    case INVENTORY_EVENT_TYPES.OVERSELL_RESOLVED: {
+      const p = payload as EventPayloadMap[typeof INVENTORY_EVENT_TYPES.OVERSELL_RESOLVED];
+      return `Oversell resolved · ${p.resolution}${p.note ? ` · ${p.note}` : ""}`;
+    }
     default:
       return eventType;
   }
@@ -137,6 +150,9 @@ export function formatEventTypeLabel(eventType: string): string {
     [INVENTORY_EVENT_TYPES.UPLOAD_CSV_GENERATED]: "Upload CSV generated",
     [INVENTORY_EVENT_TYPES.UPLOAD_COMPLETED]: "Upload completed",
     [INVENTORY_EVENT_TYPES.UPLOAD_CANCELLED]: "Upload cancelled",
+    [INVENTORY_EVENT_TYPES.STOCK_MOVEMENT]: "Stock movement",
+    [INVENTORY_EVENT_TYPES.OVERSELL_DETECTED]: "Oversell detected",
+    [INVENTORY_EVENT_TYPES.OVERSELL_RESOLVED]: "Oversell resolved",
   };
   return labels[eventType] ?? eventType;
 }

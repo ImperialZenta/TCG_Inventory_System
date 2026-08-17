@@ -13,12 +13,14 @@
     "db:migrate:dev": "prisma migrate dev",
     "db:studio": "prisma studio",
     "db:seed": "tsx prisma/seed.ts",
+    "seed:stock-smoke": "tsx scripts/seed-stock-smoke.ts",
     "db:restore-test": "tsx scripts/restore-test.ts",
     "fixtures:from-db": "tsx scripts/generate-fixtures-from-db.ts",
     "fixtures:staging": "tsx scripts/generate-staging-fixtures.ts",
     "test": "vitest run",
     "test:docker": "docker compose --profile test run --rm test",
     "test:watch": "vitest",
+    "worker": "tsx src/worker/index.ts",
     "postinstall": "prisma generate"
   },
   "dependencies": {
@@ -27,6 +29,7 @@
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "next": "^15.2.0",
+    "pg-boss": "^10.4.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "tailwind-merge": "^3.0.2",

@@ -45,5 +45,15 @@ services:
       db:
         condition: service_healthy
 
+  worker:
+    build: .
+    restart: unless-stopped
+    entrypoint: ["sh", "/app/scripts/worker-entrypoint.sh"]
+    environment:
+      DATABASE_URL: postgresql://tcg:tcg@db:5432/tcg_inventory
+    depends_on:
+      db:
+        condition: service_healthy
+
 volumes:
   pgdata:

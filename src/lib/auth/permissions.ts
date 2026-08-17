@@ -22,6 +22,7 @@ export const PERMISSIONS = {
   UPLOAD_SESSION_CREATE: "upload_session_create",
   UPLOAD_SESSION_COMPLETE: "upload_session_complete",
   CATALOG_CONFIGURE: "catalog_configure",
+  STOCK_ADJUST: "stock_adjust",
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -45,6 +46,7 @@ const PERMISSION_MATRIX: Record<Permission, MembershipRole[]> = {
   [PERMISSIONS.UPLOAD_SESSION_CREATE]: ["OWNER", "MANAGER", "STAFF"],
   [PERMISSIONS.UPLOAD_SESSION_COMPLETE]: ["OWNER", "MANAGER"],
   [PERMISSIONS.CATALOG_CONFIGURE]: ["OWNER", "MANAGER"],
+  [PERMISSIONS.STOCK_ADJUST]: ["OWNER", "MANAGER", "STAFF"],
 };
 
 export function canPerform(ctx: DomainContext, permission: Permission): boolean {

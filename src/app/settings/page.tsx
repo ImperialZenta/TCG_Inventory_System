@@ -148,6 +148,12 @@ export default async function SettingsPage() {
               </p>
             </div>
             <StaffAccountsLink />
+            <Link
+              href="/settings/channels"
+              className="mt-4 inline-flex rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-200 hover:bg-zinc-800"
+            >
+              Sales channels & reserve buffers
+            </Link>
             {canDangerZone && (
               <Link
                 href="/api/backup/export"

@@ -24,8 +24,8 @@ interface ActivityPageProps {
 }
 
 function parseCategory(value: string | undefined): EventCategory {
-  if (value === "blocks" || value === "staging" || value === "orders") {
-    return value;
+  if (value && value in EVENT_CATEGORIES) {
+    return value as EventCategory;
   }
   return "all";
 }

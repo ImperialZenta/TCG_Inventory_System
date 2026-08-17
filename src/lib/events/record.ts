@@ -19,6 +19,7 @@ export interface RecordInventoryEventInput<T extends RecordableEventType> {
   pickListId?: string | null;
   externalOrderId?: string | null;
   uploadSessionId?: string | null;
+  stockItemId?: string | null;
   actor?: string | null;
 }
 
@@ -47,6 +48,7 @@ export async function recordInventoryEvent<T extends RecordableEventType>(
       pickListId: input.pickListId ?? null,
       externalOrderId: input.externalOrderId ?? null,
       uploadSessionId: input.uploadSessionId ?? null,
+      stockItemId: input.stockItemId ?? null,
       actor: input.actor ?? (ctx ? inventoryEventActor(ctx) : null),
     },
   });

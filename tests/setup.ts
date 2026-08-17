@@ -15,3 +15,12 @@ if (!/test/i.test(url)) {
     `Refusing to run tests without a *_test database URL. Got: ${url.replace(/:[^:@/]+@/, ":***@")}`,
   );
 }
+
+import { db } from "@/lib/db";
+
+if (!process.env.TCG_TEST_DISCONNECT_HOOK) {
+  process.env.TCG_TEST_DISCONNECT_HOOK = "1";
+  process.on("beforeExit", () => {
+    void db.$disconnect();
+  });
+}

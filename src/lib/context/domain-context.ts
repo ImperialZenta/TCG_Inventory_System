@@ -35,6 +35,16 @@ export const TEST_OWNER_CONTEXT: DomainContext = {
   source: "test",
 };
 
+/** ADR-006 — background jobs use a stable system actor id. */
+export function systemJobContext(jobName: string): DomainContext {
+  return {
+    actor: { id: `system:${jobName}`, displayName: `System (${jobName})` },
+    organizationId: null,
+    role: null,
+    source: "api",
+  };
+}
+
 export function sessionToDomainContext(
   session: NonNullable<Awaited<ReturnType<typeof getCurrentSession>>>,
   source: DomainContext["source"] = "ui",

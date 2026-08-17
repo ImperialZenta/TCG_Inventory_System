@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { PageHeader, Badge, EmptyState } from "@/components/page-header";
 import { BLOCK_STATUS_LABELS, FINISH_LABELS, CONDITION_LABELS } from "@/lib/constants";
+import { getPromotableInventoryForStaff } from "@/lib/channels/availability";
 import {
   getCardQuantitySummary,
   searchCardLocations,
@@ -163,7 +164,14 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
 
   let searchResult: CardSearchResult | null = null;
   let quantitySummary: CardQuantitySummary | null = null;
+  let promotableLines: Awaited<ReturnType<typeof getPromotableInventoryForStaff>> = [];
   let dbError = false;
+
+  try {
+    promotableLines = await getPromotableInventoryForStaff();
+  } catch {
+    dbError = true;
+  }
 
   if (identity) {
     try {
@@ -203,6 +211,47 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
           description="Enter a card name above or pick a printing from Scryfall suggestions to see block locations and quantities."
         />
       )}
+
+      <section className="mt-10 rounded-xl border border-zinc-800 bg-zinc-900/50 p-5">
+        <h2 className="text-lg font-medium text-zinc-100">Promotable from chaos</h2>
+        <p className="mt-1 text-sm text-zinc-400">
+          Cards held in open blocks with no sellable stock row. Use these when resolving oversell
+          incidents or before listing (SKU-004 promote flow).
+        </p>
+        {promotableLines.length === 0 ? (
+          <p className="mt-4 text-sm text-zinc-500">No promotable chaos copies right now.</p>
+        ) : (
+          <div className="mt-4 overflow-x-auto rounded-lg border border-zinc-800">
+            <table className="min-w-full text-sm">
+              <thead className="border-b border-zinc-800 bg-zinc-950/50 text-left text-zinc-400">
+                <tr>
+                  <th className="px-4 py-3 font-medium">Card</th>
+                  <th className="px-4 py-3 font-medium">Set</th>
+                  <th className="px-4 py-3 font-medium">Block</th>
+                  <th className="px-4 py-3 font-medium">Qty</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-800/80">
+                {promotableLines.map((line) => (
+                  <tr key={line.cardLineId} className="text-zinc-200">
+                    <td className="px-4 py-3">{line.name}</td>
+                    <td className="px-4 py-3 uppercase text-zinc-400">{line.setCode}</td>
+                    <td className="px-4 py-3">
+                      <Link
+                        href={`/blocks/${line.mtgBlockId}`}
+                        className="font-mono text-amber-400 hover:text-amber-300"
+                      >
+                        {line.mtgBlockId}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-3">{line.quantity}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
     </>
   );
 }

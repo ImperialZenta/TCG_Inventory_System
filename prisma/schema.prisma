@@ -40,6 +40,7 @@ model Bin {
   label                 String?
   sortOrder             Int                 @default(0)
   blocks                Block[]
+  stockItems            StockItem[]
   catalogMemberships    ChannelCatalogBin[]
   createdAt             DateTime            @default(now())
   updatedAt             DateTime            @updatedAt
@@ -247,12 +248,17 @@ model ExternalOrder {
   manapoolOrderId String              @unique
   reference       String?
   status          ExternalOrderStatus @default(IMPORTED)
+  channelId       String?
+  channel         Channel?            @relation(fields: [channelId], references: [id], onDelete: SetNull)
   importedAt      DateTime            @default(now())
   pickedAt        DateTime?
   lines           ExternalOrderLine[]
   pickListId      String?
   pickList        PickList?           @relation(fields: [pickListId], references: [id])
   inventoryEvents InventoryEvent[]
+  oversellIncidentOrders OversellIncidentOrder[]
+
+  @@index([channelId])
 }
 
 model ExternalOrderLine {
@@ -269,7 +275,13 @@ model ExternalOrderLine {
   quantity        Int           @default(1)
   priceCents      Int?
   manapoolLineId  String?
+  stockItemId     String?
+  stockItem       StockItem?    @relation(fields: [stockItemId], references: [id], onDelete: SetNull)
+  unmatched       Boolean       @default(false)
+  oversellFlag    Boolean       @default(false)
   pickItems       PickItem[]
+
+  @@index([stockItemId])
 }
 
 // ---------------------------------------------------------------------------
@@ -381,6 +393,8 @@ model InventoryEvent {
   correlationId   String?
   blockId         String?
   block           Block?         @relation(fields: [blockId], references: [id], onDelete: SetNull)
+  stockItemId     String?
+  stockItem       StockItem?     @relation(fields: [stockItemId], references: [id], onDelete: SetNull)
   stagingImportId String?
   stagingImport   StagingImport? @relation(fields: [stagingImportId], references: [id], onDelete: SetNull)
   pickListId      String?
@@ -395,9 +409,240 @@ model InventoryEvent {
   @@index([createdAt])
   @@index([eventType])
   @@index([blockId])
+  @@index([stockItemId])
   @@index([correlationId])
   @@index([stagingImportId])
   @@index([uploadSessionId])
+}
+
+// ---------------------------------------------------------------------------
+// Sorted stock (Epic 10 — ADR-004 append-only ledger)
+// ---------------------------------------------------------------------------
+
+enum StockMovementReason {
+  RECEIVE
+  PROMOTE
+  SALE
+  RETURN
+  COUNT_ADJUST
+  TRANSFER
+  RESERVE
+  RELEASE
+  DAMAGE
+}
+
+enum StockReservationStatus {
+  ACTIVE
+  RELEASED
+  COMMITTED
+  EXPIRED
+}
+
+enum StockReservationReleaseReason {
+  CANCEL
+  EXPIRED
+  COMMITTED
+}
+
+model StockItem {
+  id               String          @id @default(cuid())
+  gameId           String          @default("mtg")
+  catalogCardId    String
+  name             String
+  setCode          String
+  collectorNumber  String          @default("")
+  finish           Finish
+  language         String          @default("en")
+  condition        Condition
+  onHandQuantity   Int             @default(0)
+  reservedQuantity Int             @default(0)
+  costBasisCents   Int?
+  marketPriceCents Int?
+  catalogImageUri  String?
+  binId            String?
+  bin              Bin?            @relation(fields: [binId], references: [id], onDelete: SetNull)
+  movements        StockMovement[]
+  reservations     StockReservation[]
+  channelListings  ChannelListing[]
+  externalOrderLines ExternalOrderLine[]
+  oversellIncidents OversellIncident[]
+  inventoryEvents  InventoryEvent[]
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  @@unique([gameId, catalogCardId, setCode, collectorNumber, finish, language, condition])
+  @@index([name])
+  @@index([setCode])
+  @@index([catalogCardId])
+  @@index([binId])
+}
+
+model StockMovement {
+  id            String              @id @default(cuid())
+  stockItemId   String
+  stockItem     StockItem           @relation(fields: [stockItemId], references: [id], onDelete: Cascade)
+  delta         Int
+  reason        StockMovementReason
+  referenceType String?
+  referenceId   String?
+  actor         String?
+  createdAt     DateTime            @default(now())
+
+  @@index([stockItemId, createdAt])
+}
+
+model StockReservation {
+  id            String                         @id @default(cuid())
+  stockItemId   String
+  stockItem     StockItem                      @relation(fields: [stockItemId], references: [id], onDelete: Cascade)
+  quantity      Int
+  referenceType String
+  referenceId   String
+  status        StockReservationStatus         @default(ACTIVE)
+  expiresAt     DateTime
+  releaseReason StockReservationReleaseReason?
+  actor         String?
+  createdAt     DateTime                       @default(now())
+  updatedAt     DateTime                       @updatedAt
+
+  @@unique([referenceType, referenceId, stockItemId])
+  @@index([expiresAt, status])
+}
+
+// ---------------------------------------------------------------------------
+// Sales channels & sync (Epic 14 — ADR-007, ADR-008)
+// ---------------------------------------------------------------------------
+
+enum ChannelType {
+  MANAPOOL
+  SHOPIFY
+  EBAY
+  TCGPLAYER
+}
+
+enum ChannelSyncMode {
+  MANUAL_CSV
+  ONE_WAY_PUSH
+  TWO_WAY
+}
+
+enum ChannelListingStatus {
+  ACTIVE
+  DELISTED
+  ERROR
+}
+
+enum ChannelOutboxOperation {
+  UPSERT_LISTING
+  UPDATE_QTY
+  UPDATE_PRICE
+  DELIST
+}
+
+enum ChannelOutboxStatus {
+  PENDING
+  PROCESSING
+  DONE
+  FAILED
+}
+
+enum OversellIncidentStatus {
+  OPEN
+  RESOLVED
+}
+
+enum OversellResolution {
+  FULFILLED_ALT
+  PROMOTED
+  CANCELLED_REFUND
+}
+
+model Channel {
+  id               String          @id @default(cuid())
+  name             String
+  type             ChannelType
+  syncMode         ChannelSyncMode @default(ONE_WAY_PUSH)
+  enabled          Boolean         @default(true)
+  paused           Boolean         @default(false)
+  reserveBufferQty Int             @default(0)
+  credentials      Json?
+  settings         Json?
+  listings         ChannelListing[]
+  outbox           ChannelOutbox[]
+  externalOrders   ExternalOrder[]
+  oversellIncidentOrders OversellIncidentOrder[]
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  @@index([type])
+  @@index([enabled, paused])
+}
+
+model ChannelListing {
+  id                 String               @id @default(cuid())
+  channelId          String
+  channel            Channel              @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  stockItemId        String
+  stockItem          StockItem            @relation(fields: [stockItemId], references: [id], onDelete: Cascade)
+  externalListingId  String?
+  lastSyncedQty      Int?
+  lastSyncedAt       DateTime?
+  status             ChannelListingStatus @default(ACTIVE)
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+
+  @@unique([channelId, stockItemId])
+  @@index([stockItemId])
+  @@index([status])
+}
+
+model ChannelOutbox {
+  id             String                 @id @default(cuid())
+  channelId      String
+  channel        Channel                @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  operation      ChannelOutboxOperation
+  payload        Json
+  status         ChannelOutboxStatus    @default(PENDING)
+  attempts       Int                    @default(0)
+  lastError      String?
+  idempotencyKey String
+  createdAt      DateTime               @default(now())
+  processedAt    DateTime?
+
+  @@unique([idempotencyKey])
+  @@index([status, createdAt])
+  @@index([channelId])
+}
+
+model OversellIncident {
+  id             String                 @id @default(cuid())
+  stockItemId    String
+  stockItem      StockItem              @relation(fields: [stockItemId], references: [id], onDelete: Cascade)
+  status         OversellIncidentStatus @default(OPEN)
+  resolution     OversellResolution?
+  resolutionNote String?
+  resolvedAt     DateTime?
+  resolvedBy     String?
+  orders         OversellIncidentOrder[]
+  createdAt      DateTime               @default(now())
+
+  @@index([status])
+  @@index([stockItemId])
+  @@index([createdAt])
+}
+
+model OversellIncidentOrder {
+  id              String            @id @default(cuid())
+  incidentId      String
+  incident        OversellIncident  @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  channelId       String
+  channel         Channel           @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  externalOrderId String?
+  externalOrder   ExternalOrder?    @relation(fields: [externalOrderId], references: [id], onDelete: SetNull)
+  channelOrderRef String
+
+  @@index([incidentId])
+  @@index([channelId])
 }
 
 // ---------------------------------------------------------------------------

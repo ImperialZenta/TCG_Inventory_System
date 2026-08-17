@@ -31,13 +31,17 @@ async function resetBinSequence(tx: TransactionClient) {
   });
 }
 
-/** Removes blocks, cards, staging, orders, picks, and audit logs. Keeps shelves and bins. */
+/** Removes blocks, cards, staging, orders, picks, stock, and audit logs. Keeps shelves and bins. */
 export async function deleteOperationalInventory(tx: TransactionClient) {
   await tx.pickItem.deleteMany();
   await tx.pickWave.deleteMany();
   await tx.externalOrderLine.deleteMany();
   await tx.externalOrder.deleteMany();
   await tx.pickList.deleteMany();
+  // Stock ledger: domain mutations are append-only (ADR-004). Bulk delete only via danger zone.
+  await tx.stockMovement.deleteMany();
+  await tx.stockReservation.deleteMany();
+  await tx.stockItem.deleteMany();
   await tx.inventoryEvent.deleteMany();
   await tx.uploadExportAudit.deleteMany();
   await tx.uploadSessionBlock.deleteMany();
@@ -77,6 +81,9 @@ export async function wipeAllForRestore(tx: TransactionClient) {
   await tx.externalOrderLine.deleteMany();
   await tx.externalOrder.deleteMany();
   await tx.pickList.deleteMany();
+  await tx.stockMovement.deleteMany();
+  await tx.stockReservation.deleteMany();
+  await tx.stockItem.deleteMany();
   await tx.inventoryEvent.deleteMany();
   await tx.uploadExportAudit.deleteMany();
   await tx.uploadSessionBlock.deleteMany();

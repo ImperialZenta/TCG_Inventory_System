@@ -79,6 +79,17 @@ Rules of thumb for the destination, to be encoded as a default at **SKU-002** an
 
 **Promote, never copy.** Moving a card from a block to sorted stock decrements the block and writes a `StockMovement`; the two modes must never both claim the same physical card. This is the whole reason **SKU-004** is an audited action rather than a convenience button.
 
+### Listing images on sorted stock
+
+Sorted stock may carry an optional **scan photo** of the physical copy (display case, scanner pass, camera capture). When publishing or exporting a listing:
+
+- **Scan present** → use the scan as the listing image (**SKU-011**).
+- **No scan** → use the Scryfall/catalog reference image already on the row.
+- **No price-based photo requirement in-app** — staff add scans when they have them; the app does not block stock because a card is expensive and unscanned.
+- **Marketplace exceptions** — if Mana Pool, TCGplayer or another channel rejects catalog-only images for certain listings, validate and surface that at channel export or API post (**CHN-006**, **CHN-002**), not as a global inventory rule.
+
+Chaos blocks do not get per-card listing photos; block-mode listing remains aggregate export (**CHL-***).
+
 ---
 
 ## Recovering from a bad scan (formalized too early)

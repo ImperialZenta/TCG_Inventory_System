@@ -17,10 +17,12 @@ Back to [index](../BACKLOG.md) · [conventions](CONVENTIONS.md) · [parity matri
 | CHN-002 | Listing push to one live channel | Must | — |
 | CHN-003 | Per-channel listing selection | Should | — |
 | CHN-004 | Quantity reconciliation both directions | Must | — |
-| CHN-005 | Oversell guard | Must | — |
+| CHN-005 | Oversell guard | Must | Done |
 | CHN-007 | Order ingestion from channels | Must | — |
 | CHN-008 | Additional channels | Should | — |
 | CHN-009 | Sync health and failure recovery | Must | — |
+| CHN-010 | Incidents list numeric oversell rate | Could · Polish | — |
+| CHN-011 | Incident resolution option labels in UI tests | Could · Polish | — |
 
 ---
 
@@ -113,9 +115,25 @@ Feature: CHN-006 Marketplace CSV export templates
 
   Scenario: The existing Mana Pool export is unaffected
     Then the per-block Mana Pool listing CSV continues to work as before
+
+  Scenario: Stock export includes the resolved listing image when the template supports it
+    Given a stock item with catalog image only
+    And another stock item with both catalog and scan images
+    When staff export stock for a marketplace whose template includes an image URL column
+    Then the first row's image URL is its catalog image
+    And the second row's image URL is its scan image
+
+  Scenario: Export preview warns when a channel requires a custom image but only catalog art exists
+    Given a marketplace template marks custom listing photos as required
+    And a stock item has catalog image only and no scan
+    When staff preview the export
+    Then that row is flagged with a channel-specific warning
+    And no scan image is invented
 ```
 
 **Block-mode vs stock-mode:** Chaos block listing (upload sessions, bin catalogs) is **CHL-*** ([Epic 22](../epic-22-channel-catalogs.md), [ADR-013](../architecture/adr/013-channel-catalogs-block-listing.md)) — aggregate `CardLine` export, no SKU ledger. **CHN-006** stock-mode export targets `StockItem` rows (`@dual`). Both may share CSV formatters later.
+
+**Listing images:** use **SKU-011** resolver (scan if present, else catalog). The app does not require scans by price threshold; channel templates may warn or block at export preview when custom photos are required.
 
 ---
 
@@ -170,7 +188,17 @@ Feature: CHN-002 Listing push to a live channel
     Given the channel imposes a request limit
     Then sync stays within it
     And it does not drop updates to do so
+
+  Scenario: A channel rejects catalog-only images with a named error
+    Given a stock item with catalog image only and no scan
+    And the channel API requires a custom listing photo for this listing
+    When sync attempts to create the listing
+    Then the push fails with a message naming the channel's photo requirement
+    And staff can add a scan and retry
+    And the item was not blocked upstream by an in-app price threshold
 ```
+
+**Listing images:** API push sends the **SKU-011** resolved image URL (scan if present, else catalog). Marketplace-specific photo requirements are enforced at post time — not as a global inventory rule by price.
 
 ---
 
@@ -260,10 +288,10 @@ Feature: CHN-004 Quantity reconciliation
 | **I want** | the last copy withdrawn everywhere the moment it sells anywhere |
 | **So that** | I never take money for a card I cannot ship |
 
-**Priority:** Must · **Status:** — · **Depends on:** SKU-003, CHN-002 · **The reason this epic exists**
+**Priority:** Must · **Status:** Done · **Depends on:** SKU-003, CHN-002 · **The reason this epic exists**
 
 ```gherkin
-@pending
+@done
 Feature: CHN-005 Oversell guard
 
   Scenario: A sale on one channel withdraws the card from the others
@@ -415,4 +443,49 @@ Feature: CHN-009 Sync health and failure recovery
 
   Scenario: Sync activity is auditable
     Then every push, reconciliation and ingestion is recorded with its outcome
+```
+
+---
+
+### CHN-010 — Incidents list numeric oversell rate
+
+| | |
+|---|---|
+| **As a** | maintainer of CHN-005 UI coverage |
+| **I want** | the incidents list test to assert the exact incident count in the 30-day rate line |
+| **So that** | a copy change cannot drop the numeric count while leaving the period label |
+
+**Priority:** Could · **Status:** — · **Polish** · **Depends on:** CHN-005 · **Source:** Agent B spec review (deferred assertion)
+
+```gherkin
+@pending
+Feature: CHN-010 Incidents list numeric oversell rate
+
+  Scenario: The 30-day rate line includes the incident count
+    Given one oversell incident exists in the last 30 days
+    When staff open "/incidents"
+    Then the page shows "1 incident in the last 30 days"
+    And when two incidents exist it shows the plural form
+```
+
+---
+
+### CHN-011 — Incident resolution option labels in UI tests
+
+| | |
+|---|---|
+| **As a** | maintainer of CHN-005 UI coverage |
+| **I want** | the incident detail HTML test to assert all three resolution `<option>` labels |
+| **So that** | the resolve form cannot lose a path without a test failure |
+
+**Priority:** Could · **Status:** — · **Polish** · **Depends on:** CHN-005 · **Source:** Agent B spec review (deferred assertion)
+
+```gherkin
+@pending
+Feature: CHN-011 Incident resolution option labels
+
+  Scenario: All three resolution paths appear as select options
+    Given an open oversell incident
+    When staff open its detail page
+    Then the resolution select includes options for fulfil from alternate stock, promote from chaos block, and cancel with refund
 ```

@@ -24,6 +24,8 @@ Back to [index](../BACKLOG.md) · [conventions](CONVENTIONS.md)
 | B-016 | Document that MTG IDs are never recycled | Could | — |
 | B-017 | Backup reminder on block remove danger zone | Should | — |
 | B-018 | Empty block removal policy | Could | — |
+| B-019 | Activity category filters (uploads, stock, channels) | Should | Done |
+| B-019 | Activity category filters (uploads, stock, channels) | Should | Done |
 
 ---
 
@@ -617,3 +619,38 @@ Feature: B-018 Empty block removal policy
 ```
 
 **Note:** the scenarios above encode the warn-and-allow option. If the decision goes the other way, replace them rather than adding a second policy.
+
+---
+
+### B-019 — Activity category filters (uploads, stock, channels)
+
+| | |
+|---|---|
+| **As an** | owner reviewing the activity feed |
+| **I want** | Uploads, Stock, and Channels category pills to filter the log |
+| **So that** | I can narrow the feed to upload sessions, stock movements, and channel sync events |
+
+**Priority:** Should · **Status:** Done · **Depends on:** B-013 · **Fixes:** Activity `parseCategory` ignored `uploads`, `stock`, and `channels` URL params (always fell back to All)
+
+```gherkin
+@done
+Feature: B-019 Activity category filters
+
+  Scenario: Filter to stock movements
+    Given a stock movement event exists
+    When the owner opens "/activity?category=stock"
+    Then only stock events are listed
+    And the Stock category pill is selected
+
+  Scenario: Filter to staging events
+    Given a staging formalize event exists
+    When the owner opens "/activity?category=staging"
+    Then only staging events are listed
+
+  Scenario: Uploads and channels filters use matching event types
+    Given upload session and channel events exist in the log
+    When the owner filters by uploads or channels
+    Then only events whose types start with "upload." or "channel." are shown
+```
+
+**Verification:** [`tests/activity-category-filters.test.ts`](../../tests/activity-category-filters.test.ts)

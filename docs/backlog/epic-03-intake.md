@@ -923,4 +923,6 @@ Feature: I-027 Staging pack order editor
 
 **Smoke (2026-08-15):** PASS on dev (`localhost:3010`) — CSV upload, expand **Pack order**, drag/reorder, **Save order** during staging review.
 
+**UI polish:** Nudge arrows removed; drag auto-scrolls the page; right-click or the position number jumps to an integer slot 1…N.
+
 **Related:** **I-011**, **I-013**, **I-018**

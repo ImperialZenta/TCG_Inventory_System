@@ -8,6 +8,8 @@ import {
   UndoFormalizeError,
 } from "@/lib/staging/undo-formalize";
 import { BLOCK_HAS_PICK_HISTORY_MESSAGE } from "@/lib/blocks/pick-guard";
+import { receiveStock } from "@/lib/stock";
+import { createTestChannel } from "./helpers/channels";
 import { disconnectTestDb, resetTestDb } from "./helpers/db";
 import {
   createFormalizedImport,
@@ -100,10 +102,10 @@ describe("undo formalize (I-023)", () => {
     const fixture = await createFormalizedImport(binId, 2);
     await seedPickItemForBlock(fixture.blockIds[0]!);
 
-    await expect(undoFormalizeImport(TEST_CONTEXT,fixture.importId)).rejects.toBeInstanceOf(
+    await expect(undoFormalizeImport(TEST_CONTEXT, fixture.importId)).rejects.toBeInstanceOf(
       UndoFormalizeError,
     );
-    await expect(undoFormalizeImport(TEST_CONTEXT,fixture.importId)).rejects.toThrow(
+    await expect(undoFormalizeImport(TEST_CONTEXT, fixture.importId)).rejects.toThrow(
       BLOCK_HAS_PICK_HISTORY_MESSAGE,
     );
 
@@ -111,5 +113,49 @@ describe("undo formalize (I-023)", () => {
       where: { blockId: { in: fixture.blockIds } },
     });
     expect(stillThere).toHaveLength(2);
+  });
+
+  it("blocks undo when linked cards have active channel listings", async () => {
+    const fixture = await createFormalizedImport(binId, 1);
+    const card = await db.cardLine.findFirst({ where: { block: { blockId: fixture.blockIds[0] } } });
+    expect(card).not.toBeNull();
+
+    const catalogCardId = "undo-guard-bolt";
+    await db.cardLine.update({
+      where: { id: card!.id },
+      data: { scryfallId: catalogCardId },
+    });
+
+    const received = await receiveStock(
+      TEST_CONTEXT,
+      {
+        scryfallId: catalogCardId,
+        name: card!.name,
+        setCode: card!.setCode,
+        collectorNumber: card!.collectorNumber,
+        finish: card!.finish,
+        language: card!.language,
+        condition: card!.condition,
+      },
+      1,
+    );
+
+    const channel = await createTestChannel({ name: "Test", type: "MANAPOOL" });
+    await db.channelListing.create({
+      data: {
+        channelId: channel.id,
+        stockItemId: received.stockItem.id,
+        status: "ACTIVE",
+        externalListingId: "live-1",
+      },
+    });
+
+    const summary = await getImportUndoSummary(fixture.importId);
+    expect(summary.canUndo).toBe(false);
+    expect(summary.blockReason).toMatch(/active channel listings/i);
+
+    await expect(undoFormalizeImport(TEST_CONTEXT, fixture.importId)).rejects.toThrow(
+      /active channel listings/i,
+    );
   });
 });

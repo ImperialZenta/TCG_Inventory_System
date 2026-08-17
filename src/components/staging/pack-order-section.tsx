@@ -61,7 +61,7 @@ export function PackOrderSection({ importId, groups, totalBlocks }: PackOrderSec
       <h2 className="text-lg font-medium text-zinc-100">Pack order</h2>
       <p className="mt-1 text-sm text-zinc-400">
         Position 1 is the front card facing you. Drag rows to match how you will physically stack
-        each block, then save.
+        each block, or right-click / click the number to jump to a position, then save.
       </p>
 
       <div className="mt-4 space-y-2">
@@ -71,7 +71,7 @@ export function PackOrderSection({ importId, groups, totalBlocks }: PackOrderSec
           return (
             <div
               key={group.blockIndex}
-              className="overflow-hidden rounded-lg border border-zinc-800 bg-zinc-950/30"
+              className="overflow-visible rounded-lg border border-zinc-800 bg-zinc-950/30"
             >
               <button
                 type="button"

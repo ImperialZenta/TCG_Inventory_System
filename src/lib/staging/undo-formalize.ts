@@ -4,6 +4,10 @@ import { BLOCK_STATUS_LABELS } from "@/lib/constants";
 import { BLOCK_HAS_PICK_HISTORY_MESSAGE } from "@/lib/blocks/pick-guard";
 import { getLinkedBlocks } from "@/lib/staging/linked-blocks";
 import { INVENTORY_EVENT_TYPES, recordInventoryEvent } from "@/lib/events";
+import {
+  findStockItemIdsForCatalogCards,
+  hasActiveListingForStockItems,
+} from "@/lib/channels/listings";
 
 export class UndoFormalizeError extends Error {
   constructor(message: string) {
@@ -27,9 +31,9 @@ export interface UndoFormalizeResult {
   blockIds: string[];
 }
 
-function validateBlocksForUndo(
+async function validateBlocksForUndo(
   blocks: Awaited<ReturnType<typeof getLinkedBlocks>>,
-): string | null {
+): Promise<string | null> {
   for (const block of blocks) {
     if (block.status !== "OPEN") {
       const label = BLOCK_STATUS_LABELS[block.status] ?? block.status;
@@ -41,6 +45,20 @@ function validateBlocksForUndo(
     if (block.pickItemCount > 0) {
       return `Cannot undo — ${block.blockId}. ${BLOCK_HAS_PICK_HISTORY_MESSAGE}`;
     }
+  }
+
+  const catalogCardIds = (
+    await db.cardLine.findMany({
+      where: { blockId: { in: blocks.map((b) => b.id) } },
+      select: { scryfallId: true },
+    })
+  )
+    .map((c) => c.scryfallId)
+    .filter((id): id is string => Boolean(id));
+
+  const stockItemIds = await findStockItemIdsForCatalogCards(catalogCardIds);
+  if (await hasActiveListingForStockItems(stockItemIds)) {
+    return "Cannot undo — cards from this import have active channel listings.";
   }
 
   return null;
@@ -72,7 +90,7 @@ export async function getImportUndoSummary(importId: string): Promise<ImportUndo
   const blocks = await getLinkedBlocks(importId);
   const blockIds = blocks.map((b) => b.blockId).sort();
   const totalCards = blocks.reduce((sum, b) => sum + b.cardCount, 0);
-  const blockReason = validateBlocksForUndo(blocks);
+  const blockReason = await validateBlocksForUndo(blocks);
 
   return {
     blockCount: blocks.length,
@@ -103,7 +121,7 @@ export async function undoFormalizeImport(
     throw new UndoFormalizeError("Nothing to undo — no blocks linked to this import");
   }
 
-  const blockReason = validateBlocksForUndo(blocks);
+  const blockReason = await validateBlocksForUndo(blocks);
   if (blockReason) {
     throw new UndoFormalizeError(blockReason);
   }

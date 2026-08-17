@@ -15,7 +15,7 @@ export default defineConfig({
       forks: { singleFork: true },
     },
     testTimeout: 60_000,
-    hookTimeout: 60_000,
+    hookTimeout: 120_000,
   },
   resolve: {
     alias: {

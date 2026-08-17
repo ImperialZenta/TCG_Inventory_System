@@ -261,11 +261,11 @@ Feature: SCN-005 Sequential in-app intake
 
 | | |
 |---|---|
-| **As a** | staff member resolving a dispute or a bad match |
+| **As a** | staff member resolving a dispute or preparing a listing |
 | **I want** | the card's catalog image, and any captured image, retained on the row |
-| **So that** | I can see what was scanned rather than reading a name and hoping |
+| **So that** | I can see what was scanned rather than reading a name and hoping, and sorted stock can show buyers the actual copy when a scan exists |
 
-**Priority:** Should · **Status:** — · **Depends on:** V-005, GAM-002
+**Priority:** Should · **Status:** — · **Depends on:** V-005, GAM-002 · **Related:** **SKU-011** (listing-image resolution and catalog fallback on stock)
 
 ```gherkin
 @pending
@@ -283,6 +283,12 @@ Feature: SCN-006 Card images on intake
     Given a card was captured by camera
     Then the captured image is retained on the row alongside the catalog image
 
+  Scenario: A captured scan becomes the stock scan when sorted or promoted
+    Given a staged row with a captured scan image destined for stock
+    When staff sort the row to stock or promote it from a block
+    Then the resulting stock item's scan image is the captured image
+    And the stock item's catalog image is the row's catalog image
+
   Scenario: A missing image does not break the layout
     Given a card has no image
     Then a placeholder is shown
@@ -292,4 +298,4 @@ Feature: SCN-006 Card images on intake
     Then images load lazily and do not delay the card list
 ```
 
-**Note:** `imageUri` persists through formalize (**V-005**, Done). Remaining work is scan/review UI.
+**Note:** `imageUri` persists through formalize (**V-005**, Done). Remaining work is scan/review UI and wiring captured images into **SKU-011** on the stock path (**SKU-002**, **SKU-004**).

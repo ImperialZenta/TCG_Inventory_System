@@ -66,6 +66,24 @@ export const CONDITION_LABELS: Record<string, string> = {
   DMG: "Damaged",
 };
 
+export const STOCK_MOVEMENT_REASON_LABELS: Record<string, string> = {
+  RECEIVE: "Receive",
+  PROMOTE: "Promote from block",
+  SALE: "Sale",
+  RETURN: "Return",
+  COUNT_ADJUST: "Count adjust",
+  TRANSFER: "Transfer",
+  RESERVE: "Reserve",
+  RELEASE: "Release",
+  DAMAGE: "Damage",
+};
+
+export const MANUAL_STOCK_ADJUSTMENT_REASON_LABELS: Record<string, string> = {
+  COUNT_ADJUST: "Count adjust",
+  DAMAGE: "Damage",
+  RETURN: "Return",
+};
+
 /** Staff-facing labels for StagingImport.status (PARSED, ASSIGNED, …). */
 export const STAGING_IMPORT_STATUS_LABELS: Record<string, string> = {
   PARSED: "Awaiting formalize",
@@ -109,8 +127,10 @@ export const NAV_ITEMS = [
   { href: "/uploads", label: "Uploads" },
   { href: "/catalogs", label: "Catalogs" },
   { href: "/orders", label: "Orders" },
+  { href: "/incidents", label: "Incidents" },
   { href: "/pick", label: "Pick Lists" },
   { href: "/inventory", label: "Inventory" },
+  { href: "/stock", label: "Stock" },
   { href: "/analytics", label: "Analytics" },
   { href: "/activity", label: "Activity" },
   { href: "/settings", label: "Settings" },

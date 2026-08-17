@@ -19,16 +19,17 @@ A physical card is in exactly one mode. **SKU-004** is the only bridge, and it i
 
 | ID | Story | Priority | Status |
 |----|-------|----------|--------|
-| SKU-001 | Stock item ledger with on-hand quantity | Must | — |
+| SKU-001 | Stock item ledger with on-hand quantity | Must | Done |
 | SKU-002 | Sort staged cards to stock instead of a block | Must | — |
-| SKU-003 | Reserve and release stock | Must | — |
+| SKU-003 | Reserve and release stock | Must | Schema |
 | SKU-004 | Promote cards from a chaos block to stock | Must | — |
 | SKU-005 | Stock locations and transfers | Should | — |
 | SKU-006 | Cost basis and margin on stock | Must | — |
 | SKU-007 | Internal SKU and barcode | Should | — |
 | SKU-008 | Sealed product and custom SKUs | Should | — |
-| SKU-009 | Stock browser and adjustments | Must | — |
+| SKU-009 | Stock browser and adjustments | Must | Done |
 | SKU-010 | Scale to 100,000 stock items | Should | — |
+| SKU-011 | Stock listing images (scan with catalog fallback) | Should | — |
 
 ---
 
@@ -40,12 +41,14 @@ A physical card is in exactly one mode. **SKU-004** is the only bridge, and it i
 | **I want** | one row per distinct sellable card with a quantity and an append-only movement history |
 | **So that** | there is a single authoritative answer to how many I hold, and I can prove how it got that way |
 
-**Priority:** Must · **Status:** — · **Depends on:** V-005, ACC-001
+**Priority:** Must · **Status:** Done · **Depends on:** V-005, ACC-001
+
+**Shipped.** Domain + schema in [`src/lib/stock/`](../../src/lib/stock/); staff browse and inspect via **SKU-009** at `/stock`. Additional intake paths (**SKU-002**, **SKU-004**) remain separate stories.
 
 **Identity.** A stock item is uniquely identified by game, catalog card ID, set code, collector number, finish, language and condition. Two cards differing in any one of those are different stock items. This tuple is the SKU.
 
 ```gherkin
-@pending
+@done
 Feature: SKU-001 Stock item ledger
 
   Scenario: A stock item is unique on its identity tuple
@@ -70,6 +73,8 @@ Feature: SKU-001 Stock item ledger
       | language         |
       | condition        |
       | collector number |
+      | set code         |
+      | catalog card id  |
       | game             |
 
   Scenario: Every quantity change writes a movement
@@ -95,9 +100,11 @@ Feature: SKU-001 Stock item ledger
 **Schema notes (negotiable):**
 
 - `StockItem` — `gameId`, `catalogCardId`, `setCode`, `collectorNumber`, `finish`, `language`, `condition`, `onHandQuantity`, `reservedQuantity`, `costBasisCents`, `marketPriceCents`, `locationId`, timestamps. Unique index on the identity tuple.
-- `StockMovement` — append-only ledger per [ADR-004](../../architecture/adr/004-append-only-ledger-pattern.md).
+- `StockMovement` — append-only ledger per [ADR-004](../../architecture/adr/004-append-only-ledger-pattern.md). Domain module inserts only; corrections add compensating rows. The only delete path is danger-zone / restore wipe ([`data-reset.ts`](../../src/lib/data-reset.ts)). Deleting a `StockItem` cascades movements (schema); normal stock workflows never delete items with history.
 - Money in integer cents ([ADR-003](../../architecture/adr/003-money-as-integer-cents.md)).
 - `StockMovement` complements rather than replaces `InventoryEvent`: movements are the quantity ledger, events are the human-readable audit feed. Write both.
+
+**Verification:** [`tests/stock-ledger.test.ts`](../../tests/stock-ledger.test.ts), [`tests/stock-browser.test.ts`](../../tests/stock-browser.test.ts). Agent B spec review (2026-08-17): `@done` — ledger reachable at `/stock` via **SKU-009**.
 
 ---
 
@@ -159,7 +166,9 @@ Feature: SKU-002 Sort staged cards to stock
 | **I want** | stock committed to an order held back from what is available to sell |
 | **So that** | two channels cannot sell the same physical card |
 
-**Priority:** Must · **Status:** — · **Depends on:** SKU-001 · **Prerequisite for:** CHN-005
+**Priority:** Must · **Status:** Schema · **Depends on:** SKU-001 · **Prerequisite for:** CHN-005
+
+**Shipped (domain + schema).** `StockReservation`, `reserveStock` / `releaseStock` / `commitSale` / `sweepExpiredReservations` in [`src/lib/stock/availability.ts`](../../src/lib/stock/availability.ts); reservation expiry job in [`src/lib/jobs/reservation-expiry.ts`](../../src/lib/jobs/reservation-expiry.ts) (pg-boss worker, [ADR-006](../../architecture/adr/006-background-worker-pg-boss.md)). No channel, POS, or fulfilment caller yet — **CHN-005**, **POS-001**, **FUL-003** wire in later. Feature stays `@pending` until a user-reachable path exists.
 
 **Architecture:** implement via the reservation gatekeeper in [ADR-005](../../architecture/adr/005-reservation-and-availability-engine.md). Reservation expiry uses the worker from [ADR-006](../../architecture/adr/006-background-worker-pg-boss.md).
 
@@ -203,6 +212,10 @@ Feature: SKU-003 Reserve and release stock
     When reservations are swept
     Then it is released and the release is recorded with reason EXPIRED
 ```
+
+**Verification:** [`tests/stock-reservations.test.ts`](../../tests/stock-reservations.test.ts). Agent B spec review (2026-08-16): all six Then clauses covered; full Docker suite green; Feature `@pending` until channel/POS/fulfilment callers ship; BACKLOG **Schema** is accurate.
+
+**Caller note (before CHN-005 / POS-001).** Unique key is `(referenceType, referenceId, stockItemId)` without status. After CANCEL or EXPIRED the row remains terminal, so the same reference cannot reserve again — callers must use a new reference id, or the schema must allow a second row. Gherkin does not require re-reserve; decide at first consumer story.
 
 ---
 
@@ -447,10 +460,12 @@ Feature: SKU-008 Sealed product and custom SKUs
 | **I want** | to browse, search and correct sorted stock |
 | **So that** | the ledger can be inspected and fixed by a human, not only written to by the system |
 
-**Priority:** Must · **Status:** — · **Depends on:** SKU-001
+**Priority:** Must · **Status:** Done · **Depends on:** SKU-001
+
+**Shipped.** `/stock` list + `/stock/[stockItemId]` detail; `listStockItems`, `countStockItems`, `getStockItemDetail`, `adjustStockQuantity` in [`src/lib/stock/`](../../src/lib/stock/).
 
 ```gherkin
-@pending
+@done
 Feature: SKU-009 Stock browser and adjustments
 
   Scenario: Browse stock with the key figures
@@ -480,6 +495,8 @@ Feature: SKU-009 Stock browser and adjustments
     Then it is retained with its history rather than deleted
     And it is hidden from the default view
 ```
+
+**Verification:** [`tests/stock-browser.test.ts`](../../tests/stock-browser.test.ts), [`tests/stock-browser-ui.test.ts`](../../tests/stock-browser-ui.test.ts). Agent B spec review (2026-08-17): 6/6 scenarios `@done`; Docker suite green.
 
 ---
 
@@ -520,3 +537,64 @@ Feature: SKU-010 Scale to 100,000 stock items
 ```
 
 **Note:** the thresholds above are the acceptance bar, so a seeded performance test belongs with this story. Without measurement, "scales" is not testable and the story fails INVEST.
+
+---
+
+### SKU-011 — Stock listing images (scan with catalog fallback)
+
+| | |
+|---|---|
+| **As a** | seller listing sorted stock online |
+| **I want** | listing images to use my scan when I have one, otherwise the catalog image |
+| **So that** | buyers see the exact condition of high-value copies when available, without mandatory photo workflows for every SKU |
+
+**Priority:** Should · **Status:** — · **Depends on:** SKU-001, V-005 · **Related:** SCN-006 (capture path), CHN-006, CHN-002 (publish path)
+
+**Policy.** One resolved listing image per stock row: scan if uploaded, else Scryfall/catalog reference art, else placeholder. The app does **not** require photos by price threshold. If Mana Pool, TCGplayer or another channel rejects catalog-only images, that is validated at export or API post time (**CHN-**), not as a global inventory rule.
+
+```gherkin
+@pending
+Feature: SKU-011 Stock listing images
+
+  Scenario: A scan is the listing image when present
+    Given a stock item with catalog image "https://cards.scryfall.io/normal/front/a/b.jpg"
+    And scan image "https://storage.example.com/scans/neo-0123-nm-front.jpg"
+    When staff view the stock item or resolve its listing image
+    Then the listing image is "https://storage.example.com/scans/neo-0123-nm-front.jpg"
+
+  Scenario: Catalog art is the listing image when no scan exists
+    Given a stock item with catalog image "https://cards.scryfall.io/normal/front/a/b.jpg"
+    And no scan image
+    When staff view the stock item or resolve its listing image
+    Then the listing image is "https://cards.scryfall.io/normal/front/a/b.jpg"
+
+  Scenario: A placeholder is shown when neither image exists
+    Given a stock item with no catalog image and no scan image
+    When staff view the stock item
+    Then a placeholder is shown rather than a broken image
+
+  Scenario: Replacing a scan updates the listing image
+    Given a stock item whose listing image is an existing scan
+    When staff upload a new scan image
+    Then the listing image is the new scan
+    And the catalog image is unchanged
+
+  Scenario: Removing a scan falls back to catalog
+    Given a stock item with both catalog and scan images
+    When staff remove the scan image
+    Then the listing image is the catalog image
+
+  Scenario: Stock is not blocked by price when no scan exists
+    Given a stock item priced at 200.00 with catalog image only
+    When staff create or list the item in the app
+    Then no error requires a scan solely because of its price
+```
+
+**Schema notes (negotiable):**
+
+- `StockItem.catalogImageUri` — reference art (same semantics as today's `CardLine.imageUri` / Scryfall enrichment).
+- `StockItem.scanImageUri` — optional staff or scanner upload of the physical copy.
+- Resolver in future `src/lib/stock/listing-image.ts`: `scanImageUri ?? catalogImageUri ?? null`.
+- v1: one optional scan per stock row. Per-unit photos when on-hand quantity exceeds 1 are a future extension.
+
+**Out of scope (v1):** mandatory photos by shop price threshold; automatic condition detection from images (see **SCN-002**); per-card listing photos on chaos blocks (**CHL-*** aggregate export only).

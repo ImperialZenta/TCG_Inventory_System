@@ -34,6 +34,8 @@ RUN adduser --system --uid 1001 nextjs
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/scripts/db-apply.mjs ./scripts/db-apply.mjs
+COPY --from=builder /app/scripts/seed-stock-smoke.ts ./scripts/seed-stock-smoke.ts
+COPY --from=builder /app/scripts/seed-pick-item-for-block.ts ./scripts/seed-pick-item-for-block.ts
 # `npm run db:seed` runs prisma/seed.ts with tsx, which imports the auth bootstrap
 # from src. Without these the seed script cannot resolve its own imports.
 COPY --from=builder /app/src ./src
@@ -43,7 +45,10 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY docker-entrypoint.sh /app/docker-entrypoint.sh
-RUN sed -i 's/\r$//' /app/docker-entrypoint.sh && chmod +x /app/docker-entrypoint.sh && mkdir -p /app/backups && chown -R nextjs:nodejs /app/backups /app/prisma /app/node_modules
+COPY scripts/worker-entrypoint.sh /app/scripts/worker-entrypoint.sh
+RUN sed -i 's/\r$//' /app/docker-entrypoint.sh /app/scripts/worker-entrypoint.sh \
+  && chmod +x /app/docker-entrypoint.sh /app/scripts/worker-entrypoint.sh \
+  && mkdir -p /app/backups && chown -R nextjs:nodejs /app/backups /app/prisma /app/node_modules
 
 USER nextjs
 EXPOSE 3000

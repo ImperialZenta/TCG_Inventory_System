@@ -26,6 +26,9 @@ export const INVENTORY_EVENT_TYPES = {
   UPLOAD_CSV_GENERATED: "upload.csv_generated",
   UPLOAD_COMPLETED: "upload.completed",
   UPLOAD_CANCELLED: "upload.cancelled",
+  STOCK_MOVEMENT: "stock.movement",
+  OVERSELL_DETECTED: "channel.oversell_detected",
+  OVERSELL_RESOLVED: "channel.oversell_resolved",
 } as const;
 
 export type InventoryEventType =
@@ -37,6 +40,8 @@ export const EVENT_CATEGORIES = {
   staging: "Staging",
   orders: "Orders & picks",
   uploads: "Uploads",
+  stock: "Stock",
+  channels: "Channels",
 } as const;
 
 export type EventCategory = keyof typeof EVENT_CATEGORIES;
@@ -195,6 +200,29 @@ const uploadCancelledPayload = z.object({
   mtgBlockIds: z.array(z.string()),
 });
 
+const stockMovementPayload = z.object({
+  stockItemId: z.string(),
+  name: z.string(),
+  setCode: z.string(),
+  delta: z.number().int(),
+  reason: z.string(),
+  onHandAfter: z.number().int().nonnegative(),
+});
+
+const oversellDetectedPayload = z.object({
+  incidentId: z.string(),
+  stockItemId: z.string(),
+  stockItemName: z.string(),
+  orderRefs: z.array(z.string()),
+});
+
+const oversellResolvedPayload = z.object({
+  incidentId: z.string(),
+  resolution: z.string(),
+  note: z.string().nullable(),
+  stockItemId: z.string(),
+});
+
 export const EVENT_PAYLOAD_SCHEMAS = {
   [INVENTORY_EVENT_TYPES.BLOCK_SEALED]: blockSealedPayload,
   [INVENTORY_EVENT_TYPES.BLOCK_LIFECYCLE]: blockLifecyclePayload,
@@ -219,6 +247,9 @@ export const EVENT_PAYLOAD_SCHEMAS = {
   [INVENTORY_EVENT_TYPES.UPLOAD_CSV_GENERATED]: uploadCsvGeneratedPayload,
   [INVENTORY_EVENT_TYPES.UPLOAD_COMPLETED]: uploadCompletedPayload,
   [INVENTORY_EVENT_TYPES.UPLOAD_CANCELLED]: uploadCancelledPayload,
+  [INVENTORY_EVENT_TYPES.STOCK_MOVEMENT]: stockMovementPayload,
+  [INVENTORY_EVENT_TYPES.OVERSELL_DETECTED]: oversellDetectedPayload,
+  [INVENTORY_EVENT_TYPES.OVERSELL_RESOLVED]: oversellResolvedPayload,
 } as const;
 
 export type EventPayloadMap = {
@@ -245,6 +276,9 @@ export type EventPayloadMap = {
   [INVENTORY_EVENT_TYPES.UPLOAD_CSV_GENERATED]: z.infer<typeof uploadCsvGeneratedPayload>;
   [INVENTORY_EVENT_TYPES.UPLOAD_COMPLETED]: z.infer<typeof uploadCompletedPayload>;
   [INVENTORY_EVENT_TYPES.UPLOAD_CANCELLED]: z.infer<typeof uploadCancelledPayload>;
+  [INVENTORY_EVENT_TYPES.STOCK_MOVEMENT]: z.infer<typeof stockMovementPayload>;
+  [INVENTORY_EVENT_TYPES.OVERSELL_DETECTED]: z.infer<typeof oversellDetectedPayload>;
+  [INVENTORY_EVENT_TYPES.OVERSELL_RESOLVED]: z.infer<typeof oversellResolvedPayload>;
 };
 
 export type RecordableEventType = keyof typeof EVENT_PAYLOAD_SCHEMAS;
@@ -253,6 +287,9 @@ export function getEventCategory(eventType: string): EventCategory {
   if (eventType.startsWith("block.")) return "blocks";
   if (eventType.startsWith("staging.")) return "staging";
   if (eventType.startsWith("upload.")) return "uploads";
+  if (eventType.startsWith("stock.")) return "stock";
+  if (eventType.startsWith("channel.")) return "channels";
+  if (eventType.startsWith("channel.")) return "channels";
   if (
     eventType.startsWith("order.") ||
     eventType.startsWith("pick.") ||
@@ -276,6 +313,10 @@ export function categoryEventTypes(category: EventCategory): string[] | undefine
       );
     case "uploads":
       return Object.values(INVENTORY_EVENT_TYPES).filter((t) => t.startsWith("upload."));
+    case "stock":
+      return Object.values(INVENTORY_EVENT_TYPES).filter((t) => t.startsWith("stock."));
+    case "channels":
+      return Object.values(INVENTORY_EVENT_TYPES).filter((t) => t.startsWith("channel."));
     default:
       return undefined;
   }
